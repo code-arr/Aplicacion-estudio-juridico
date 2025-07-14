@@ -43,7 +43,7 @@ export class UserRepository {
         throw error;
       }
       throw new InternalServerErrorException(
-        'Error inesperado al crear el usuario.',
+        'Error inesperado al crear el usuario. REPOSITORIO',
       );
     }
   }
@@ -52,7 +52,7 @@ export class UserRepository {
       return await this.userRepository.findOne({ where: { email } });
     } catch (error) {
       throw new InternalServerErrorException(
-        'Error al buscar el usuario por email: ' + error.message,
+        'Error al buscar el usuario por email: REPOSITORIO ' + error.message,
       );
     }
   }
