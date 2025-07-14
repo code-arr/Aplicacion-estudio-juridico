@@ -50,7 +50,7 @@ export class Caso {
   })
   clientes: Cliente[];
 
-  // Relación OneToOne con Cronometro: Un caso puede tener un único cronómetro asociado (y viceversa)
-  @OneToOne(() => Cronometro, (cronometro) => cronometro.caso) // 'caso' es la relación inversa en Cronometro
-  cronometro: Cronometro; // Referencia al cronómetro asociado a este caso
+ 
+  @OneToOne(() => Cronometro, (cronometro) => cronometro.caso)
+  cronometro: Cronometro; 
 }
