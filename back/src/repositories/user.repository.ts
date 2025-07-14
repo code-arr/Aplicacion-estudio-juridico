@@ -1,11 +1,16 @@
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { registerUserDto } from 'src/dtos/user.dto';
 import { Usuario } from 'src/entities/usuario.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
-export class userRepository {
+@Injectable()
+export class UserRepository {
   constructor(
     @InjectRepository(Usuario)
     private readonly userRepository: Repository<Usuario>,
@@ -27,14 +32,28 @@ export class userRepository {
         ...user,
         password: hashedPassword,
       });
+      await this.userRepository.save(newUser);
       const { id, password, ...rest } = newUser;
-
+      console.log('Usuario creado:', rest);
+      console.log(newUser.password);
+      
       return rest;
     } catch (error) {
-    if (error instanceof BadRequestException) {
+      if (error instanceof BadRequestException) {
         throw error;
       }
-    throw new InternalServerErrorException("Error inesperado al crear el usuario.");
+      throw new InternalServerErrorException(
+        'Error inesperado al crear el usuario.',
+      );
+    }
+  }
+  async findOneByEmail(email: string): Promise<Usuario | null> {
+    try {
+      return await this.userRepository.findOne({ where: { email } });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error al buscar el usuario por email: ' + error.message,
+      );
     }
   }
 }

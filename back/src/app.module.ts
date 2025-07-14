@@ -5,6 +5,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import typeormConfig from './config/typeorm';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm'; // <-- Importa esto aquí también
+import { JwtModule } from '@nestjs/jwt';
+import { AuthController } from './controllers/auth.controller';
+import { AuthRepository } from './repositories/auth.repository';
+import { UserRepository } from './repositories/user.repository';
+import { UserService } from './services/user.service';
+import { AuthModule } from './modules/auth.module';
 
 @Module({
   imports: [
@@ -17,8 +23,15 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm'; // <-- Importa esto aqu�
         return options;
       },
     }),
+     JwtModule.register({
+      global: true,
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '1d' },
+    }),
+    AuthModule
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController ],
+  providers: [AppService ],
+
 })
 export class AppModule {}
