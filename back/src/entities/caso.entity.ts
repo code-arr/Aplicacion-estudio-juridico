@@ -4,14 +4,15 @@ import {
   Column,
   ManyToMany,
   JoinTable,
-  ManyToOne,
-  OneToOne, // Asegúrate de que OneToOne esté aquí
+  OneToMany, // Asegúrate de que OneToOne esté aquí
 } from 'typeorm';
 import { IsUUID } from 'class-validator';
 import { v4 as uuid } from 'uuid';
 import { Abogado } from './abogado.entity';
 import { Cliente } from './cliente.entity';
 import { Cronometro } from './cronometro.entity'; // Asegúrate de que Cronometro esté aquí
+import { Documento } from './documento.entity';
+import { Reunion } from './reunion.entity'; // Asegúrate de que Reunion esté aquí
 
 @Entity('casos') // Nombre de la tabla en la base de datos
 export class Caso {
@@ -32,8 +33,8 @@ export class Caso {
   meetings: any[];
 
   // Relación ManyToOne con Abogado: Un caso pertenece a un único abogado
-  @ManyToOne(() => Abogado, (abogado) => abogado.casos)
-  abogado: Abogado;
+  @ManyToMany(() => Abogado, (abogado) => abogado.casos)
+  abogados: Abogado[];
 
   // Relación ManyToMany con Cliente: Un caso puede tener varios clientes y un cliente puede tener varios casos
   @ManyToMany(() => Cliente, (cliente) => cliente.casos)
@@ -50,7 +51,9 @@ export class Caso {
   })
   clientes: Cliente[];
 
- 
-  @OneToOne(() => Cronometro, (cronometro) => cronometro.caso)
-  cronometro: Cronometro; 
+  @OneToMany(() => Documento, (documento) => documento.caso, { nullable: true })
+  documentos: Documento[];
+
+  @OneToMany(() => Reunion, (reunion) => reunion.caso, { nullable: true })
+  reuniones: Reunion[];
 }

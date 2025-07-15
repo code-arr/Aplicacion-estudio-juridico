@@ -2,7 +2,6 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTabl
 import { IsUUID } from 'class-validator'; // Importar IsUUID para validación
 import { v4 as uuid } from 'uuid'; // Importar uuid para la generación del ID
 import { Caso } from './caso.entity';
-import { join } from 'path';
 import { Abogado } from './abogado.entity';
 import { Cronometro } from './cronometro.entity';
 
@@ -22,7 +21,7 @@ export class Cliente {
   @OneToMany(() => Caso, (caso) => caso.clientes)
   casos: Caso[];
 
-  @OneToMany(() => Abogado, (abogado) => abogado.cliente)
+  @ManyToMany(() => Abogado, (abogado) => abogado.clientes)
     abogados: Abogado[];
 
   @OneToMany(() => Cronometro, (cronometro) => cronometro.cliente)
