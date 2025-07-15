@@ -1,8 +1,14 @@
-import { Column, Entity, OneToOne, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryColumn,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { IsUUID } from 'class-validator';
 import { Administrador } from './admin.entity';
 import { Abogado } from './abogado.entity';
-
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -25,15 +31,14 @@ export class Usuario {
     enum: UserRole,
     default: UserRole.ABOGADO,
   })
-    role: UserRole;
+  role: UserRole;
 
-    //relacion con admin
-    @OneToOne(() => Administrador, (admin) => admin.usuario)
-    admin: Administrador;
+  //relacion con admin
+  @OneToOne(() => Administrador, (admin) => admin.usuario)
+  admin: Administrador;
 
-    //relacion con abogado
-    @OneToOne(() => Abogado, (abogado) => abogado.usuario)
-    abogado: Abogado;
+  //relacion con abogado
+  @OneToOne(() => Abogado, (abogado) => abogado.usuario)
+  @JoinColumn() // <-- ¡Esta es la clave para el problema!
+  abogado: Abogado;
 }
-    
- 
