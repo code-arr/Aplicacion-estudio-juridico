@@ -1,5 +1,5 @@
 import { IsUUID } from 'class-validator';
-import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { Usuario } from './usuario.entity';
 import { Caso } from './caso.entity';
@@ -30,6 +30,15 @@ export class Abogado {
   @Column({ type: 'varchar', length: 100 })
   apellido: string;
 
+  @Column({ type: 'varchar', length: 100, unique: true })
+  direccion: string;
+
+  @Column({ type: 'varchar', length: 15, unique: true })
+  telefono: string;
+
+  @Column({ type: 'varchar', length: 100, unique: true })
+  rut : string;
+
   @Column({
     type: 'enum',
     enum: tipoAbogado,
@@ -51,7 +60,7 @@ export class Abogado {
   usuario: Usuario;
 
   //relacion con con caso
-  @OneToMany(() => Caso, (caso) => caso.abogado)
+  @ManyToMany(() => Caso, (caso) => caso.abogados)
   casos: Caso[];
   
   //relacion con cronometro
@@ -59,6 +68,6 @@ export class Abogado {
   cronometros: Cronometro[];
 
   //relacion con cliente
-  @ManyToOne(() => Cliente, (cliente) => cliente.abogados)
-  cliente: Cliente;
+  @ManyToMany(() => Cliente, (cliente) => cliente.abogados)
+  clientes: Cliente[];
 }
