@@ -1,5 +1,5 @@
 import { IsUUID } from 'class-validator';
-import { Column, Entity, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinTable, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { Usuario } from './usuario.entity';
 import { Caso } from './caso.entity';
@@ -60,15 +60,40 @@ export class Abogado {
   @OneToOne(() => Usuario, (usuario) => usuario.abogado)
   usuario: Usuario;
 
-  //relacion con con caso
-  @ManyToMany(() => Caso, (caso) => caso.abogados)
-  casos: Caso[];
-  
+ 
   //relacion con cronometro
+@ManyToMany(() => Caso, (caso) => caso.abogados)
+  @JoinTable({
+    name: 'abogados_casos', // Nombre de la tabla intermedia
+    joinColumn: {
+      name: 'abogadoId', // Nombre de la columna que referencia al Abogado en la tabla intermedia
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'casoId', // Nombre de la columna que referencia al Caso en la tabla intermedia
+      referencedColumnName: 'id',
+    },
+  })
+  casos: Caso[];
+
+  // Relación One-to-Many con Cronometro
+  // Un abogado puede tener muchos cronómetros. La clave foránea estará en la tabla 'cronometros'.
   @OneToMany(() => Cronometro, (cronometro) => cronometro.abogado)
   cronometros: Cronometro[];
 
-  //relacion con cliente
+  // Relación Many-to-Many con Cliente
+  // Abogado es el propietario: se creará una tabla intermedia 'abogados_clientes'.
   @ManyToMany(() => Cliente, (cliente) => cliente.abogados)
+  @JoinTable({
+    name: 'abogados_clientes', // Nombre de la tabla intermedia
+    joinColumn: {
+      name: 'abogadoId', // Nombre de la columna que referencia al Abogado en la tabla intermedia
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'clienteId', // Nombre de la columna que referencia al Cliente en la tabla intermedia
+      referencedColumnName: 'id',
+    },
+  })
   clientes: Cliente[];
 }

@@ -35,6 +35,7 @@ export class Usuario {
 
   //relacion con admin
   @OneToOne(() => Administrador, (admin) => admin.usuario)
+  @JoinColumn() 
   admin: Administrador;
 
   //relacion con abogado
