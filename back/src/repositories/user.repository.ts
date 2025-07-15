@@ -8,6 +8,7 @@ import { registerUserDto } from 'src/dtos/user.dto';
 import { Usuario } from 'src/entities/usuario.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { usersSeedData } from 'src/utils/usuarios';
 
 @Injectable()
 export class UserRepository {
@@ -15,6 +16,20 @@ export class UserRepository {
     @InjectRepository(Usuario)
     private readonly userRepository: Repository<Usuario>,
   ) {}
+
+  async userSeedData(): Promise<string> {
+    try {
+      const users = usersSeedData;
+      for (const user of users) {
+        await this.createUser(user);
+      }
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error inesperado al hacer el seed de los usuarios. REPOSITORIO',
+      );
+    }
+    return 'Seed de usuarios completado exitosamente.';
+  }
 
   async createUser(user: registerUserDto): Promise<Partial<Usuario> | void> {
     try {
@@ -36,7 +51,7 @@ export class UserRepository {
       const { id, password, ...rest } = newUser;
       console.log('Usuario creado:', rest);
       console.log(newUser.password);
-      
+
       return rest;
     } catch (error) {
       if (error instanceof BadRequestException) {

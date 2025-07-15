@@ -11,6 +11,8 @@ import { AuthRepository } from './repositories/auth.repository';
 import { UserRepository } from './repositories/user.repository';
 import { UserService } from './services/user.service';
 import { AuthModule } from './modules/auth.module';
+import { UsersModule } from './modules/users.module';
+import { AbogadoModule } from './modules/abogado.module';
 
 @Module({
   imports: [
@@ -28,7 +30,9 @@ import { AuthModule } from './modules/auth.module';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1d' },
     }),
-    AuthModule
+    AuthModule,
+    UsersModule,
+    AbogadoModule
   ],
   controllers: [AppController ],
   providers: [AppService ],

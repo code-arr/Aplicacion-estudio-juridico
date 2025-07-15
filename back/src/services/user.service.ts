@@ -6,7 +6,10 @@ import { UserRepository } from 'src/repositories/user.repository';
 @Injectable()
 export class UserService {
   constructor(private userRepository: UserRepository) {}
-
+  
+  async userSeedData(): Promise<string> {
+    return this.userRepository.userSeedData();
+  }
   async findOneByEmail(email: string): Promise<Usuario | null> {
     return this.userRepository.findOneByEmail(email);
   }

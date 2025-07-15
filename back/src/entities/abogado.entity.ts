@@ -44,13 +44,14 @@ export class Abogado {
     enum: tipoAbogado,
     nullable : true,
   })
+  tipoAbogado: tipoAbogado;
 
   @Column({
     type: 'enum',
     enum: SeniorityLevel,
     nullable: true,
   })
-  tipo:SeniorityLevel;
+  seniorityLevel: SeniorityLevel;
 
   @Column({type: 'int', default: 0})
   horasTrabajadas: number;
