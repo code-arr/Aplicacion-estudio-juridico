@@ -1,0 +1,18 @@
+import { Body, Controller, Post } from "@nestjs/common";
+import { CreateClienteDto } from "src/dtos/cliente";
+import { ClienteService } from "src/services/cliente.service";
+
+@Controller('clientes')
+export class ClienteController {
+    constructor(private readonly clienteService: ClienteService) {}
+
+    @Post()
+    async createCliente(@Body() clienteData: CreateClienteDto): Promise<any> {
+        return this.clienteService.createCliente(clienteData);
+    }
+
+    @Post('seeder')
+    async seedClientes(): Promise<string> {
+        return this.clienteService.seedClientes();
+    }
+}

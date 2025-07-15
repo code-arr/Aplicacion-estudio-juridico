@@ -8,6 +8,10 @@ export class AbogadoController {
   async seedData() {
     return this.abogadoService.seedData();
   }
+  @Post("seederClientes")
+  async seedAbogadosClientes() {
+    return this.abogadoService.seedClienteAbogados();
+  }
   @Get('')
   async getAllAbogados() {
     return this.abogadoService.getAllAbogados();

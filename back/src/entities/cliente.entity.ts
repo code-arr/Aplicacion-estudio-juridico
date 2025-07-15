@@ -18,6 +18,18 @@ export class Cliente {
   @Column()
   lastName: string; 
 
+  @Column()
+  email: string;
+
+  @Column()
+  phone: string;
+
+  @Column({ nullable: true })
+  address: string;
+
+  @Column()
+  rut : string;
+
   @OneToMany(() => Caso, (caso) => caso.clientes)
   casos: Caso[];
 

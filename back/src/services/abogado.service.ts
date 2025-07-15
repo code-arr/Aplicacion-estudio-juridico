@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { AbogadoDto } from "src/dtos/abogado";
+import { AbogadoDto } from "src/dtos/abogado.dto";
 import { Abogado } from "src/entities/abogado.entity";
 import { AbogadoRepository } from "src/repositories/abogado.repository";
 
@@ -14,5 +14,9 @@ export class AbogadoService {
 
  async getAllAbogados(): Promise<Abogado[]> {
     return this.abogadoRepository.getAllAbogados();
+  }
+
+  async seedClienteAbogados(): Promise<string> {
+    return this.abogadoRepository.seedClientesAbogados();
   }
 }

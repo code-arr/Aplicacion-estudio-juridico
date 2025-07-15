@@ -1,0 +1,45 @@
+import {
+  IsString,
+  IsNotEmpty,
+  IsEmail,
+  IsPhoneNumber,
+  IsOptional,
+  Length,
+} from 'class-validator';
+
+
+export class CreateClienteDto {
+  @IsString({ message: 'El nombre debe ser una cadena de texto.' })
+  @IsNotEmpty({ message: 'El nombre no puede estar vacío.' })
+  name: string;
+
+  @IsString({ message: 'El apellido debe ser una cadena de texto.' })
+  @IsNotEmpty({ message: 'El apellido no puede estar vacío.' })
+  lastName: string;
+
+  @IsEmail(
+    {},
+    {
+      message: 'El correo electrónico debe ser una dirección de email válida.',
+    },
+  )
+  @IsNotEmpty({ message: 'El correo electrónico no puede estar vacío.' })
+  email: string;
+
+  @IsString({ message: 'El teléfono debe ser una cadena de texto.' }) // Se puede usar IsPhoneNumber si se necesita validación de formato más estricta
+  @IsNotEmpty({ message: 'El número de teléfono no puede estar vacío.' })
+  // @IsPhoneNumber('AR', { message: 'El número de teléfono debe ser válido para Argentina.' }) // Ejemplo para Argentina
+  phone: string;
+
+  @IsString({ message: 'La dirección debe ser una cadena de texto.' })
+  @IsNotEmpty({ message: 'La dirección no puede estar vacía.' })
+  address: string; // Usar '?' para indicar que es opcional en TypeScript
+
+  @IsString({ message: 'El RUT/DNI debe ser una cadena de texto.' })
+  @IsNotEmpty({ message: 'El RUT/DNI no puede estar vacío.' })
+  @Length(10, 12, {
+    message:
+      'El RUT/DNI debe tener entre 10 y 12 caracteres (incluyendo puntos y guión).',
+  }) // Ajusta el Length según el formato exacto de tu RUT/DNI
+  rut: string;
+}
