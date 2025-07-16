@@ -15,6 +15,7 @@ import { UsersModule } from './modules/users.module';
 import { AbogadoModule } from './modules/abogado.module';
 import { AdminModule } from './modules/admin.module';
 import { ClienteModule } from './modules/cliente.module';
+import { CasoModule } from './modules/caso.module';
 
 @Module({
   imports: [
@@ -36,7 +37,8 @@ import { ClienteModule } from './modules/cliente.module';
     UsersModule,
     AbogadoModule,
     AdminModule,
-    ClienteModule
+    ClienteModule,
+    CasoModule
   ],
   controllers: [AppController ],
   providers: [AppService ],

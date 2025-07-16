@@ -21,4 +21,7 @@ export class ClienteService {
   async findByEmail(email: string): Promise<Cliente | null> {
     return this.clienteRepository.findByEmail(email);
   }
+  async getClienteById(id: string): Promise<Cliente | null> {
+    return this.clienteRepository.getClienteById(id);
+  }
 }
