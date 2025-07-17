@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post } from "@nestjs/common";
 import { CreateClienteDto } from "src/dtos/cliente";
 import { ClienteService } from "src/services/cliente.service";
 
@@ -14,5 +14,9 @@ export class ClienteController {
     @Post('seeder')
     async seedClientes(): Promise<string> {
         return this.clienteService.seedClientes();
+    }
+    @Get(':id')
+    async getClienteById(@Param('id') id: string) {
+        return this.clienteService.getClienteById(id);
     }
 }

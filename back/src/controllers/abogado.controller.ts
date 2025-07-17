@@ -1,4 +1,4 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Param, Post } from '@nestjs/common';
 import { AbogadoService } from 'src/services/abogado.service';
 
 @Controller('abogados')
@@ -15,5 +15,13 @@ export class AbogadoController {
   @Get('')
   async getAllAbogados() {
     return this.abogadoService.getAllAbogados();
+  }
+  @Post('seederCasos')
+  async seedCasosAbogadosyClientes() {
+    return this.abogadoService.seedCasosAbogadosyClientes();
+  }
+  @Get(':id')
+  async getAbogadoById(@Param('id') id: string) {
+    return this.abogadoService.getAbogadoById(id);
   }
 }

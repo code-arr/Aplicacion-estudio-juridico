@@ -37,19 +37,20 @@ export class Caso {
   abogados: Abogado[];
 
   // Relación ManyToMany con Cliente: Un caso puede tener varios clientes y un cliente puede tener varios casos
-  @ManyToMany(() => Cliente, (cliente) => cliente.casos)
-  @JoinTable({
-    name: 'casos_clientes', // Nombre de la tabla intermedia
-    joinColumn: {
-      name: 'casoId',
-      referencedColumnName: 'id',
-    },
-    inverseJoinColumn: {
-      name: 'clienteId',
-      referencedColumnName: 'id',
-    },
-  })
-  clientes: Cliente[];
+ // En Caso.entity.ts
+@ManyToMany(() => Cliente, (cliente) => cliente.casos)
+@JoinTable({
+  name: 'casos_clientes', // Nombre de la tabla intermedia
+  joinColumn: {
+    name: 'casoId', // Columna en 'casos_clientes' que apunta al ID del Caso
+    referencedColumnName: 'id',
+  },
+  inverseJoinColumn: {
+    name: 'clienteId', // Columna en 'casos_clientes' que apunta al ID del Cliente
+    referencedColumnName: 'id',
+  },
+})
+clientes: Cliente[];
 
   @OneToMany(() => Documento, (documento) => documento.caso, { nullable: true })
   documentos: Documento[];

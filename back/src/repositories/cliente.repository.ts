@@ -30,4 +30,7 @@ export class ClienteRepository {
   async findByEmail(email: string): Promise<Cliente | null> {
     return this.clienteRepository.findOneBy({email})
   }
+  async getClienteById(id: string): Promise<Cliente | null> {
+    return this.clienteRepository.findOne({ where: { id } , relations: ['abogados' , 'casos'] });
+  }
 }

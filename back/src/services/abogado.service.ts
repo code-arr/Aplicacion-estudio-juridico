@@ -19,4 +19,10 @@ export class AbogadoService {
   async seedClienteAbogados(): Promise<string> {
     return this.abogadoRepository.seedClientesAbogados();
   }
+  async seedCasosAbogadosyClientes(): Promise<string | undefined>{
+    return this.abogadoRepository.seedCasosAbogadosyClientes();
+  } 
+  async getAbogadoById(id: string): Promise<Abogado | null> {
+    return this.abogadoRepository.getAbogadoById(id);
+  }
 }
