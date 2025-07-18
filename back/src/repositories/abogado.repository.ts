@@ -27,7 +27,13 @@ export class AbogadoRepository {
     return this.repository.save(newAbogado);
   }
   async getAllAbogados(): Promise<Abogado[]> {
-    return this.repository.find({ relations: ['usuario', 'clientes'] });
+    return this.repository.find({ relations: [ 'clientes'] });
+  }
+  async getAbogadoByEmail(email: string): Promise<Abogado | null> {
+    return this.repository.findOne({ where: { usuario: { email } } , relations: ['usuario' , 'clientes' , 'casos'] });
+  }
+  async saveAbogado(abogado: Abogado): Promise<Abogado> {
+    return this.repository.save(abogado);
   }
   async seedData(): Promise<string> {
     try {
