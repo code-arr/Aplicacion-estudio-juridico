@@ -6,8 +6,8 @@ import { ClienteRepository } from "src/repositories/cliente.repository";
 export class ClienteService {
   constructor(private readonly clienteRepository: ClienteRepository) {}
 
-  async createCliente(clienteData: any): Promise<any> {
-    return this.clienteRepository.createCliente(clienteData);
+  async createCliente(clienteData: any, abogadoId? : string): Promise<any> {
+    return this.clienteRepository.createCliente(clienteData , abogadoId);
   }
 
 

@@ -7,8 +7,8 @@ export class ClienteController {
     constructor(private readonly clienteService: ClienteService) {}
 
     @Post()
-    async createCliente(@Body() clienteData: CreateClienteDto): Promise<any> {
-        return this.clienteService.createCliente(clienteData);
+    async createCliente(@Body() clienteData: CreateClienteDto , @Body('abogadoId') abogadoId: string): Promise<any> {
+        return this.clienteService.createCliente(clienteData , abogadoId);
     }
 
     @Post('seeder')
@@ -18,5 +18,9 @@ export class ClienteController {
     @Get(':id')
     async getClienteById(@Param('id') id: string) {
         return this.clienteService.getClienteById(id);
+    }
+    @Get()
+    async getAllClientes() {
+        return this.clienteService.getAllClientes();
     }
 }

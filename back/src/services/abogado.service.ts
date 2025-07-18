@@ -25,4 +25,10 @@ export class AbogadoService {
   async getAbogadoById(id: string): Promise<Abogado | null> {
     return this.abogadoRepository.getAbogadoById(id);
   }
+  async getAbogadoByEmail(email: string): Promise<Abogado | null> {
+    return this.abogadoRepository.getAbogadoByEmail(email);
+  }
+  async saveAbogado(abogado: Abogado): Promise<Abogado> {
+    return this.abogadoRepository.saveAbogado(abogado);
+  }
 }
