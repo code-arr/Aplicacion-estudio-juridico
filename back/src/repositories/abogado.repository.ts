@@ -169,7 +169,7 @@ export class AbogadoRepository {
   }
   
   async  getAbogadoById(id: string): Promise<Abogado | null> {
-    return await this.repository.findOne({ where: { id } , relations: ['clientes' , 'casos' , 'usuario'] });
+    return await this.repository.findOne({ where: { id } , relations: [ "clientes.casos" , 'casos.cliente' , 'usuario'] });
   }
 
 }

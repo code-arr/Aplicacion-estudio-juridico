@@ -30,7 +30,7 @@ export class Cliente {
   @Column()
   rut : string;
 
-  @ManyToMany(() => Caso, (caso) => caso.clientes)
+  @OneToMany(() => Caso, (caso) => caso.cliente)
   casos: Caso[]; // Sin @JoinTable aquí
 
   @ManyToMany(() => Abogado, (abogado) => abogado.clientes)

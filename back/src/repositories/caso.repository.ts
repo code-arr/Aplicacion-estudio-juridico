@@ -12,7 +12,7 @@ export class CasoRepository {
   ) {}
 
   async getAllCasos(): Promise<Caso[]> {
-    return this.Casorepository.find();
+    return this.Casorepository.find({relations: ['abogados', 'clientes']});
   }
 
   async createCaso(caso: CasoDto): Promise<Caso> {
@@ -40,4 +40,7 @@ export class CasoRepository {
   async findOneByTitle(title: string): Promise<Caso | null> {
     return this.Casorepository.findOne({ where: { title } });
   }
+
+  
+
 }
