@@ -4,7 +4,8 @@ import {
   Column,
   ManyToMany,
   JoinTable,
-  OneToMany, // Asegúrate de que OneToOne esté aquí
+  OneToMany,
+  ManyToOne, // Asegúrate de que OneToOne esté aquí
 } from 'typeorm';
 import { IsUUID } from 'class-validator';
 import { v4 as uuid } from 'uuid';
@@ -38,19 +39,9 @@ export class Caso {
 
   // Relación ManyToMany con Cliente: Un caso puede tener varios clientes y un cliente puede tener varios casos
  // En Caso.entity.ts
-@ManyToMany(() => Cliente, (cliente) => cliente.casos)
-@JoinTable({
-  name: 'casos_clientes', // Nombre de la tabla intermedia
-  joinColumn: {
-    name: 'casoId', // Columna en 'casos_clientes' que apunta al ID del Caso
-    referencedColumnName: 'id',
-  },
-  inverseJoinColumn: {
-    name: 'clienteId', // Columna en 'casos_clientes' que apunta al ID del Cliente
-    referencedColumnName: 'id',
-  },
-})
-clientes: Cliente[];
+@ManyToOne(() => Cliente, (cliente) => cliente.casos)
+
+  cliente: Cliente;
 
   @OneToMany(() => Documento, (documento) => documento.caso, { nullable: true })
   documentos: Documento[];

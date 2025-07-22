@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post } from "@nestjs/common";
 import { CasoDto } from "src/dtos/caso.dto";
 import { Caso } from "src/entities/caso.entity";
 import { CasoService } from "src/services/caso.service";
@@ -16,4 +16,11 @@ export class CasoController {
     async seedData(): Promise<string> {
         return this.casoService.seedData();
     }
+    
+    @Get()
+    async getAllCasos(): Promise<Caso[]> {
+        return this.casoService.getAllCasos();
+    }
+
+   
 }
