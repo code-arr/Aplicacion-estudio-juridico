@@ -1,0 +1,77 @@
+import type { Client } from "@/types/Client";
+
+// Mock data - en una aplicación real esto vendría de una API
+export const mockClients: Client[] = [
+  {
+    id: "1",
+    firstName: "María",
+    lastName: "González López",
+    dni: "44123723",
+    phone: "2613748269",
+    email: "tomsguignet9@gmail.com",
+    profileImage:
+      "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400",
+    clientStatus: "activo",
+    updatedAt: "15 Dic 2024",
+    createdAt: "11 Jun 2002",
+  },
+  {
+    id: "2",
+    firstName: "Carlos",
+    lastName: "Rodríguez Mendez",
+    dni: "44123721",
+    phone: "2613748269",
+    email: "tomsguignet9@gmail.com",
+    clientStatus: "en revision",
+    updatedAt: "12 Dic 2024",
+    createdAt: "11 Jun 2002",
+  },
+  {
+    id: "3",
+    firstName: "Ana",
+    lastName: "Martínez Silva",
+    dni: "44123722",
+    phone: "2613748269",
+    email: "tomsguignet9@gmail.com",
+    profileImage:
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400",
+    clientStatus: "activo",
+    updatedAt: "10 Dic 2024",
+    createdAt: "11 Jun 2002",
+  },
+  {
+    id: "4",
+    firstName: "Roberto",
+    lastName: "Fernández Cruz",
+    dni: "44123724",
+    phone: "2613748269",
+    email: "tomsguignet9@gmail.com",
+    clientStatus: "inactivo",
+    updatedAt: "8 Dic 2024",
+    createdAt: "11 Jun 2002",
+  },
+  {
+    id: "5",
+    firstName: "Laura",
+    lastName: "Jiménez Herrera",
+    dni: "44123725",
+    phone: "2613748269",
+    email: "tomsguignet9@gmail.com",
+    clientStatus: "activo",
+    updatedAt: "5 Dic 2024",
+    createdAt: "11 Jun 2002",
+  },
+  {
+    id: "6",
+    firstName: "Francisco",
+    lastName: "Torres Ruiz",
+    dni: "44123726",
+    phone: "2613748269",
+    email: "tomsguignet9@gmail.com",
+    profileImage:
+      "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=400",
+    clientStatus: "en revision",
+    updatedAt: "3 Dic 2024",
+    createdAt: "11 Jun 2002",
+  },
+];
