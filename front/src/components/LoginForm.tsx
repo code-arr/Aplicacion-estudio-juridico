@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,43 +6,61 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardError,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Scale } from "lucide-react";
+import type { LoginError } from "@/types/LoginError";
 
-interface LoginFormProps {
+type LoginFormProps = {
   onLogin: (email: string, password: string) => void;
-}
+  error: LoginError;
+  setError: React.Dispatch<React.SetStateAction<LoginError>>;
+  email: string;
+  setEmail: React.Dispatch<React.SetStateAction<string>>;
+  password: string;
+  setPassword: React.Dispatch<React.SetStateAction<string>>;
+};
 
-const LoginForm = ({ onLogin }: LoginFormProps) => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+const LoginForm = ({
+  onLogin,
+  error,
+  setError,
+  email,
+  setEmail,
+  password,
+  setPassword,
+}: LoginFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
-      setError("Por favor complete todos los campos.");
-      return;
+      return setError({
+        status: true,
+        message: "Por favor complete todos los campos.",
+      });
     }
 
-    setError("");
     setIsLoading(true);
-
-    // Simulamos una espera de 2 segundos
-    setTimeout(() => {
-      onLogin(email, password);
-      setIsLoading(false);
-    }, 2000);
 
     try {
       await onLogin(email, password); // asumimos que esta función puede demorar
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (error.status) setError({ status: false, message: "" });
+    setEmail(e.target.value);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (error.status) setError({ status: false, message: "" });
+    setPassword(e.target.value);
   };
 
   return (
@@ -69,6 +87,11 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
               Ingrese sus credenciales para acceder al sistema
             </CardDescription>
           </CardHeader>
+          {error.status && (
+            <CardError className="flex justify-self-center w-fit">
+              {error.message}
+            </CardError>
+          )}
           <CardContent>
             <form onSubmit={handleSubmit} className="flex flex-col space-y-6">
               <div className="flex flex-col space-y-3">
@@ -78,7 +101,7 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
                   type="email"
                   placeholder="abogado@estudio.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleEmailChange}
                   required
                   className="w-full h-11 px-4 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -90,15 +113,17 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
                   type="password"
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
                   required
                   className="w-full h-11 px-4 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
-              {error && (
-                <p className="text-red-500 text-sm text-center mt-2">{error}</p>
-              )}
+              {/* {error && (
+                <p className="text-red-500  text-sm text-center mt-2">
+                  {error}
+                </p>
+              )} */}
 
               <Button
                 type="submit"

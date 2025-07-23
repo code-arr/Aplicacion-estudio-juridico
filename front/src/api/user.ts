@@ -17,7 +17,7 @@ export const loginUser = async (
     });
     return response.data;
   } catch (error) {
-    console.log("No se pudo restaurar la sesión:", error);
+    console.log("No se pudo iniciar sesión:", error);
     throw error;
   }
 };

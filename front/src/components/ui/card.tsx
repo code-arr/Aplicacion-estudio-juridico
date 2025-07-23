@@ -72,6 +72,20 @@ const CardFooter = React.forwardRef<
 ));
 CardFooter.displayName = "CardFooter";
 
+const CardError = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "text-sm text-slate-50 bg-red-500 text-center mb-4 p-1.5 rounded-sm",
+      className
+    )}
+    {...props}
+  />
+));
+
 export {
   Card,
   CardHeader,
@@ -79,4 +93,5 @@ export {
   CardTitle,
   CardDescription,
   CardContent,
+  CardError,
 };

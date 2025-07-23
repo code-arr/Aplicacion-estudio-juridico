@@ -29,7 +29,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   isAdmin: false,
   isLawyer: false,
   showInactivityModal: false,
-  login: async (user: User, token) => {
+  login: async (user: User, token: string) => {
     await window.electronAPI.invoke("auth:save", {
       token,
       id: user.id,
