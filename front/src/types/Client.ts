@@ -1,3 +1,6 @@
+import type { Case } from "./Case";
+import type { Lawyer } from "./Lawyer";
+
 export type ClientStatus = "activo" | "inactivo" | "en_revision";
 
 export interface Client {
@@ -13,4 +16,6 @@ export interface Client {
   clientStatus: ClientStatus;
   createdAt: string; // ISO date string
   updatedAt: string;
+  cases?: Case[];
+  lawyers?: Lawyer[];
 }

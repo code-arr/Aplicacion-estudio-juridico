@@ -1,30 +1,38 @@
 import { useEffect, useState } from "react";
 import LoginForm from "@/components/LoginForm";
-import DashboardRouter from "@/routes/DashboardRouter";
-import { restoreSession, useAuthStore } from "@/store/useAuthStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { loginUser } from "@/api/user";
 import { Spinner } from "@radix-ui/themes";
 import type { LoginError } from "@/types/LoginError";
 import { mockUser } from "@/mocks/mockUser";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { isLoggedIn, login, isLoadingSession } = useAuthStore();
+  const { isLoggedIn, login, isLoadingSession, user, isAdmin, isLawyer } =
+    useAuthStore();
   const [error, setError] = useState<LoginError>({
     status: false,
     message: "",
   });
 
   useEffect(() => {
-    restoreSession();
-  }, []);
+    if (isLoggedIn && user) {
+      if (isLawyer) {
+        navigate("/lawyerDashboard", { replace: true });
+      } else if (isAdmin) {
+        navigate("/adminDashboard", { replace: true });
+      }
+    }
+  }, [isLoggedIn, user, navigate, isAdmin, isLawyer]);
 
   const handleLogin = async (email: string, password: string) => {
     try {
       /* const { user, token } = await loginUser(email, password); */
       const { user, token } = { user: mockUser, token: "veverv777777erge" };
-      login(user, token);
+      await login(user, token);
     } catch (error) {
       console.log(error);
       setError({
@@ -34,10 +42,10 @@ const LoginPage = () => {
       setPassword("");
     }
   };
-
-  if (isLoadingSession) {
+  //Creo que es redundante ya que en AppRoutes y DashboardRouter ya lo renderiza mientras verifica si se puede restaurar la sesion
+  /* if (isLoadingSession) {
     return <Spinner size={"3"} />; //Despues puedo cambiarlo por algo mas pro
-  }
+  } */
 
   if (!isLoggedIn) {
     return (
@@ -53,7 +61,7 @@ const LoginPage = () => {
     );
   }
 
-  return <DashboardRouter />;
+  return null;
 };
 
 export default LoginPage;

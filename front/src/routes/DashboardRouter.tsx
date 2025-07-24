@@ -3,25 +3,35 @@ import { useAuthStore } from "@/store/useAuthStore";
 import AdminDashboard from "@/pages/AdminDashboard";
 import LawyerDashboard from "@/pages/LawyerDashboard";
 import ClientDetail from "@/pages/ClientDetail";
+import UnauthorizedAccess from "@/components/UnauthorizedAccess";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const DashboardRouter = () => {
+  console.log("[DEBUG] Ruta actual:", window.location.hash);
   // obtenés el rol del usuario desde Zustand
-  const { user } = useAuthStore();
+  const { isLoadingSession, isAdmin, isLawyer } = useAuthStore();
 
-  if (!user) return <Navigate to="/" />;
+  // Mostrar spinner o nada mientras carga
+  if (isLoadingSession) return <LoadingScreen />;
 
-  if (user.role === "lawyer") {
-    return (
-      <Routes>
-        <Route path="/" element={<LawyerDashboard />} />
-        <Route path="clientes/:id" element={<ClientDetail />} />
-      </Routes>
-    );
-  }
+  return (
+    <Routes>
+      {isLawyer && (
+        <>
+          <Route path="lawyerDashboard" element={<LawyerDashboard />} />
+          <Route
+            path="lawyerDashboard/clients/:id"
+            element={<ClientDetail />}
+          />
+        </>
+      )}
 
-  // admin route...
+      {isAdmin && <Route path="adminDashboard" element={<AdminDashboard />} />}
 
-  return <p>Rol no autorizado</p>; // fallback si el rol no es reconocido
+      {/* fallback por si no coincide nada */}
+      <Route path="*" element={<UnauthorizedAccess />} />
+    </Routes>
+  );
 };
 
 export default DashboardRouter;

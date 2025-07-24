@@ -7,7 +7,9 @@ type PrivateRouteProps = {
 };
 
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
-  const { isLoggedIn } = useAuthStore();
+  const { isLoggedIn, isLoadingSession } = useAuthStore();
+
+  if (isLoadingSession) return null;
 
   if (!isLoggedIn) {
     return <Navigate to="/" replace />;

@@ -139,6 +139,7 @@ const LoginForm = ({
 
               <Button
                 type="button"
+                variant={"link"}
                 className="text-[#576175] underline text-sm hover:text-blue-700 transition-colors"
               >
                 ¿Olvidaste tu contraseña?

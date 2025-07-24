@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+/* import { useNavigate } from "react-router-dom"; */
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AppSidebar from "@components/AppSidebar";
 import { mockClients } from "@/mocks/mockClients";
@@ -15,10 +15,24 @@ import {
 import { Search, Plus } from "lucide-react";
 import type { Client } from "@/types/Client";
 import ClientCard from "@components/ClientCard";
+import { mockLawyer } from "@/mocks/mockLawyer";
+import {
+  Dialog,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@components/ui/dialog";
+import { DialogContent } from "@radix-ui/react-dialog";
+import { Label } from "@components/ui/label";
 
 const LawyerDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientCaseType, setNewClientCaseType] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const filteredClients = mockClients.filter((client) => {
     const matchesSearch =
@@ -44,14 +58,74 @@ const LawyerDashboard = () => {
       .length;
   };
 
+  const handleAddClient = () => {
+    if (!newClientName.trim() || !newClientCaseType.trim()) {
+      /* toast({
+        title: "Error",
+        description: "Por favor complete todos los campos",
+        variant: "destructive"
+      }); */
+      return;
+    }
+  };
+
+  /* onAddClient(newClientName.trim(), newClientCaseType.trim());
+    setNewClientName('');
+    setNewClientCaseType('');
+    setIsDialogOpen(false);
+    
+    toast({
+      title: "Cliente agregado",
+      description: `${newClientName} ha sido agregado correctamente`
+    }); */
+
   const onLogout = () => {};
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar lawyerEmail={"tomas@gmail.com"} onLogout={onLogout} />
+        <AppSidebar lawyer={mockLawyer} onLogout={onLogout} />
 
         <main className="flex-1">
+          {/* Dialog Create Client */}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Agregar Nuevo Cliente</DialogTitle>
+                <DialogDescription>
+                  Complete la información del cliente para comenzar a gestionar
+                  su caso.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Nombre del Cliente</Label>
+                  <Input
+                    id="name"
+                    value={newClientName}
+                    onChange={(e) => setNewClientName(e.target.value)}
+                    placeholder="Juan Pérez"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="caseType">Tipo de Caso</Label>
+                  <Input
+                    id="caseType"
+                    value={newClientCaseType}
+                    onChange={(e) => setNewClientCaseType(e.target.value)}
+                    placeholder="Derecho Civil, Penal, Laboral, etc."
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button type="submit" onClick={handleAddClient}>
+                  Agregar Cliente
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           {/* Header */}
           <div className="bg-white border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
@@ -66,7 +140,11 @@ const LawyerDashboard = () => {
                   </p>
                 </div>
               </div>
-              <Button className="law-gradient hover:opacity-90">
+
+              <Button
+                className="law-gradient hover:opacity-90"
+                onClick={() => setIsDialogOpen(true)}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Nuevo Cliente
               </Button>
@@ -170,7 +248,8 @@ const LawyerDashboard = () => {
               ))}
             </div>
 
-            {filteredClients.length === 0 && (
+            {/* Client Array Empty */}
+            {filteredClients.length === 0 && mockClients.length !== 0 && (
               <div className="text-center py-12">
                 <div className="text-gray-400 mb-4">
                   <Search className="h-12 w-12 mx-auto" />
@@ -181,6 +260,27 @@ const LawyerDashboard = () => {
                 <p className="text-gray-600">
                   Intenta ajustar los filtros de búsqueda
                 </p>
+              </div>
+            )}
+
+            {mockClients.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <Search className="h-12 w-12 mx-auto" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No hay clientes aún
+                </h3>
+                <p className="text-gray-600">
+                  Comienza agregando tu primer cliente
+                </p>
+                <Button
+                  className="law-gradient hover:opacity-90 mt-5"
+                  onClick={() => setIsDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Primer Cliente
+                </Button>
               </div>
             )}
           </div>

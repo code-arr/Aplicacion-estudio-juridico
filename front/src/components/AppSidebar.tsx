@@ -1,6 +1,5 @@
 import { NavLink } from "react-router-dom";
 import {
-  Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
@@ -15,13 +14,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Scale, User, Settings } from "lucide-react";
 import { StaticSidebar } from "./ui/staticSidebar";
+import type { Lawyer } from "@/types/Lawyer";
 
 interface AppSidebarProps {
-  lawyerEmail: string;
+  lawyer: Lawyer;
   onLogout: () => void;
 }
 
-const AppSidebar = ({ lawyerEmail, onLogout }: AppSidebarProps) => {
+const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
   const menuItems = [
     {
       title: "Mis Clientes",
@@ -39,8 +39,6 @@ const AppSidebar = ({ lawyerEmail, onLogout }: AppSidebarProps) => {
       icon: Settings,
     },
   ];
-
-  const lawyerName = lawyerEmail.split("@")[0];
 
   return (
     <StaticSidebar className="border-r border-[hsl(216,12%,15%)]">
@@ -96,12 +94,12 @@ const AppSidebar = ({ lawyerEmail, onLogout }: AppSidebarProps) => {
           <div className="flex items-center space-x-3">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] text-sm">
-                {lawyerName.charAt(0).toUpperCase()}
+                {lawyer.firstname.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <p className="text-sm font-medium text-[hsl(210,40%,98%)] truncate">
-                {lawyerName}
+                {lawyer.firstname + " " + lawyer.lastname}
               </p>
               <p className="text-xs text-[hsl(210,40%,98%)]/70 truncate">
                 Abogado

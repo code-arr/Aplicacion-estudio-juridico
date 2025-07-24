@@ -60,11 +60,11 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
             </Avatar>
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900 text-lg leading-tight">
-                {client.firstName}
+                {client.firstName +
+                  " " +
+                  client.lastName.slice(0, client.lastName.indexOf(" "))}
               </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                {client.clientStatus}
-              </p>
+              <p className="text-sm text-gray-600 mt-1">{client.dni}</p>
             </div>
           </div>
           {getStatusBadge(client.clientStatus)}

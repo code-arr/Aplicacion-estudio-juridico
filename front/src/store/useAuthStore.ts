@@ -5,9 +5,10 @@ import type { AuthState } from "@/types/AuthState";
 import { getUserFromToken } from "@/api/user";
 
 export async function restoreSession() {
+  console.log("Entra a restoreSession");
   useAuthStore.setState({ isLoadingSession: true });
   try {
-    const authData = await window.electronAPI.invoke("auth:get");
+    const authData = await window.electronAPI?.invoke("auth:get");
     if (authData && authData.token) {
       const user = await getUserFromToken(authData.token);
       if (user) {
@@ -30,6 +31,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   isLawyer: false,
   showInactivityModal: false,
   login: async (user: User, token: string) => {
+    console.log("Entra a login");
     /* await window.electronAPI.invoke("auth:save", {
       token,
       id: user.id,
@@ -45,7 +47,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
     }));
   },
   logout: async () => {
-    await window.electronAPI.invoke("auth:clear");
+    console.log("Entra a logout");
+    await window.electronAPI?.invoke("auth:clear");
     set(() => ({
       user: null,
       token: null,
@@ -55,6 +58,19 @@ export const useAuthStore = create<AuthState>()((set) => ({
       isLawyer: false,
     }));
   },
+  reset: async () => {
+    console.log("Entra a reset");
+
+    await window.electronAPI?.invoke("auth:clear");
+    set(() => ({
+      user: null,
+      token: null,
+      isLoggedIn: false,
+      isLoadingSession: false,
+      isAdmin: false,
+      isLawyer: false,
+      showInactivityModal: false,
+    }));
+  },
   setShowInactivityModal: (show) => set({ showInactivityModal: show }),
-  reset: async () => await window.electronAPI.invoke("auth:clear"),
 }));
