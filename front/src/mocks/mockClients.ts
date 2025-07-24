@@ -22,7 +22,7 @@ export const mockClients: Client[] = [
     dni: "44123721",
     phone: "2613748269",
     email: "tomsguignet9@gmail.com",
-    clientStatus: "en revision",
+    clientStatus: "en_revision",
     updatedAt: "12 Dic 2024",
     createdAt: "11 Jun 2002",
   },
@@ -70,7 +70,7 @@ export const mockClients: Client[] = [
     email: "tomsguignet9@gmail.com",
     profileImage:
       "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=400",
-    clientStatus: "en revision",
+    clientStatus: "en_revision",
     updatedAt: "3 Dic 2024",
     createdAt: "11 Jun 2002",
   },

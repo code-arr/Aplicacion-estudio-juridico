@@ -5,6 +5,7 @@ import { restoreSession, useAuthStore } from "@/store/useAuthStore";
 import { loginUser } from "@/api/user";
 import { Spinner } from "@radix-ui/themes";
 import type { LoginError } from "@/types/LoginError";
+import { mockUser } from "@/mocks/mockUser";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -21,7 +22,8 @@ const LoginPage = () => {
 
   const handleLogin = async (email: string, password: string) => {
     try {
-      const { user, token } = await loginUser(email, password);
+      /* const { user, token } = await loginUser(email, password); */
+      const { user, token } = { user: mockUser, token: "veverv777777erge" };
       login(user, token);
     } catch (error) {
       console.log(error);

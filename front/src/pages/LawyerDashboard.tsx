@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Search, Plus } from "lucide-react";
 import type { Client } from "@/types/Client";
+import ClientCard from "@components/ClientCard";
 
 const LawyerDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,10 +22,10 @@ const LawyerDashboard = () => {
 
   const filteredClients = mockClients.filter((client) => {
     const matchesSearch =
-      client.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.caseType.toLowerCase().includes(searchTerm.toLowerCase());
+      client.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.lastName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
-      statusFilter === "todos" || client.caseStatus === statusFilter;
+      statusFilter === "todos" || client.clientStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -38,14 +39,17 @@ const LawyerDashboard = () => {
     navigate(`/dashboard/clientes/${client.id}`);
 }; */
 
-  const getStatusCount = (status: Client["caseStatus"]) => {
-    return mockClients.filter((client) => client.caseStatus === status).length;
+  const getStatusCount = (status: Client["clientStatus"]) => {
+    return mockClients.filter((client) => client.clientStatus === status)
+      .length;
   };
+
+  const onLogout = () => {};
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar lawyerEmail={lawyerEmail} onLogout={onLogout} />
+        <AppSidebar lawyerEmail={"tomas@gmail.com"} onLogout={onLogout} />
 
         <main className="flex-1">
           {/* Header */}
@@ -81,7 +85,7 @@ const LawyerDashboard = () => {
                     </p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <div className="w-6 h-6 bg-primary rounded-full"></div>
+                    <div className="w-6 h-6 bg-[hsl(210,100%,45%)] rounded-full"></div>
                   </div>
                 </div>
               </div>
@@ -119,7 +123,7 @@ const LawyerDashboard = () => {
                   <div>
                     <p className="text-sm text-gray-600">Clientes Inactivos</p>
                     <p className="text-2xl font-bold text-gray-600">
-                      {getStatusCount("cerrado")}
+                      {getStatusCount("inactivo")}
                     </p>
                   </div>
                   <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
@@ -149,7 +153,7 @@ const LawyerDashboard = () => {
                     <SelectItem value="todos">Todos los estados</SelectItem>
                     <SelectItem value="activo">Activo</SelectItem>
                     <SelectItem value="en_revision">En Revisión</SelectItem>
-                    <SelectItem value="cerrado">Cerrado</SelectItem>
+                    <SelectItem value="inactivo">Inactivo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

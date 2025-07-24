@@ -11,19 +11,19 @@ interface ClientCardProps {
 }
 
 const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
-  const getStatusBadge = (status: Client["caseStatus"]) => {
+  const getStatusBadge = (status: Client["clientStatus"]) => {
     const statusConfig = {
       activo: {
         label: "Activo",
-        className: "case-status-active",
+        className: "bg-green-100 text-green-800 border-green-200",
       },
       en_revision: {
         label: "En Revisión",
-        className: "case-status-review",
+        className: "bg-yellow-100 text-yellow-800 border-yellow-200",
       },
-      cerrado: {
-        label: "Cerrado",
-        className: "case-status-closed",
+      inactivo: {
+        label: "Inactivo",
+        className: "bg-gray-100 text-gray-800 border-gray-200",
       },
     };
 
@@ -51,21 +51,23 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
           <div className="flex items-center space-x-3">
             <Avatar className="h-12 w-12">
               {client.profileImage ? (
-                <AvatarImage src={client.profileImage} alt={client.fullName} />
+                <AvatarImage src={client.profileImage} alt={client.firstName} />
               ) : (
-                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                  {getInitials(client.fullName)}
+                <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] font-semibold">
+                  {getInitials(client.firstName)}
                 </AvatarFallback>
               )}
             </Avatar>
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900 text-lg leading-tight">
-                {client.fullName}
+                {client.firstName}
               </h3>
-              <p className="text-sm text-gray-600 mt-1">{client.caseType}</p>
+              <p className="text-sm text-gray-600 mt-1">
+                {client.clientStatus}
+              </p>
             </div>
           </div>
-          {getStatusBadge(client.caseStatus)}
+          {getStatusBadge(client.clientStatus)}
         </div>
       </CardHeader>
 
@@ -74,14 +76,14 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
           <div>
             <p className="text-xs text-gray-500 mb-1">Última actualización</p>
             <p className="text-sm text-gray-700 font-medium">
-              {client.lastUpdate}
+              {client.updatedAt}
             </p>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => onViewDetails(client)}
-            className="hover:bg-primary hover:text-primary-foreground transition-colors"
+            className="hover:bg-[hsl(210,100%,45%)] hover:text-[hsl(210,40%,98%)] transition-colors"
           >
             Ver detalles
             <ChevronRight className="h-4 w-4 ml-1" />

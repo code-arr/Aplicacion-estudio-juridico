@@ -1,4 +1,4 @@
-export type ClientStatus = "activo" | "inactivo" | "en revision";
+export type ClientStatus = "activo" | "inactivo" | "en_revision";
 
 export interface Client {
   id: string;
