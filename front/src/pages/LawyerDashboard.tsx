@@ -22,9 +22,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogContent,
   DialogTrigger,
 } from "@components/ui/dialog";
-import { DialogContent } from "@radix-ui/react-dialog";
 import { Label } from "@components/ui/label";
 
 const LawyerDashboard = () => {

@@ -15,7 +15,7 @@ function AppRoutes() {
 
   useEffect(() => {
     restoreSession();
-  });
+  }, []);
 
   useEffect(() => {
     let timeoutId: number;
