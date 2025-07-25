@@ -6,6 +6,7 @@ export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Post('seeder')
+  
   async seedAdmin() {
     return this.adminService.seedAdmin();
   }

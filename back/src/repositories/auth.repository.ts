@@ -3,7 +3,7 @@ import { Usuario } from 'src/entities/usuario.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UserService } from 'src/services/user.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AuthRepository {
@@ -41,22 +41,30 @@ export class AuthRepository {
   async login(
     email: string,
     password: string,
-  ): Promise<{ message: string; token?: string }> {
+    
+  ): Promise<{ message: string; token?: string ; userData? : any , user? : any }> {
     try {
-      const user = await this.userService.findOneByEmail(email);
-      if (!user) {
-        return { message: 'Usuario no encontrado' };
+      const Newuser = await this.userService.findOneByEmail(email);
+      const user = {
+        email : Newuser?.email,
+        id : Newuser?.id,
+        role : Newuser?.role
       }
+      if (!Newuser) {
+        throw new BadRequestException('Usuario no encontrado');      }
 
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      const isPasswordValid = await bcrypt.compare(password, Newuser.password);
       if (!isPasswordValid) {
-        return { message: 'Contraseña incorrecta' };
+        throw new BadRequestException('Contraseña incorrecta');
       }
 
-      const token = await this.createJwtToken(user);
-      return { message: 'Login exitoso', token };
+      const token = await this.createJwtToken(Newuser);
+      return { message: 'Login exitoso', token , user  };
     } catch (error) {
-      throw new Error('Error al iniciar sesión: ' + error.message);
+     if (error instanceof BadRequestException) {
+      throw error;
+     }
+      throw new Error('Error al iniciar sesión: ' + error);
     }
   }
 }
