@@ -1,7 +1,7 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
-import AdminDashboard from "@/pages/AdminDashboard";
-import LawyerDashboard from "@/pages/LawyerDashboard";
+import AdminDashboard from "@/pages/Admin/AdminDashboard";
+import LawyerDashboard from "@pages/Lawyer/LawyerDashboard";
 import ClientDetail from "@/pages/ClientDetail";
 import UnauthorizedAccess from "@/components/UnauthorizedAccess";
 import LoadingScreen from "@/components/LoadingScreen";

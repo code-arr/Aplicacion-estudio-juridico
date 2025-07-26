@@ -9,7 +9,7 @@ export interface Client {
   lastName: string;
   dni: string;
   cuitCuil?: string; // opcional
-  phone: string;
+  phone?: string;
   email: string;
   address?: string;
   profileImage?: string;

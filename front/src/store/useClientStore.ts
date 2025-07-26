@@ -2,13 +2,17 @@ import type { Client } from "@/types/Client";
 import { create } from "zustand";
 
 interface ClientState {
-  client: Client | null;
-  setClient: (client: Client) => void;
-  resetClient: () => void;
+  clients: Client[] | null;
+  clientDetail: Client | null;
+  setClients: (clients: Client[]) => void;
+  setClientDetail: (client: Client) => void;
+  resetClientDetail: () => void;
 }
 
 export const useClientStore = create<ClientState>()((set) => ({
-  client: null,
-  setClient: (client) => set({ client }),
-  resetClient: () => set({ client: null }),
+  clients: null,
+  clientDetail: null,
+  setClients: (clients: Client[]) => set({ clients }),
+  setClientDetail: (clientDetail) => set({ clientDetail }),
+  resetClientDetail: () => set({ clientDetail: null }),
 }));

@@ -23,16 +23,22 @@ import {
   DialogHeader,
   DialogTitle,
   DialogContent,
-  DialogTrigger,
 } from "@components/ui/dialog";
 import { Label } from "@components/ui/label";
+import { useNavigate } from "react-router-dom";
 
 const LawyerDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
-  const [newClientName, setNewClientName] = useState("");
+  const [clientOrder, setClientOrder] = useState<string>("");
+  const [newClientFirstName, setNewClientFirstName] = useState("");
+  const [newClientLastName, setNewClientLastName] = useState("");
+  const [newClientDni, setNewClientDni] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
   const [newClientCaseType, setNewClientCaseType] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const navigate = useNavigate();
 
   const filteredClients = mockClients.filter((client) => {
     const matchesSearch =
@@ -45,10 +51,9 @@ const LawyerDashboard = () => {
 
   const handleViewDetails = (client: Client) => {
     console.log("Ver detalles del cliente:", client.firstName);
-    // Aquí se implementaría la navegación a la página de detalles
+    navigate(`clients/${client.id}`);
   };
-
-  /*const navigate = useNavigate();
+  /*
     const handleViewDetails = (client: Client) => {
     navigate(`/dashboard/clientes/${client.id}`);
 }; */
@@ -84,6 +89,7 @@ const LawyerDashboard = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
+        {/* SideBar */}
         <AppSidebar lawyer={mockLawyer} onLogout={onLogout} />
 
         <main className="flex-1">
@@ -100,12 +106,39 @@ const LawyerDashboard = () => {
 
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name">Nombre del Cliente</Label>
+                  <Label htmlFor="firstName">Nombre/s del Cliente</Label>
                   <Input
-                    id="name"
-                    value={newClientName}
-                    onChange={(e) => setNewClientName(e.target.value)}
-                    placeholder="Juan Pérez"
+                    id="firstName"
+                    value={newClientFirstName}
+                    onChange={(e) => setNewClientFirstName(e.target.value)}
+                    placeholder="Juan Fransisco"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="lastName">Apellido/s del Cliente</Label>
+                  <Input
+                    id="lastName"
+                    value={newClientLastName}
+                    onChange={(e) => setNewClientLastName(e.target.value)}
+                    placeholder="Pérez"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="dni">Documento de identidad</Label>
+                  <Input
+                    id="dni"
+                    value={newClientDni}
+                    onChange={(e) => setNewClientDni(e.target.value)}
+                    placeholder="248892730"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    value={newClientEmail}
+                    onChange={(e) => setNewClientEmail(e.target.value)}
+                    placeholder="juanperez@gmail.com"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -126,6 +159,7 @@ const LawyerDashboard = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
           {/* Header */}
           <div className="bg-white border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
@@ -232,6 +266,22 @@ const LawyerDashboard = () => {
                     <SelectItem value="activo">Activo</SelectItem>
                     <SelectItem value="en_revision">En Revisión</SelectItem>
                     <SelectItem value="inactivo">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={clientOrder} onValueChange={setClientOrder}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Ordenar por..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fecha_ascendente">
+                      Fecha Ascendente
+                    </SelectItem>
+                    <SelectItem value="fecha_descendente">
+                      Fecha Descendente
+                    </SelectItem>
+                    <SelectItem value="cantidad_cliente">
+                      Cantidad Clientes
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -29,6 +29,7 @@
       "@pages/*": ["pages/*"],
       "@types/*": ["types/*"],
       "@/*": ["*"]
+      /*     "@*": ["*"] */ //REVISAR DESPUES!!
     }
   },
   "include": ["src", "shared/types/AuthData.ts"]

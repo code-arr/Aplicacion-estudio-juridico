@@ -16,6 +16,7 @@ export const loginUser = async (
       password,
     });
     return response.data;
+    /* const lawyer = await axios.post("lawyer/getLaweyer/:email", {email: user.email}) */
   } catch (error) {
     console.log("No se pudo iniciar sesión:", error);
     throw error;
