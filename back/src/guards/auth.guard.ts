@@ -11,7 +11,7 @@ import {
   dotenvConfig({ path: '.env' });
   
   @Injectable()
-  export class AuthGUard implements CanActivate {
+  export class AuthGuard implements CanActivate {
     constructor(private readonly jwtService: JwtService) {}
     canActivate(
       context: ExecutionContext,
