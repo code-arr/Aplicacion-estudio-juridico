@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   SidebarContent,
   SidebarGroup,
@@ -74,7 +74,7 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to={item.url}
+                      to={`/dashboard/${item.url}`}
                       className={({ isActive }) =>
                         `flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
                           isActive

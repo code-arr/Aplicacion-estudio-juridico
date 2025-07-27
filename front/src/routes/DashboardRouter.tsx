@@ -18,11 +18,8 @@ const DashboardRouter = () => {
     <Routes>
       {isLawyer && (
         <>
-          <Route path="lawyerDashboard" element={<LawyerDashboard />} />
-          <Route
-            path="lawyerDashboard/clients/:id"
-            element={<ClientDetail />}
-          />
+          <Route path="dashboard/*" element={<LawyerDashboard />} />
+          <Route path="dashboard/clients/:id" element={<ClientDetail />} />
         </>
       )}
 

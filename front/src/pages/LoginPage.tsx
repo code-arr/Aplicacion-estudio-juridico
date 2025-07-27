@@ -21,7 +21,7 @@ const LoginPage = () => {
   useEffect(() => {
     if (isLoggedIn && user) {
       if (isLawyer) {
-        navigate("/lawyerDashboard", { replace: true });
+        navigate("/dashboard", { replace: true });
       } else if (isAdmin) {
         navigate("/adminDashboard", { replace: true });
       }

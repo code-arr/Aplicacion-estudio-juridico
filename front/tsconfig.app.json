@@ -28,6 +28,10 @@
       "@components/*": ["components/*"],
       "@pages/*": ["pages/*"],
       "@types/*": ["types/*"],
+      "@store/": ["store/*"],
+      "@api/": ["api/*"],
+      "@utils/": ["utils/*"],
+      "@hooks/": ["hooks/*"],
       "@/*": ["*"]
       /*     "@*": ["*"] */ //REVISAR DESPUES!!
     }
