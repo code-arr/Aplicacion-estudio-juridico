@@ -18,14 +18,23 @@ jobs:
         with:
           node-version: 18
 
+      - name: Change to backend directory
+        run: cd back
+
       - name: Install dependencies
-        run: npm install
+        run: |
+          cd back
+          npm install
 
       - name: Build
-        run: npm run build
+        run: |
+          cd back
+          npm run build
 
       - name: Zip for deployment
-        run: zip -r app.zip dist package.json package-lock.json Procfile
+        run: |
+          cd back
+          zip -r ../app.zip dist package.json package-lock.json Procfile
 
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v21
@@ -36,4 +45,4 @@ jobs:
           environment_name: estudio-backend-dev-env
           version_label: v-${{ github.run_number }}
           region: us-east-1
-          deployment_package: app.zip 
+          deployment_package: app.zip
