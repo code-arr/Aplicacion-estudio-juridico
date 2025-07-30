@@ -8,6 +8,7 @@ import PrivateRoute from "@components/routes/PrivateRoute.tsx";
 import { jwtDecode } from "jwt-decode";
 import InactivityModal from "@components/InactivityModal.tsx";
 import LoadingScreen from "@/components/LoadingScreen.tsx";
+import ResetPassword from "@pages/ResetPassword.tsx";
 
 function AppRoutes() {
   const { token, reset, setShowInactivityModal, isLoadingSession } =
@@ -70,6 +71,7 @@ function AppRoutes() {
             </PrivateRoute>
           }
         />
+        <Route path="/resetPassword" element={<ResetPassword />} />
       </Routes>
 
       <InactivityModal />

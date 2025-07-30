@@ -32,3 +32,25 @@ export const getUserFromToken = async (token: string): Promise<User> => {
     throw error;
   }
 };
+
+export const sendEmailForResetPassword = async (
+  email: string
+): Promise<void> => {
+  try {
+    await axios.post("/auth/sendResetPassword", { email });
+  } catch (error) {
+    console.error("Error al enviar el email:", error);
+    throw error;
+  }
+};
+
+export const resetPassword = async (
+  token: string,
+  password: string
+): Promise<void> => {
+  try {
+    await axios.patch("/auth/resetPassword", { token, newPassword: password });
+  } catch (error) {
+    console.error("Error al cambiar la contraseña", error);
+  }
+};

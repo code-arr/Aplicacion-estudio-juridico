@@ -29,8 +29,8 @@ const Clients = () => {
 
   const filteredClients = mockClients.filter((client) => {
     const matchesSearch =
-      client.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.lastName.toLowerCase().includes(searchTerm.toLowerCase());
+      client.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "todos" || client.clientStatus === statusFilter;
     return matchesSearch && matchesStatus;
