@@ -29,9 +29,6 @@ export class AbogadoRepository {
   async getAllAbogados(): Promise<Abogado[]> {
     return this.repository.find({ relations: [ 'clientes'] });
   }
-  async getAbogadoByEmail(email: string): Promise<Abogado | null> {
-    return this.repository.findOne({ where: { usuario: { email } } , relations: ['usuario' , 'clientes' , 'casos'] });
-  }
   async saveAbogado(abogado: Abogado): Promise<Abogado> {
     return this.repository.save(abogado);
   }
@@ -113,7 +110,7 @@ export class AbogadoRepository {
           if (!cliente.casos) {
             cliente.casos = [];
           }
-
+          
           for (const casoData of casosSeed) {
             // Verificar si este caso del seed data se aplica a este abogado y cliente
             const isAbogadoMatch = casoData.abogadoEmails.includes(abogado.usuario?.email || '');
@@ -121,7 +118,7 @@ export class AbogadoRepository {
 
             if (isAbogadoMatch && isClienteMatch) {
               console.log(`[${new Date().toLocaleTimeString()}]     Coincidencia: Caso "${casoData.title}" para este Abogado/Cliente.`);
-
+              
               let casoReal = await this.casoService.findOneByTitle(casoData.title);
 
               if (casoReal) {
@@ -153,11 +150,11 @@ export class AbogadoRepository {
       // Guardar todos los abogados modificados (persiste las relaciones Abogado-Caso)
       console.log(`[${new Date().toLocaleTimeString()}] Guardando cambios para todos los abogados...`);
       await this.repository.save(abogados); // Esto también actualiza la tabla 'abogados_casos'
-
+      
       // Guardar todos los clientes modificados (persiste las relaciones Cliente-Caso)
       console.log(`[${new Date().toLocaleTimeString()}] Guardando cambios para todos los clientes...`);
       await this.clienteRepository.save(clientes); // Esto también actualiza la tabla 'casos_clientes'
-
+      
       console.log(`[${new Date().toLocaleTimeString()}] FINALIZADO: Casos asociados correctamente a abogados y clientes.`);
       return 'casos agregados correctamente a abogados y clientes';
 
@@ -172,4 +169,8 @@ export class AbogadoRepository {
     return await this.repository.findOne({ where: { id } , relations: [ "clientes.casos" , 'casos.cliente' , 'usuario'] });
   }
 
+  
+  async getAbogadoByEmail(email: string): Promise<Abogado | null> {
+    return await  this.repository.findOne({ where: { usuario: { email : email } } , relations: ['usuario' , 'clientes' , 'casos'] });
+  }
 }
