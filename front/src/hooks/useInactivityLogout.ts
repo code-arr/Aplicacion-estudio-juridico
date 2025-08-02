@@ -5,6 +5,8 @@ const INACTIVITY_LIMIT = 60 * 60 * 1000;
 const WARNING_DURATION = 60 * 1000;
 
 export const useInactivityLogout = () => {
+  console.log("Entra en useInactivityLogout");
+
   const { reset, setShowInactivityModal } = useAuthStore();
 
   const warningTimeout = useRef<number | null>(null);
@@ -29,6 +31,7 @@ export const useInactivityLogout = () => {
     }, INACTIVITY_LIMIT - WARNING_DURATION);
 
     logoutTimeout.current = window.setTimeout(() => {
+      console.log("Resetea");
       reset(); // Logout automático
     }, INACTIVITY_LIMIT);
 

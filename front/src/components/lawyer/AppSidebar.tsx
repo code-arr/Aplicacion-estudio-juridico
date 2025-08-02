@@ -13,7 +13,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Scale, User, Settings, ChartNoAxesCombined } from "lucide-react";
-import { StaticSidebar } from "./ui/staticSidebar";
+import { StaticSidebar } from "../ui/staticSidebar";
 import type { Lawyer } from "@/types/Lawyer";
 
 interface AppSidebarProps {

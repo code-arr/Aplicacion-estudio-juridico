@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import ClientCard from "@components/ClientCard";
+import ClientCard from "@components/clients/ClientCard";
 
 import { mockClients } from "@/mocks/mockClients";
 
@@ -18,9 +18,9 @@ import {
 
 import { Search, Plus } from "lucide-react";
 import type { Client } from "@/types/Client";
-import ClientForm from "./ClientForm";
+import ClientForm from "@/components/clients/ClientForm";
 
-const Clients = () => {
+const ClientsPage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
@@ -230,4 +230,4 @@ const Clients = () => {
   );
 };
 
-export default Clients;
+export default ClientsPage;

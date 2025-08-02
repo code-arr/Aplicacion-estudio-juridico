@@ -13,3 +13,20 @@ export const isTokenExpired = (token: string): boolean => {
     return true; // Si no se puede decodificar, lo tratamos como expirado
   }
 };
+
+export const getTokenTimeLeft = (token: string): number | null => {
+  try {
+    const { exp } = jwtDecode<TokenPayload>(token);
+    return exp * 1000 - Date.now(); // en ms
+  } catch {
+    return null;
+  }
+};
+
+export const decodeToken = <T = TokenPayload>(token: string): T | null => {
+  try {
+    return jwtDecode<T>(token);
+  } catch {
+    return null;
+  }
+};

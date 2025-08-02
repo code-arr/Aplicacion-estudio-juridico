@@ -1,39 +1,22 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-/* import { useAuthStore } from "@/store/useAuthStore"; */
 import { useClientStore } from "@/store/useClientStore";
 import { mockClients } from "@/mocks/mockClients";
-import { mockCases } from "@/mocks/mockCasos";
+import { mockCategories } from "@/mocks/mockCategories";
 import { formatTimeFromSeconds } from "@/utils/timeUtils";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/card";
-import { ArrowLeft, FileText, Plus, Search } from "lucide-react";
 import { Button } from "@components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@components/ui/select";
-import { Input } from "@components/ui/input";
-import { Textarea } from "@components/ui/textarea";
 import { Badge } from "@components/ui/badge";
 import { Avatar, AvatarFallback } from "@components/ui/avatar";
 
-const ClientDetailPage = () => {
+import { ArrowLeft, FileText, Plus, SquarePlus } from "lucide-react";
+
+const ClientOverviewPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { clientDetail, setClientDetail } = useClientStore();
   const [loading, setLoading] = useState(true);
-  const [selectedItemType, setSelectedItemType] = useState<string>("");
-  const [customDescription, setCustomDescription] = useState("");
-  const [contractType, setContractType] = useState("");
-  const [contractParties, setContractParties] = useState("");
-  const [researchTopic, setResearchTopic] = useState("");
-  const [researchScope, setResearchScope] = useState("");
-  const [documentType, setDocumentType] = useState("");
-  const [documentPurpose, setDocumentPurpose] = useState("");
 
   const mockClientDetail = mockClients.find((client) => client.id === id);
   const simulatedTime = 1232;
@@ -95,7 +78,7 @@ const ClientDetailPage = () => {
   ) : (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-[hsl(210,100%,45%)] text-white p-6 shadow-md">
+      <div className="bg-[hsl(210,100%,45%)] law-gradient text-white p-6 shadow-md">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -108,13 +91,13 @@ const ClientDetailPage = () => {
           <div className="flex items-center gap-4">
             <Avatar className="h-12 w-12">
               <AvatarFallback className="bg-[hsl(210,40%,98%)] text-[hsl(210,100%,45%)] font-semibold text-lg gap-x-[0.05rem]">
-                <span>{clientDetail?.firstName.charAt(0).toUpperCase()} </span>
-                <span>{clientDetail?.lastName.charAt(0).toUpperCase()} </span>
+                <span>{clientDetail?.firstName?.charAt(0).toUpperCase()} </span>
+                <span>{clientDetail?.lastName?.charAt(0).toUpperCase()} </span>
               </AvatarFallback>
             </Avatar>
             <div>
               <h2 className="text-2xl font-bold">{`${clientDetail?.firstName} ${clientDetail?.lastName}`}</h2>
-              <p className="text-base text-white/80">{clientDetail?.dni}</p>
+              <p className="text-base text-white/80">{clientDetail?.rut}</p>
             </div>
           </div>
           <div className="ml-auto bg-white text-[hsl(225,15%,15%)] rounded px-3 py-2 flex items-center gap-2 text-xl font-semibold shadow-sm">
@@ -172,39 +155,52 @@ const ClientDetailPage = () => {
                   variant="outline"
                   className="text-[hsl(210,100%,40%)] border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)]"
                 >
-                  + Agregar Entrada
+                  + Agregar Nota
                 </Button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Ítems */}
+        {/* Categorias */}
         <Card className="bg-white border-gray-200 shadow-sm rounded-lg">
-          <CardHeader className="border-b border-gray-200">
+          <CardHeader className="flex-row justify-between border-b border-gray-200">
             <CardTitle className="flex items-center gap-2 text-[hsl(225,15%,15%)]">
               <FileText className="h-5 w-5" />
-              Casos del Cliente
+              Contenido del Cliente
             </CardTitle>
+            <Button className="bg-[#f3b600] hover:bg-[#ffbf00]/80 border-[1.5px] border-gray-500">
+              <SquarePlus />
+              Agregar Item
+            </Button>
           </CardHeader>
           {/* Formulario de ítems */}
           <CardContent className="space-y-4">
-            {mockCases.length === 0 ? (
+            {mockCategories.length === 0 ? (
               <div className="text-center py-6  ">
                 <h3 className="text-lg font-medium text-[hsl(225,15%,15%)] mb-2">
-                  No hay casos aún
+                  No hay categorias aún
                 </h3>
-                <p className="text-gray-600">Comienza su primer caso</p>
+                <p className="text-gray-600">Agrega tu primer categoria</p>
                 <Button
                   className="law-gradient hover:opacity-90 mt-5"
                   onClick={() => console.log("")}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Agregar Caso
+                  Agregar Categoria
                 </Button>
               </div>
             ) : (
-              <div></div>
+              <div className="grid grid-cols-4 py-6 gap-x-6">
+                {mockCategories.map((category) => (
+                  <Button
+                    key={category.id}
+                    className="h-16 bg-[#f3b600] hover:bg-[#f3b600]/70"
+                  >
+                    {category.type}
+                  </Button>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -247,4 +243,4 @@ const ClientDetailPage = () => {
   );
 };
 
-export default ClientDetailPage;
+export default ClientOverviewPage;

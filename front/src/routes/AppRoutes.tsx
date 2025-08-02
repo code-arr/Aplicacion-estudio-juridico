@@ -1,22 +1,86 @@
-import { Route, Routes } from "react-router-dom";
-import LoginPage from "@pages/LoginPage";
+import { Route, Routes, Navigate } from "react-router-dom";
+
+import PrivateRoute from "@/routes/PrivateRoute";
+
+import { useAuthStore } from "@/store/useAuthStore";
+
+import DashboardLayout from "@/pages/dashboard/DashboardLayout";
+
+import LoginPage from "@/pages/auth/LoginPage";
+import NotFoundPage from "@/pages/not-found/NotFoundPage";
+import UnauthorizedAccess from "@/pages/auth/UnauthorizedAccess";
+import AdminDashboard from "@pages/dashboard/admin/AdminDashboard";
+import ClientsPage from "@pages/dashboard/clients/ClientsPage";
+import ClientOverviewPage from "@/pages/dashboard/clients/ClientOverviewPage";
+
+import Statistics from "@/components/Statistics";
+import Settings from "@/components/Settings";
+import LoadingScreen from "@components/shared/LoadingScreen";
+
+const AppRoutes = () => {
+  const { isAdmin, isLawyer, isLoadingSession } = useAuthStore();
+
+  if (isLoadingSession) return <LoadingScreen />;
+
+  return (
+    <Routes>
+      {/* Rutas públicas */}
+      <Route path="/" element={<LoginPage />} />
+      <Route path="/unauthorized" element={<UnauthorizedAccess />} />
+
+      {/* Rutas privadas */}
+      <Route
+        path="/dashboard/*"
+        element={
+          <PrivateRoute>
+            <DashboardLayout />
+          </PrivateRoute>
+        }
+      >
+        {isLawyer && (
+          <>
+            <Route path="clients" element={<ClientsPage />} />
+            <Route path="clients/:id" element={<ClientOverviewPage />} />
+            <Route path="statistics" element={<Statistics />} />
+            <Route path="settings" element={<Settings />} />
+            <Route index element={<Navigate to="clients" replace />} />
+          </>
+        )}
+
+        {isAdmin && (
+          <>
+            <Route path="admin" element={<AdminDashboard />} />
+            <Route index element={<Navigate to="admin" replace />} />
+          </>
+        )}
+
+        {/* Manejo de rutas no válidas */}
+        {!isAdmin && <Route path="admin" element={<UnauthorizedAccess />} />}
+        {!isLawyer && <Route path="clients" element={<UnauthorizedAccess />} />}
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
+  );
+};
+
+export default AppRoutes;
+
+//------------------------------------------------------
+
+/* import { Route, Routes } from "react-router-dom";
+import LoginPage from "@pages/auth/LoginPage.tsx";
 import DashboardRouter from "./DashboardRouter.tsx";
 import { useEffect } from "react";
 import { isTokenExpired } from "@/utils/token.ts";
-import { restoreSession, useAuthStore } from "@/store/useAuthStore.ts";
-import PrivateRoute from "@components/routes/PrivateRoute.tsx";
+import PrivateRoute from "@/routes/PrivateRoute.tsx";
 import { jwtDecode } from "jwt-decode";
 import InactivityModal from "@components/InactivityModal.tsx";
 import LoadingScreen from "@/components/LoadingScreen.tsx";
-import ResetPassword from "@pages/ResetPassword.tsx";
+import ResetPassword from "@pages/auth/ResetPassword.tsx";
 
 function AppRoutes() {
   const { token, reset, setShowInactivityModal, isLoadingSession } =
     useAuthStore();
-
-  useEffect(() => {
-    restoreSession();
-  }, []);
 
   useEffect(() => {
     let timeoutId: number;
@@ -79,4 +143,4 @@ function AppRoutes() {
   );
 }
 
-export default AppRoutes;
+export default AppRoutes; */
