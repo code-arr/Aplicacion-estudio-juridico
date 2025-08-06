@@ -1,11 +1,14 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import AppSidebar from "@components/lawyer/AppSidebar";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useCatalogStore } from "@/store/useCatalogStore";
+import { getCatalogData } from "@/api/catalog";
 import { Outlet } from "react-router-dom";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import InactivityModal from "@components/shared/InactivityModal";
 import { useTokenExpirationWatcher } from "@/hooks/useTokenExpirationWatcher";
 import { mockLawyer } from "@/mocks/mockLawyer";
+import { useEffect } from "react";
 
 const DashboardLayout = () => {
   // ⏰ Hooks se activan apenas entra al dashboard
@@ -13,6 +16,21 @@ const DashboardLayout = () => {
   useInactivityLogout(); // Hook que detecta la inactividad del usuario para cerrar sesion
 
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (useCatalogStore.getState().categories.length > 0) return;
+
+    const loadCatalog = async () => {
+      try {
+        const data = await getCatalogData();
+        useCatalogStore.getState().setCatalogData(data);
+      } catch (error) {
+        console.error("Error cargando catálogo:", error);
+      }
+    };
+
+    loadCatalog();
+  }, []);
 
   const onLogout = () => {
     // logout real

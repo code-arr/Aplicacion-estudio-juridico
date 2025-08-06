@@ -29,12 +29,12 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
       icon: User,
     },
     {
-      title: "Casos",
-      url: "cases",
+      title: "Mis Items",
+      url: "clientItems",
       icon: Scale,
     },
     {
-      title: "Mis Estadisticas",
+      title: "Estadisticas",
       url: "statistics",
       icon: ChartNoAxesCombined,
     },

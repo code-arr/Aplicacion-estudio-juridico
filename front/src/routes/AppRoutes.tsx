@@ -5,17 +5,19 @@ import PrivateRoute from "@/routes/PrivateRoute";
 import { useAuthStore } from "@/store/useAuthStore";
 
 import DashboardLayout from "@/pages/dashboard/DashboardLayout";
-
 import LoginPage from "@/pages/auth/LoginPage";
 import NotFoundPage from "@/pages/not-found/NotFoundPage";
 import UnauthorizedAccess from "@/pages/auth/UnauthorizedAccess";
 import AdminDashboard from "@pages/dashboard/admin/AdminDashboard";
 import ClientsPage from "@pages/dashboard/clients/ClientsPage";
 import ClientOverviewPage from "@/pages/dashboard/clients/ClientOverviewPage";
+import ClientCatalogPage from "@pages/dashboard/clients/ClientCatalogPage";
 
 import Statistics from "@/components/Statistics";
 import Settings from "@/components/Settings";
 import LoadingScreen from "@components/shared/LoadingScreen";
+
+import ClientLayout from "@/layouts/ClientLayout";
 
 const AppRoutes = () => {
   const { isAdmin, isLawyer, isLoadingSession } = useAuthStore();
@@ -40,7 +42,13 @@ const AppRoutes = () => {
         {isLawyer && (
           <>
             <Route path="clients" element={<ClientsPage />} />
-            <Route path="clients/:id" element={<ClientOverviewPage />} />
+            <Route path="clients/:clientId" element={<ClientLayout />}>
+              <Route index element={<ClientOverviewPage />} />
+              <Route
+                path="category/:categoryId"
+                element={<ClientCatalogPage />}
+              />
+            </Route>
             <Route path="statistics" element={<Statistics />} />
             <Route path="settings" element={<Settings />} />
             <Route index element={<Navigate to="clients" replace />} />
