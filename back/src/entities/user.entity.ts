@@ -7,15 +7,15 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { IsUUID } from 'class-validator';
-import { Administrador } from './admin.entity';
-import { Abogado } from './abogado.entity';
+import { Admin } from './admin.entity';
+import { Lawyer } from './lawyer.entity';
 
 export enum UserRole {
   ADMIN = 'admin',
-  ABOGADO = 'abogado',
+  LAWYER = 'lawyer',
 }
-@Entity('usuarios')
-export class Usuario {
+@Entity('users')
+export class User {
   @PrimaryGeneratedColumn('uuid')
   @IsUUID()
   id: string;
@@ -29,17 +29,17 @@ export class Usuario {
   @Column({
     type: 'enum',
     enum: UserRole,
-    default: UserRole.ABOGADO,
+    default: UserRole.LAWYER,
   })
   role: UserRole;
 
   //relacion con admin
-  @OneToOne(() => Administrador, (admin) => admin.usuario)
+  @OneToOne(() => Admin, (admin) => admin.user)
   @JoinColumn() 
-  admin: Administrador;
+  admin: Admin;
 
   //relacion con abogado
-  @OneToOne(() => Abogado, (abogado) => abogado.usuario)
+  @OneToOne(() => Lawyer, (lawyer) => lawyer.user)
   @JoinColumn() // <-- ¡Esta es la clave para el problema!
-  abogado: Abogado;
+  lawyer: Lawyer;
 }

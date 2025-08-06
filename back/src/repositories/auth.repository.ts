@@ -1,5 +1,5 @@
 import { registerUserDto } from 'src/dtos/user.dto';
-import { Usuario } from 'src/entities/usuario.entity';
+import { User } from 'src/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UserService } from 'src/services/user.service';
@@ -12,7 +12,7 @@ export class AuthRepository {
     private readonly jwtService: JwtService,
   ) {}
 
-  async register(user: registerUserDto): Promise<Partial<Usuario> | void> {
+  async register(user: registerUserDto): Promise<Partial<User> | void> {
     try {
       this.userService.createUser(user);
     } catch (error) {
@@ -22,7 +22,7 @@ export class AuthRepository {
     }
   }
 
-  async createJwtToken(user: Usuario): Promise<string> {
+  async createJwtToken(user: User): Promise<string> {
     try {
       const payload = {
         id: user.id,
@@ -67,4 +67,5 @@ export class AuthRepository {
       throw new Error('Error al iniciar sesión: ' + error);
     }
   }
+  
 }

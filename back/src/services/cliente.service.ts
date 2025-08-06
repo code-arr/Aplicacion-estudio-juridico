@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { Cliente } from "src/entities/cliente.entity";
+import { Client } from "src/entities/client.entity";
 import { ClienteRepository } from "src/repositories/cliente.repository";
 
 @Injectable()
@@ -15,13 +15,13 @@ export class ClienteService {
     return this.clienteRepository.seedClientes();
   }
 
-  async getAllClientes(): Promise<Cliente[]> {
+  async getAllClientes(): Promise<Client[]> {
     return this.clienteRepository.getAllClientes();
   }
-  async findByEmail(email: string): Promise<Cliente | null> {
+  async findByEmail(email: string): Promise<Client | null> {
     return this.clienteRepository.findByEmail(email);
   }
-  async getClienteById(id: string): Promise<Cliente | null> {
+  async getClienteById(id: string): Promise<Client | null> {
     return this.clienteRepository.getClienteById(id);
   }
 }

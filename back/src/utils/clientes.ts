@@ -1,10 +1,10 @@
 // src/utils/clientes.ts
 
-import { Cliente } from '../entities/cliente.entity'; // Importa la entidad Cliente para tipar el array
+import { Client } from '../entities/client.entity'; // Importa la entidad Cliente para tipar el array
 
 // Define una interfaz para los ítems del seeder, extendiendo Partial<Cliente>
 // Esto es útil para incluir campos temporales para el seeder, como el email del abogado asociado.
-interface ClienteSeedItem extends Partial<Cliente> {
+interface ClienteSeedItem extends Partial<Client> {
   abogadoAsociadoEmail?: string; // Campo opcional para el email del abogado a asociar
 }
 

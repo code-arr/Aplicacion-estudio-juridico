@@ -1,6 +1,6 @@
  // Asegúrate de ajustar la ruta a tu archivo de entidad
 
-import { UserRole } from "src/entities/usuario.entity";
+import { UserRole } from "src/entities/user.entity";
 
 export const usersSeedData = [
   {
@@ -11,16 +11,16 @@ export const usersSeedData = [
   {
     email: 'abogado1@example.com',
     password: 'hashedpasswordAbogado456', // ¡Recuerda hashear esta contraseña!
-    role: UserRole.ABOGADO,
+    role: UserRole.LAWYER,
   },
   {
     email: 'abogado2@example.com',
     password: 'hashedpasswordAbogado789',
-    role: UserRole.ABOGADO,
+    role: UserRole.LAWYER,
   },
   {
     email: 'abogado3@example.com',
     password: 'hashedpasswordAbogadoabc',
-    role: UserRole.ABOGADO,
+    role: UserRole.LAWYER,
   },
 ];

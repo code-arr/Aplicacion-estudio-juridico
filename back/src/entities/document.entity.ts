@@ -1,10 +1,11 @@
 import { IsUUID } from 'class-validator';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { v4 as uuid } from 'uuid';
-import { Caso } from './caso.entity';
+import { ClientItem } from './clientItem.entity';
 
-@Entity('documentos')
-export class Documento {
+
+@Entity('documents')
+export class Document {
   @PrimaryGeneratedColumn('uuid')
   @IsUUID()
   id: string = uuid();
@@ -13,11 +14,12 @@ export class Documento {
   nombre: string;
 
   @Column({ type: 'text', nullable: true })
-  tipo: string; // Tipo de documento (ej. PDF, Word, etc.)
+  type: string; // Tipo de documento (ej. PDF, Word, etc.)
 
   @Column({ type: 'text', nullable: true })
-  contenido: string;
+  content: string;
 
-  @ManyToOne(() => Caso, (caso) => caso.documents, { nullable: true })
-  caso: Caso; // Relación con Caso, puede ser nulo si el documento no
+  @ManyToOne(()=> ClientItem , clientItem => clientItem.documents)
+  clientItem : ClientItem
+
 }

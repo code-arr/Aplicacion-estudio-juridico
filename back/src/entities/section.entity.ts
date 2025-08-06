@@ -1,0 +1,20 @@
+import { IsUUID } from 'class-validator';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { v4 as uuid } from 'uuid';
+import { Category } from './category.entity';
+import { ItemType } from './itemType.entity';
+@Entity('sections')
+export class Section {
+  @PrimaryGeneratedColumn('uuid')
+  @IsUUID()
+  id: string = uuid();
+  
+  @Column({ type: 'varchar', length: 255 })
+  name: string;
+
+  @ManyToOne(() => Category, (category) => category.sections)
+  category: Category;
+
+  @OneToMany(() => ItemType, (item) => item.section)
+  items: ItemType[];
+}

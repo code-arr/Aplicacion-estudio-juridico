@@ -6,16 +6,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import typeormConfig from './config/typeorm';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm'; // <-- Importa esto aquí también
 import { JwtModule } from '@nestjs/jwt';
-import { AuthController } from './controllers/auth.controller';
-import { AuthRepository } from './repositories/auth.repository';
-import { UserRepository } from './repositories/user.repository';
-import { UserService } from './services/user.service';
 import { AuthModule } from './modules/auth.module';
 import { UsersModule } from './modules/users.module';
 import { AbogadoModule } from './modules/abogado.module';
 import { AdminModule } from './modules/admin.module';
 import { ClienteModule } from './modules/cliente.module';
-import { CasoModule } from './modules/caso.module';
+import { CategoryModule } from './modules/category.module';
+import { SectionModule } from './modules/sectionModule';
+import { ItemTypeModule } from './modules/itemType.module';
+
 
 @Module({
   imports: [
@@ -38,7 +37,9 @@ import { CasoModule } from './modules/caso.module';
     AbogadoModule,
     AdminModule,
     ClienteModule,
-    CasoModule
+    CategoryModule,
+    SectionModule,
+    ItemTypeModule,
   ],
   controllers: [AppController ],
   providers: [AppService ],

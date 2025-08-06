@@ -19,10 +19,11 @@ const config: TypeOrmModuleOptions = {
   logging: ['error'],
   migrationsRun: true,
   synchronize: true,
+ // dropSchema: true,
   ssl: {
     rejectUnauthorized: false, // ✅ Esto habilita SSL aunque no tengas certificado local
   }
-  //dropSchema: true,
+  
 };
 
 export default registerAs('typeorm', () => config);

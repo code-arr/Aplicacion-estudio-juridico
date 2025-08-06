@@ -22,7 +22,7 @@ export class ClienteController {
     return this.clienteService.seedClientes();
   }
   @Get(':id')
-  @UseGuards(AuthGuard , AdminGuard)
+  //@UseGuards(AuthGuard , AdminGuard)
   async getClienteById(@Param('id') id: string) {
     return this.clienteService.getClienteById(id);
   }

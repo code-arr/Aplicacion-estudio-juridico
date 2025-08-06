@@ -1,16 +1,16 @@
 import { Entity, JoinColumn, OneToOne, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 import { IsUUID } from 'class-validator';
-import { Usuario } from './usuario.entity';
+import { User } from './user.entity';
 
-@Entity('administradores')
-export class Administrador {
+@Entity('admins')
+export class Admin {
   @PrimaryGeneratedColumn('uuid')
   @IsUUID()
   id: string;
 
   //relacion con usuario
    
-  @OneToOne(() => Usuario, user => user.admin, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, user => user.admin, { onDelete: 'CASCADE' })
   @JoinColumn() 
-  usuario: Usuario;
+  user: User;
 }

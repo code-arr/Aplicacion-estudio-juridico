@@ -1,6 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { registerUserDto } from 'src/dtos/user.dto';
-import { Usuario } from 'src/entities/usuario.entity';
+import { User } from 'src/entities/user.entity';
 import { AuthRepository } from 'src/repositories/auth.repository';
 
 @Controller('auth')
@@ -8,7 +8,7 @@ export class AuthController {
   constructor(private readonly authRepository: AuthRepository) {}
 
   @Post('register')
-  async register(@Body() user: registerUserDto): Promise<Partial<Usuario> | void> {
+  async register(@Body() user: registerUserDto): Promise<Partial<User> | void> {
     try {
       return this.authRepository.register(user);
     } catch (error) {

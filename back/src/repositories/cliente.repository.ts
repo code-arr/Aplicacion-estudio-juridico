@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common'; // Asegúrate de importar Inject y forwardRef
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateClienteDto } from 'src/dtos/cliente';
-import { Cliente } from 'src/entities/cliente.entity';
+import { Client } from 'src/entities/client.entity';
 import { AbogadoService } from 'src/services/abogado.service'; // Este es el servicio que causa la circularidad
 import { clientesSeedData } from 'src/utils/clientes';
 import { Repository } from 'typeorm';
@@ -14,7 +14,7 @@ import { Repository } from 'typeorm';
 @Injectable()
 export class ClienteRepository {
   constructor(
-    @InjectRepository(Cliente) private clienteRepository: Repository<Cliente>,
+    @InjectRepository(Client) private clienteRepository: Repository<Client>,
 
     @Inject(forwardRef(() => AbogadoService))
     private readonly abogadoService: AbogadoService,
@@ -30,16 +30,16 @@ export class ClienteRepository {
         throw new NotFoundException('Abogado no encontrado');
       }
 
-      if (!abogado.clientes) {
-        abogado.clientes = [];
+      if (!abogado.clients) {
+        abogado.clients = [];
       }
 
       const newCliente = this.clienteRepository.create(clienteData);
       await this.clienteRepository.save(newCliente);
 
-      abogado.clientes.push(newCliente);
+      abogado.clients.push(newCliente);
       await this.abogadoService.saveAbogado(abogado);
-      console.log('abogado.clientes', abogado.clientes);
+      console.log('abogado.clientes', abogado.clients);
 
       return newCliente;
     }
@@ -76,23 +76,23 @@ export class ClienteRepository {
     return 'Clientes agregados a la base de datos correctamente.';
   }
 
-  async getAllClientes(): Promise<Cliente[]> {
-    return this.clienteRepository.find({ relations: ['abogados', 'casos'] });
+  async getAllClientes(): Promise<Client[]> {
+    return this.clienteRepository.find({ relations: ['lawyers', 'category'] });
   }
 
-  async findByEmail(email: string): Promise<Cliente | null> {
+  async findByEmail(email: string): Promise<Client | null> {
     return this.clienteRepository.findOneBy({ email });
   }
 
-  async getClienteById(id: string): Promise<Cliente | null> {
+  async getClienteById(id: string): Promise<Client | null> {
     return this.clienteRepository.findOne({
       where: { id },
-      relations: ['abogados', 'casos'],
+      relations: ['lawyers' , "category.sections.items"],
     });
   }
 
   // Método para guardar un array de clientes (útil para seeders de relaciones)
-  async saveAll(clientes: Cliente[]): Promise<Cliente[]> {
+  async saveAll(clientes: Client[]): Promise<Client[]> {
     return this.clienteRepository.save(clientes);
   }
 }

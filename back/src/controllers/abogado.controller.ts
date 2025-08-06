@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { Abogado } from 'src/entities/abogado.entity';
+import { Lawyer } from 'src/entities/lawyer.entity';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { AbogadoService } from 'src/services/abogado.service';
 
@@ -19,13 +19,10 @@ export class AbogadoController {
   async getAllAbogados() {
     return this.abogadoService.getAllAbogados();
   }
-  @Post('seederCasos')
-  async seedCasosAbogadosyClientes() {
-    return this.abogadoService.seedCasosAbogadosyClientes();
-  }
+  
   @Get("getByEmail")
  // @UseGuards(AuthGuard)
-  async getAbogadoByEmail(@Body("email") email : string) :Promise<Abogado | null>{
+  async getAbogadoByEmail(@Body("email") email : string) :Promise<Lawyer | null>{
     
     
     return this.abogadoService.getAbogadoByEmail(email)

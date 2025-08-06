@@ -1,13 +1,13 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne, JoinColumn } from 'typeorm'; // Asegúrate de que JoinColumn esté aquí
 import { IsUUID } from 'class-validator';
 import { v4 as uuid } from 'uuid';
-import { Abogado } from './abogado.entity';
-import { Cliente } from './cliente.entity';
+import { Lawyer } from './lawyer.entity';
+import { Client } from './client.entity';
 
 
 
-@Entity('cronometros')
-export class Cronometro {
+@Entity('stopwatchs')
+export class StopWatch {
   @PrimaryGeneratedColumn('uuid')
   @IsUUID()
   id: string = uuid();
@@ -22,17 +22,17 @@ export class Cronometro {
   hours: number;
 
   @Column({ type: 'int', default: 0 })
-  tarifa: number;
+  price: number;
 
-  @ManyToOne(() => Abogado, (abogado) => abogado.cronometros)
-  abogado: Abogado;
+  @ManyToOne(() => Lawyer, (lawyer) => lawyer.stopWatch)
+  lawyer: Lawyer;
 
   // Relación OneToOne con Caso: Un cronómetro está asociado a un único caso (y viceversa)
   //@OneToOne(() => Caso, (caso) => caso.cronometro)
  // @JoinColumn() // ¡Esta es la clave! Indica que 'cronometros' tendrá la FK 'casoId'
   //caso: Caso; // Referencia al caso asociado a este cronómetro
 
-  @ManyToOne(() => Cliente, (cliente) => cliente.cronometros)
-  cliente: Cliente;
+  @ManyToOne(() => Client, (cliente) => cliente.stopwatchs)
+  client: Client;
 
 }

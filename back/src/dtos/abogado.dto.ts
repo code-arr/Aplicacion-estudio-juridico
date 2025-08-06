@@ -1,24 +1,24 @@
 // src/abogado/dto/create-abogado.dto.ts
 import { IsString, IsNotEmpty, IsEnum, IsInt, MinLength, MaxLength, IsOptional, Min } from 'class-validator';
-import { tipoAbogado, SeniorityLevel } from 'src/entities/abogado.entity';
+import { typeOffLawyer, SeniorityLevel } from 'src/entities/lawyer.entity';
 
 export class AbogadoDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(100)
-  nombre: string;
+  name: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(100)
-  apellido: string;
+  lastname: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  direccion: string;
+  adress: string;
 
   @IsString()
   @IsNotEmpty()
@@ -26,16 +26,16 @@ export class AbogadoDto {
   // @IsPhoneNumber('ZZ') // 'ZZ' para validación genérica internacional o el código de país
   @MinLength(10)
   @MaxLength(15)
-  telefono: string;
+  phone: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   rut: string; // O considera un formato de validación regex para RUT
 
-  @IsEnum(tipoAbogado, { message: 'El tipo de abogado no es válido.' })
+  @IsEnum(typeOffLawyer, { message: 'El tipo de abogado no es válido.' })
   @IsOptional() // Si no es obligatorio especificar al crear
-  tipoAbogado: tipoAbogado.CRIMINAL | tipoAbogado.CIVIL | tipoAbogado.FAMILIAR;
+  type: typeOffLawyer.CRIMINAL | typeOffLawyer.CIVIL | typeOffLawyer.FAMILIAR;
 
   @IsEnum(SeniorityLevel, { message: 'El nivel de seniority no es válido.' })
   @IsNotEmpty() // Asumo que el seniority es obligatorio al crear
@@ -44,7 +44,7 @@ export class AbogadoDto {
   @IsInt()
   @Min(0)
   @IsOptional()
-  horasTrabajadas?: number; // Es opcional ya que tiene un valor por defecto en la entidad
+  workedHours?: number; // Es opcional ya que tiene un valor por defecto en la entidad
 
   userEmail : string; // Asumiendo que este es el email del usuario asociado al abogado
 }
