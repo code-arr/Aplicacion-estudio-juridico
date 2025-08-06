@@ -17,4 +17,7 @@ export class UserService {
   async createUser(user: registerUserDto): Promise<Partial<User> | void> {
     return this.userRepository.createUser(user);
   }
+    async getAllUsers():Promise<User[]>{
+    return this.userRepository.getAllUsers();
+  }
 }

@@ -71,4 +71,8 @@ export class UserRepository {
       );
     }
   }
+
+  async getAllUsers():Promise<User[]>{
+    return await this.userRepository.find();
+  }
 }

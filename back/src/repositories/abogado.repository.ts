@@ -23,9 +23,6 @@ export class AbogadoRepository {
     const newAbogado = this.repository.create(abogado);
     return this.repository.save(newAbogado);
   }
-  async getAllAbogados(): Promise<Lawyer[]> {
-    return this.repository.find({ relations: ['clientes'] });
-  }
   async saveAbogado(abogado: Lawyer): Promise<Lawyer> {
     return this.repository.save(abogado);
   }
@@ -51,7 +48,7 @@ export class AbogadoRepository {
 
   async seedClientesAbogados(): Promise<string> {
     try {
-      const abogados = await this.getAllAbogados();
+      const abogados = await this.getAllLawyers();
       const clientes = clientesSeedData;
 
       for (const abogado of abogados) {
@@ -82,14 +79,18 @@ export class AbogadoRepository {
   async getAbogadoById(id: string): Promise<Lawyer | null> {
     return await this.repository.findOne({
       where: { id },
-      relations: ['clients.casos', 'casos.cliente', 'user'],
+      relations: ['clients', 'user'],
     });
   }
 
   async getAbogadoByEmail(email: string): Promise<Lawyer | null> {
     return await this.repository.findOne({
       where: { user: { email: email } },
-      relations: ['user', 'clients', 'casos'],
+      relations: ['user', 'clients'],
     });
+  }
+
+  async getAllLawyers():Promise<Lawyer[]> {
+    return await this.repository.find();
   }
 }

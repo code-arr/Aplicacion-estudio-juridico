@@ -14,10 +14,10 @@ export class AbogadoController {
   async seedAbogadosClientes() {
     return this.abogadoService.seedClienteAbogados();
   }
-  @Get('')
+  @Get('getAll')
   @UseGuards(AuthGuard)
-  async getAllAbogados() {
-    return this.abogadoService.getAllAbogados();
+  async getAllLawyers() {
+    return this.abogadoService.getAllLawyers();
   }
   
   @Get("getByEmail")

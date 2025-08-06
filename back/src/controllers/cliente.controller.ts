@@ -26,7 +26,7 @@ export class ClienteController {
   async getClienteById(@Param('id') id: string) {
     return this.clienteService.getClienteById(id);
   }
-  @Get()
+  @Get("getAll")
   @UseGuards(AuthGuard)
   async getAllClientes() {
     return this.clienteService.getAllClientes();

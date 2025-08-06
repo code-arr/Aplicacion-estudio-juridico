@@ -12,10 +12,6 @@ export class AbogadoService {
     return this.abogadoRepository.seedData();
   }
 
- async getAllAbogados(): Promise<Lawyer[]> {
-    return this.abogadoRepository.getAllAbogados();
-  }
-
   async seedClienteAbogados(): Promise<string> {
     return this.abogadoRepository.seedClientesAbogados();
   }
@@ -27,5 +23,8 @@ export class AbogadoService {
   }
   async saveAbogado(abogado: Lawyer): Promise<Lawyer> {
     return this.abogadoRepository.saveAbogado(abogado);
+  }
+  async getAllLawyers():Promise<Lawyer[]> {
+    return await this.abogadoRepository.getAllLawyers();
   }
 }
