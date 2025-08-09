@@ -1,4 +1,4 @@
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
   SidebarContent,
   SidebarGroup,
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Scale, User, Settings, ChartNoAxesCombined } from "lucide-react";
 import { StaticSidebar } from "../ui/staticSidebar";
 import type { Lawyer } from "@/types/Lawyer";
+import { useState } from "react";
 
 interface AppSidebarProps {
   lawyer: Lawyer;
@@ -22,6 +23,7 @@ interface AppSidebarProps {
 }
 
 const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
+  const [collapsed, setCollapsed] = useState(false);
   const menuItems = [
     {
       title: "Mis Clientes",
@@ -46,13 +48,29 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
   ];
 
   return (
-    <StaticSidebar className="border-r border-[hsl(216,12%,15%)]">
-      <SidebarHeader className="p-6">
-        <div className="flex items-center space-x-3">
+    <StaticSidebar
+      className={`sticky top-0 h-screen transition-all duration-300 ease-in-out border-r border-[hsl(216,12%,15%)] overflow-hidden ${
+        collapsed ? "max-w-[72px] items-center" : "max-w-[260px]"
+      }`}
+    >
+      <SidebarHeader className="py-6 justify-center items-center flex-row gap-0">
+        <button
+          onClick={() => setCollapsed((prev) => !prev)}
+          className="focus:outline-none transition-opacity hover:opacity-80 cursor-pointer"
+        >
           <div className="law-gradient p-2 rounded-lg">
             <Scale className="h-6 w-6 text-white" />
           </div>
-          <div>
+        </button>
+
+        <div className="min-w-0 overflow-hidden text-start">
+          <div
+            className={`transition-all duration-300 ease-in-out will-change-[width,opacity]
+                    whitespace-nowrap ${
+                      collapsed ? "opacity-0 w-0" : "opacity-100 w-[180px] ml-3"
+                    }`}
+            aria-hidden={collapsed}
+          >
             <h2 className="text-lg font-semibold text-[hsl(210,40%,98%)]">
               Estudio Jurídico
             </h2>
@@ -63,10 +81,10 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="overflow-hidden">
         <SidebarGroup>
           <SidebarGroupLabel className="text-[hsl(210,40%,98%)]/70">
-            Navegación
+            {!collapsed && "Navegación"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -84,7 +102,7 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
                       }
                     >
                       <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
+                      {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -94,32 +112,56 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-[hsl(216,12%,15%)]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-8 w-8">
+      <SidebarFooter
+        className={`p-4 border-t border-[hsl(216,12%,15%)] overflow-hidden ${
+          collapsed
+            ? "flex flex-col items-center justify-between  h-[120px]"
+            : ""
+        }`}
+      >
+        {collapsed ? (
+          <>
+            <Avatar className="h-8 w-8 mb-0 cursor-pointer">
               <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] text-sm">
                 {lawyer.firstname.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-[hsl(210,40%,98%)] truncate">
-                {lawyer.firstname + " " + lawyer.lastname}
-              </p>
-              <p className="text-xs text-[hsl(210,40%,98%)]/70 truncate">
-                Abogado
-              </p>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onLogout}
+              className="text-[hsl(210,40%,98%)]/70 hover:text-[hsl(210,40%,98%)] hover:bg-[hsl(216,12%,15%)] cursor-pointer"
+            >
+              Salir
+            </Button>
+          </>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-8 w-8 cursor-pointer">
+                <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] text-sm">
+                  {lawyer.firstname.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-[hsl(210,40%,98%)] truncate">
+                  {lawyer.firstname + " " + lawyer.lastname}
+                </p>
+                <p className="text-xs text-[hsl(210,40%,98%)]/70 truncate">
+                  Abogado
+                </p>
+              </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onLogout}
+              className="text-[hsl(210,40%,98%)]/70 hover:text-[hsl(210,40%,98%)] hover:bg-[hsl(216,12%,15%)] cursor-pointer"
+            >
+              Salir
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onLogout}
-            className="text-[hsl(210,40%,98%)]/70 hover:text-[hsl(210,40%,98%)] hover:bg-[hsl(216,12%,15%)]"
-          >
-            Salir
-          </Button>
-        </div>
+        )}
       </SidebarFooter>
     </StaticSidebar>
   );

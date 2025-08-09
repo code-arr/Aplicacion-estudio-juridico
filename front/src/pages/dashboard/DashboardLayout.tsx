@@ -38,7 +38,7 @@ const DashboardLayout = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="min-h-screen flex items-start w-full bg-gray-50">
         <AppSidebar lawyer={mockLawyer} onLogout={onLogout} />
         {/* Aca en seria mejor pasarle role={user.role} en lugar de lawyer={user} */}
         <main className="flex-1 p-4">

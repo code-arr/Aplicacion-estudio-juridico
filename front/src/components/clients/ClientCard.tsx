@@ -29,7 +29,7 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
 
     const config = statusConfig[status];
     return (
-      <Badge className={`${config.className} font-medium`}>
+      <Badge className={`${config.className} font-medium cursor-default`}>
         {config.label}
       </Badge>
     );

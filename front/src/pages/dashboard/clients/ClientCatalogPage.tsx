@@ -1,9 +1,8 @@
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@components/ui/card";
-import type { Category, ItemType, Section } from "@/types/Catalog";
+import type { ItemType, Section } from "@/types/Catalog";
 
 const ClientCatalogPage = () => {
   const { categoryId } = useParams();

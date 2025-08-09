@@ -14,7 +14,7 @@ import ClientOverviewPage from "@/pages/dashboard/clients/ClientOverviewPage";
 import ClientCatalogPage from "@pages/dashboard/clients/ClientCatalogPage";
 
 import Statistics from "@/components/Statistics";
-import Settings from "@/components/Settings";
+import LawyerSettings from "@pages/dashboard/lawyer/LawyerSettings";
 import LoadingScreen from "@components/shared/LoadingScreen";
 
 import ClientLayout from "@/layouts/ClientLayout";
@@ -50,7 +50,7 @@ const AppRoutes = () => {
               />
             </Route>
             <Route path="statistics" element={<Statistics />} />
-            <Route path="settings" element={<Settings />} />
+            <Route path="settings" element={<LawyerSettings />} />
             <Route index element={<Navigate to="clients" replace />} />
           </>
         )}
