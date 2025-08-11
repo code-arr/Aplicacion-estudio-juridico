@@ -15,7 +15,7 @@ export class AbogadoController {
     return this.abogadoService.seedClienteAbogados();
   }
   @Get('getAll')
-  @UseGuards(AuthGuard)
+  //@UseGuards(AuthGuard)
   async getAllLawyers() {
     return this.abogadoService.getAllLawyers();
   }

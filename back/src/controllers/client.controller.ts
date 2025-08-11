@@ -21,14 +21,15 @@ export class ClienteController {
   async seedClientes(): Promise<string> {
     return this.clienteService.seedClientes();
   }
+   @Get("getAll")
+  //@UseGuards(AuthGuard)
+  async getAllClientes() {
+    return this.clienteService.getAllClientes();
+  }
   @Get(':id')
   //@UseGuards(AuthGuard , AdminGuard)
   async getClienteById(@Param('id') id: string) {
     return this.clienteService.getClienteById(id);
   }
-  @Get("getAll")
-  @UseGuards(AuthGuard)
-  async getAllClientes() {
-    return this.clienteService.getAllClientes();
-  }
+ 
 }

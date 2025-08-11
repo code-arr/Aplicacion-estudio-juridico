@@ -77,7 +77,7 @@ export class ClienteRepository {
   }
 
   async getAllClientes(): Promise<Client[]> {
-    return this.clienteRepository.find({ relations: ['lawyers', 'category'] });
+    return this.clienteRepository.find({ relations: ['lawyers'] });
   }
 
   async findByEmail(email: string): Promise<Client | null> {
@@ -87,7 +87,7 @@ export class ClienteRepository {
   async getClienteById(id: string): Promise<Client | null> {
     return this.clienteRepository.findOne({
       where: { id },
-      relations: ['lawyers' , "category.sections.items"],
+      relations: ['lawyers'],
     });
   }
 

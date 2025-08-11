@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AbogadoDto } from 'src/dtos/abogado.dto';
+import { AbogadoDto } from 'src/dtos/lawyer.dto';
 import { Lawyer } from 'src/entities/lawyer.entity';
 import { Client } from 'src/entities/client.entity';
 import { ClienteService } from 'src/services/cliente.service';
