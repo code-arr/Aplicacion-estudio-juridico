@@ -41,4 +41,8 @@ export class ItemTypeRepository { // <-- Nombre de clase corregido
             .getRawMany(); // <-- Obtenemos objetos planos con los alias
     }
 
+    async getItemTypeById(id : string):Promise<ItemType | null>{
+        return this.itemRepository.findOne({where : {id}})
+    }
+
 }

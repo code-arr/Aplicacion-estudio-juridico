@@ -3,6 +3,7 @@ import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "ty
 import { v4 as uuid } from 'uuid';
 import { Client } from "./client.entity";
 import { Document } from "./document.entity";
+import { ItemType } from "./itemType.entity";
 @Entity("clientItems")
 export class ClientItem {
  @PrimaryGeneratedColumn('uuid')
@@ -20,5 +21,8 @@ export class ClientItem {
 
   @OneToMany(()=>Document , document => document.clientItem )
   documents : Document[]
+
+  @ManyToOne(()=>ItemType , itemType => itemType.clientItems)
+  itemType : ItemType
 
 }
