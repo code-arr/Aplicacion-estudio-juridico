@@ -10,9 +10,11 @@ import { UserRepository } from 'src/repositories/user.repository';
 import { AbogadoService } from 'src/services/abogado.service';
 import { ClienteService } from 'src/services/cliente.service';
 import { UserService } from 'src/services/user.service';
+import { MyMailerService } from 'src/mailer/mailer.service';
+import { MyMailerModule } from 'src/mailer/mailer.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Client, Lawyer, User])],
+  imports: [TypeOrmModule.forFeature([Client, Lawyer, User]), MyMailerModule],
   controllers: [ClienteController],
   providers: [
     ClienteService,
@@ -20,7 +22,8 @@ import { UserService } from 'src/services/user.service';
     AbogadoService,
     AbogadoRepository,
     UserService,
-    UserRepository
+    UserRepository,
+    MyMailerService,
   ],
   exports: [ClienteService, ClienteRepository],
 })

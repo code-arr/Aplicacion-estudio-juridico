@@ -1,15 +1,29 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateClienteDto } from 'src/dtos/cliente';
 import { AdminGuard } from 'src/guards/admin.guard';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { MyMailerService } from 'src/mailer/mailer.service';
 import { ClienteService } from 'src/services/cliente.service';
 
-@Controller('clientes')
+@Controller('clients')
 export class ClienteController {
-  constructor(private readonly clienteService: ClienteService) {}
+  constructor(
+    private readonly clienteService: ClienteService,
+    private readonly myMailerService: MyMailerService,
+  ) {}
 
   @Post()
-  @UseGuards(AuthGuard )
+  @UseGuards(AuthGuard)
   async createCliente(
     @Body() clienteData: CreateClienteDto,
     @Body('abogadoId') abogadoId: string,
@@ -17,11 +31,36 @@ export class ClienteController {
     return this.clienteService.createCliente(clienteData, abogadoId);
   }
 
+  @Post('send-document')
+  // 'contractFile' debe coincidir con el nombre del campo en el formulario HTML del cliente
+  @UseInterceptors(FileInterceptor('contractFile'))
+  async sendContract(
+    @Body('email') email: string,
+    @Body("description") description :string,
+    @Body("title") title : string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    // Verificamos que el archivo haya sido subido
+    if (!file) {
+      return { message: 'No se subió ningún archivo.' };
+    }
+
+    // Llamamos al servicio de correo con los datos y el archivo
+    await this.myMailerService.sendDocumentEmail(
+      email,
+      title,
+      file.buffer,
+      file.originalname,
+      description
+    );
+
+    return { message: 'Contrato enviado con éxito.' };
+  }
   @Post('seeder')
   async seedClientes(): Promise<string> {
     return this.clienteService.seedClientes();
   }
-   @Get("getAll")
+  @Get('getAll')
   //@UseGuards(AuthGuard)
   async getAllClientes() {
     return this.clienteService.getAllClientes();
@@ -31,5 +70,4 @@ export class ClienteController {
   async getClienteById(@Param('id') id: string) {
     return this.clienteService.getClienteById(id);
   }
- 
 }

@@ -14,6 +14,7 @@ import { ClienteModule } from './modules/cliente.module';
 import { CategoryModule } from './modules/category.module';
 import { SectionModule } from './modules/sectionModule';
 import { ItemTypeModule } from './modules/itemType.module';
+import { MailerModule } from '@nestjs-modules/mailer';
 
 
 @Module({
@@ -40,6 +41,7 @@ import { ItemTypeModule } from './modules/itemType.module';
     CategoryModule,
     SectionModule,
     ItemTypeModule,
+    MailerModule
   ],
   controllers: [AppController ],
   providers: [AppService ],
