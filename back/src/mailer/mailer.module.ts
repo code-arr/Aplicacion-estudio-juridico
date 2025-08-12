@@ -7,7 +7,7 @@ import { MyMailerService } from './mailer.service';
     MailerModule.forRoot({
       transport: {
         host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT, // El '+' convierte el string a número
+        port: process.env.SMTP_PORT, 
         secure: false, // true para 465, false para otros puertos
         auth: {
           user: process.env.SMTP_USER,
@@ -17,8 +17,6 @@ import { MyMailerService } from './mailer.service';
       defaults: {
         from: process.env.DEFAULT_EMAIL_FROM,
       },
-      // Si el contrato es subido como un archivo, no necesitas una plantilla aquí.
-      // Puedes eliminar la sección 'template' o dejarla para otros correos.
     }),
   ],
   providers: [MyMailerService],

@@ -11,7 +11,6 @@ export class MyMailerService {
       await this.mailerService.sendMail({
         to: to,
         subject: subject,
-        // Usamos un cuerpo de correo simple. Puedes usar una plantilla HTML si quieres.
         html: description,
         attachments: [
           {

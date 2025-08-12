@@ -15,7 +15,7 @@ import { AuthGuard } from 'src/guards/auth.guard';
 import { MyMailerService } from 'src/mailer/mailer.service';
 import { ClienteService } from 'src/services/cliente.service';
 
-@Controller('clients')
+@Controller('client')
 export class ClienteController {
   constructor(
     private readonly clienteService: ClienteService,

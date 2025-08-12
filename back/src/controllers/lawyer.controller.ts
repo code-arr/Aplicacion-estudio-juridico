@@ -3,7 +3,7 @@ import { Lawyer } from 'src/entities/lawyer.entity';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { AbogadoService } from 'src/services/abogado.service';
 
-@Controller('abogados')
+@Controller('lawyer')
 export class AbogadoController {
   constructor(private readonly abogadoService: AbogadoService) {}
   @Post('seeder')
