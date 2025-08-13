@@ -4,6 +4,7 @@ import { v4 as uuid } from 'uuid';
 import { Client } from "./client.entity";
 import { Document } from "./document.entity";
 import { ItemType } from "./itemType.entity";
+import { Lawyer } from "./lawyer.entity";
 @Entity("clientItems")
 export class ClientItem {
  @PrimaryGeneratedColumn('uuid')
@@ -18,6 +19,9 @@ export class ClientItem {
 
   @ManyToOne(()=> Client , client => client.clientItems)
   client : Client
+
+  @ManyToOne(()=> Lawyer , lawyer => lawyer.clientItems)
+  lawyer : Lawyer
 
   @OneToMany(()=>Document , document => document.clientItem )
   documents : Document[]

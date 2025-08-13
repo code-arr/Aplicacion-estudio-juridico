@@ -6,13 +6,15 @@ import { ClientItemService } from 'src/services/clientItem.service';
 @Controller("clientItem")
 export class ClientItemController {
   constructor(private readonly ClientItemService: ClientItemService) {}
-  @Post("create/:itemTypeId/:clientId")
+  @Post("create/:itemTypeId")
   async createClientItem(
     @Body() clientItem: ClientItemDto,
     @Param('itemTypeId') itemTypeId: string,
-    @Param("clientId") clientId : string
+    @Body("clientId") clientId : string,
+    @Body("lawyerId") lawyerId : string
+    
   ) {
-    return this.ClientItemService.createClientItem(clientItem, itemTypeId , clientId);
+    return this.ClientItemService.createClientItem(clientItem, itemTypeId , clientId , lawyerId);
   }
 
   @Get("getAll")

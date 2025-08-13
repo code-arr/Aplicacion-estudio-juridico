@@ -4,6 +4,7 @@ import { v4 as uuid } from 'uuid';
 import { User } from './user.entity';
 import { StopWatch } from './stopwatch.entity';
 import { Client } from './client.entity';
+import { ClientItem } from './clientItem.entity';
 
 export enum typeOffLawyer {
   CRIMINAL = 'criminal',
@@ -63,6 +64,9 @@ export class Lawyer {
   // Un abogado puede tener muchos cronómetros. La clave foránea estará en la tabla 'cronometros'.
   @OneToMany(() => StopWatch, (stopWatch) => stopWatch.lawyer)
   stopWatch: StopWatch[];
+
+  @OneToMany(() => ClientItem, (clientItem) => clientItem.lawyer)
+  clientItems: ClientItem[];
 
   // Relación Many-to-Many con Cliente
   // Abogado es el propietario: se creará una tabla intermedia 'abogados_clientes'.
