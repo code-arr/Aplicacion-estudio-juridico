@@ -24,7 +24,6 @@ const ClientOverviewPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const mockClientDetail = mockClients.find((client) => client.id === id);
-  const simulatedTime = 1232;
 
   const handleOpenCategory = (categoryId: string) => {
     navigate(`category/${categoryId}`);
@@ -80,7 +79,7 @@ const ClientOverviewPage = () => {
                 <div className="mt-1">
                   <Badge
                     variant="outline"
-                    className="bg-[hsl(45,100%,85%)] text-[hsl(45,100%,30%)] border-[hsl(45,100%,70%)] text-sm font-medium"
+                    className="bg-[hsl(45,100%,85%)] text-[hsl(45,100%,30%)] border-[hsl(45,100%,70%)] text-sm font-medium cursor-default"
                   >
                     En Revisión
                   </Badge>
@@ -127,7 +126,7 @@ const ClientOverviewPage = () => {
               </div>
               <Button
                 onClick={() => setIsDialogOpen(true)}
-                className="bg-[#f3b600] hover:bg-[#ffbf00]/80 border-[1.5px] border-gray-500 cursor-pointer"
+                className="bg-[#f3b600] hover:bg-[#ffbf00]/80 shadow-lg  cursor-pointer"
               >
                 <SquarePlus />
                 Agregar Item

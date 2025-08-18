@@ -1,9 +1,18 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import ClientCard from "@components/clients/ClientCard";
+import type { Client } from "@/types/Client";
 
-import { mockClients } from "@/mocks/mockClients";
+import {
+  useClientStore,
+  selectIsClientsHydrated,
+  selectIsLoadingClients,
+  selectClients,
+  selectClientsError,
+} from "@/store/useClientStore";
+
+import ClientCard from "@components/clients/ClientCard";
+import ClientForm from "@/components/clients/ClientForm";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -17,8 +26,11 @@ import {
 } from "@/components/ui/select";
 
 import { Search, Plus } from "lucide-react";
-import type { Client } from "@/types/Client";
-import ClientForm from "@/components/clients/ClientForm";
+
+import { mockClients } from "@/mocks/mockClients";
+import LoadingSpinner from "@components/shared/LoadingSpinner";
+import EmptyArray from "@components/shared/EmptyArray";
+import ErrorScreen from "@components/shared/ErrorScreen";
 
 const ClientsPage = () => {
   const navigate = useNavigate();
@@ -27,14 +39,36 @@ const ClientsPage = () => {
   const [clientOrder, setClientOrder] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const filteredClients = mockClients.filter((client) => {
-    const matchesSearch =
-      client.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "todos" || client.clientStatus === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const clients = useClientStore(selectClients);
+  const isClientsHydrated = useClientStore(selectIsClientsHydrated);
+  const isClientsLoading = useClientStore(selectIsLoadingClients);
+  const clientsError = useClientStore(selectClientsError);
+
+  // Función utilitaria
+  const normalizeText = (text: string) =>
+    text
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase();
+
+  const filteredClients = useMemo(() => {
+    const term = normalizeText(searchTerm.trim());
+
+    return mockClients.filter((client) => {
+      // Unís los campos que quieras buscar
+      const clientName = normalizeText(
+        `${client.firstName ?? ""} ${client.lastName ?? ""} ${
+          client.companyName ?? ""
+        }`
+      );
+
+      const matchesSearch = !term || clientName.includes(term);
+      const matchesStatus =
+        statusFilter === "todos" || client.clientStatus === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [clients, searchTerm, statusFilter]);
 
   const handleViewDetails = (client: Client) => {
     console.log("Ver detalles del cliente:", client.firstName);
@@ -45,6 +79,14 @@ const ClientsPage = () => {
     return mockClients.filter((client) => client.clientStatus === status)
       .length;
   };
+
+  if (isClientsLoading) return <LoadingSpinner />;
+
+  if (clientsError)
+    return <ErrorScreen message="Ocurrió un error al cargar los clientes" />;
+
+  if (isClientsHydrated && clients.length === 0)
+    return <EmptyArray message="No hay clientes para mostrar" />;
 
   return (
     <div>
@@ -62,7 +104,7 @@ const ClientsPage = () => {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Mis Clientes</h1>
               <p className="text-gray-600">
-                Gestiona y supervisa todos tus casos
+                Gestiona y supervisa todos tus clientes
               </p>
             </div>
           </div>

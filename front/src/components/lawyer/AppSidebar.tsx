@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   SidebarContent,
   SidebarGroup,
@@ -23,7 +23,16 @@ interface AppSidebarProps {
 }
 
 const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
+  const { pathname, hash } = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Soporta HashRouter y BrowserRouter sin cambiar código
+  const currentPath = hash?.startsWith("#/")
+    ? hash.slice(1) // "#/dashboard/clients" -> "/dashboard/clients"
+    : pathname; // "/dashboard/clients"
+
+  const isActive = (to: string) =>
+    currentPath === to || currentPath.startsWith(`${to}/`);
   const menuItems = [
     {
       title: "Mis Clientes",
@@ -88,25 +97,27 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={`/dashboard/${item.url}`}
-                      className={({ isActive }) =>
-                        `flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                          isActive
-                            ? "bg-[hsl(216,12%,15%)] text-[hsl(210,40%,98%)] font-medium"
-                            : "text-[hsl(216,12%,8%)] hover:bg-[hsl(216,12%,15%)]/50"
-                        }`
-                      }
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) => {
+                const to = `/dashboard/${item.url}`;
+                const active = isActive(to);
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={to}
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                          active
+                            ? "bg-[hsl(216,12%,15%)]/80 text-[hsl(210,40%,98%)] font-medium"
+                            : "text-[hsl(210,40%,98%)] hover:bg-[hsl(216,12%,15%)]/50"
+                        }`}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

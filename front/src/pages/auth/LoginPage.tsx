@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import LoginForm from "@/components/LoginForm";
+import LoginForm from "@components/auth/LoginForm";
 import { useAuthStore } from "@/store/useAuthStore";
 import { loginUser } from "@/api/user";
 import { Spinner } from "@radix-ui/themes";

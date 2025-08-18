@@ -33,7 +33,7 @@ const ClientHeader = ({
           <ArrowLeft className="h-6 w-6" />
         </Button>
         <div className="flex items-center gap-4">
-          <Avatar className="h-12 w-12">
+          <Avatar className="h-12 w-12 cursor-default">
             <AvatarFallback className="bg-[hsl(210,40%,98%)] text-[hsl(210,100%,45%)] font-semibold text-lg gap-x-[0.05rem]">
               {initials}
             </AvatarFallback>

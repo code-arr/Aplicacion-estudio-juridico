@@ -13,11 +13,13 @@ import ClientsPage from "@pages/dashboard/clients/ClientsPage";
 import ClientOverviewPage from "@/pages/dashboard/clients/ClientOverviewPage";
 import ClientCatalogPage from "@pages/dashboard/clients/ClientCatalogPage";
 
-import Statistics from "@/components/Statistics";
+import Statistics from "@pages/dashboard/lawyer/Statistics";
 import LawyerSettings from "@pages/dashboard/lawyer/LawyerSettings";
 import LoadingScreen from "@components/shared/LoadingScreen";
 
 import ClientLayout from "@/layouts/ClientLayout";
+import ItemOverviewPage from "@pages/dashboard/items/ItemOverviewPage";
+import ItemsPage from "@pages/dashboard/items/ItemsPage";
 
 const AppRoutes = () => {
   const { isAdmin, isLawyer, isLoadingSession } = useAuthStore();
@@ -48,7 +50,9 @@ const AppRoutes = () => {
                 path="category/:categoryId"
                 element={<ClientCatalogPage />}
               />
+              <Route path="item/:clientItemId" element={<ItemOverviewPage />} />
             </Route>
+            <Route path="clientItems" element={<ItemsPage />} />
             <Route path="statistics" element={<Statistics />} />
             <Route path="settings" element={<LawyerSettings />} />
             <Route index element={<Navigate to="clients" replace />} />

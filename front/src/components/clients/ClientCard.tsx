@@ -35,7 +35,8 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
     );
   };
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string) => {
+    if (!name) return "?"; // fallback si no hay nombre
     return name
       .split(" ")
       .map((word) => word.charAt(0))
