@@ -12,7 +12,7 @@ interface ClienteSeedItem extends Partial<Client> {
 // Las relaciones (casos, cronometros) se manejarán en otros seeders o al crear el caso/cronometro.
 export const clientesSeedData: ClienteSeedItem[] = [
   {
-    name: 'Juan',
+    firstName: 'Juan',
     lastName: 'Pérez',
     email: 'juan.perez@example.com',
     phone: '1122334455',
@@ -21,7 +21,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     abogadoAsociadoEmail: 'abogado1@example.com', // Asociado a Abogado 1
   },
   {
-    name: 'María',
+    firstName: 'María',
     lastName: 'González',
     email: 'maria.gonzalez@example.com',
     phone: '2233445566',
@@ -30,7 +30,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     abogadoAsociadoEmail: 'abogado2@example.com', // Asociado a Abogado 2
   },
   {
-    name: 'Carlos',
+    firstName: 'Carlos',
     lastName: 'Rodríguez',
     email: 'carlos.rodriguez@example.com',
     phone: '3344556677',
@@ -39,7 +39,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     abogadoAsociadoEmail: 'abogado3@example.com', // Asociado a Abogado 3
   },
   {
-    name: 'Laura',
+    firstName: 'Laura',
     lastName: 'Martínez',
     email: 'laura.martinez@example.com',
     phone: '4455667788',
@@ -48,7 +48,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     abogadoAsociadoEmail: 'abogado1@example.com', // Asociado a Abogado 1
   },
   {
-    name: 'Pedro',
+    firstName: 'Pedro',
     lastName: 'Sánchez',
     email: 'pedro.sanchez@example.com',
     phone: '5566778899',
@@ -57,7 +57,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     abogadoAsociadoEmail: 'abogado2@example.com', // Asociado a Abogado 2
   },
   {
-    name: 'Ana',
+    firstName: 'Ana',
     lastName: 'Díaz',
     email: 'ana.diaz@example.com',
     phone: '6677889900',
@@ -66,7 +66,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     abogadoAsociadoEmail: 'abogado3@example.com', // Asociado a Abogado 3
   },
   {
-    name: 'Luis',
+    firstName: 'Luis',
     lastName: 'Ramírez',
     email: 'luis.ramirez@example.com',
     phone: '7788990011',
@@ -75,7 +75,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     abogadoAsociadoEmail: 'abogado1@example.com', // Asociado a Abogado 1
   },
   {
-    name: 'Sofía',
+    firstName: 'Sofía',
     lastName: 'Fernández',
     email: 'sofia.fernandez@example.com',
     phone: '8899001122',
@@ -84,7 +84,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     abogadoAsociadoEmail: 'abogado2@example.com', // Asociado a Abogado 2
   },
   {
-    name: 'Miguel',
+    firstName: 'Miguel',
     lastName: 'López',
     email: 'miguel.lopez@example.com',
     phone: '9900112233',
@@ -93,7 +93,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     abogadoAsociadoEmail: 'abogado3@example.com', // Asociado a Abogado 3
   },
   {
-    name: 'Elena',
+    firstName: 'Elena',
     lastName: 'Gómez',
     email: 'elena.gomez@example.com',
     phone: '0011223344',

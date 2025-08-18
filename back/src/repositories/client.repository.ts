@@ -62,7 +62,7 @@ export class ClienteRepository {
           abogadoIdToAssociate = abogado.id;
         } else {
           console.warn(
-            `[Seed Clientes] Abogado con email '${clienteSeedItem.abogadoAsociadoEmail}' no encontrado para asociar con cliente '${clienteSeedItem.name}'.`,
+            `[Seed Clientes] Abogado con email '${clienteSeedItem.abogadoAsociadoEmail}' no encontrado para asociar con cliente '${clienteSeedItem.firstName}'.`,
           );
         }
       }

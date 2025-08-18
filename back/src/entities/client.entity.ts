@@ -22,7 +22,7 @@ export class Client {
   id: string = uuid();
 
   @Column()
-  name: string;
+  firstName: string;
 
   @Column()
   lastName: string;
