@@ -18,6 +18,7 @@ export enum SeniorityLevel {
   MID = 'mid',
   SENIOR = 'senior',
 }
+
 @Entity({ name: 'abogados' })
 export class Lawyer {
   @PrimaryGeneratedColumn('uuid')
@@ -55,6 +56,8 @@ export class Lawyer {
 
   @Column({type: 'int', default: 0})
   workedHours: number;
+
+  
 
   //relacion con usuario
   @OneToOne(() => User, (usuario) => usuario.lawyer)

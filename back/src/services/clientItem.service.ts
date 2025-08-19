@@ -21,10 +21,10 @@ export class ClientItemService {
  }
 
  async getAllClientItems(): Promise<any[]> {
-    return this.clientItemRepository.getAllClientItems();
+    return await this.clientItemRepository.getAllClientItems();
  }
 
  async getClientItemById(id: string): Promise<ClientItem> {
-   return this.clientItemRepository.getClientItemById(id);
+   return await this.clientItemRepository.getClientItemById(id);
  }
 }

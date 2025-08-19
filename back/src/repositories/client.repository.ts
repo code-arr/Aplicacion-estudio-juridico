@@ -77,7 +77,7 @@ export class ClienteRepository {
   }
 
   async getAllClientes(): Promise<Client[]> {
-    return this.clienteRepository.find({ relations: ['lawyers'] });
+    return this.clienteRepository.find();
   }
 
   async findByEmail(email: string): Promise<Client | null> {

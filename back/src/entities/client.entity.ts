@@ -15,6 +15,11 @@ import { StopWatch } from './stopwatch.entity';
 import { Category } from './category.entity';
 import { ClientItem } from './clientItem.entity';
 
+export enum clientType {
+  FISICA = 'Fisica',
+  JURIDICA = 'Juridica',
+}
+
 @Entity('clients')
 export class Client {
   @PrimaryGeneratedColumn('uuid')
@@ -38,6 +43,9 @@ export class Client {
 
   @Column()
   rut: string;
+
+  @Column({ type: 'enum', enum: clientType, default: clientType.FISICA })
+  type: clientType;
 
   @ManyToMany(() => Lawyer, (lawyer) => lawyer.clients)
   lawyers: Lawyer[];

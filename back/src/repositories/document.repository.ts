@@ -44,6 +44,10 @@ export class DocumentRepository {
 async getAllDocuments(): Promise<Document[]> {
   return this.documentRepository.find({ relations: ['clientItem'] });
 }
+
+async seedDocuments() {
+
+}
 }
 
 // // src/document/document.service.ts (ejemplo)
