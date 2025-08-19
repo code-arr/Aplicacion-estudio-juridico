@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { Lawyer } from 'src/entities/lawyer.entity';
-import { AuthGuard } from 'src/guards/auth.guard';
-import { AbogadoService } from 'src/services/abogado.service';
+import { Lawyer } from '../entities/lawyer.entity';
+import { AuthGuard } from '../guards/auth.guard';
+import { AbogadoService } from '../services/abogado.service';
 
 @Controller('lawyer')
 export class AbogadoController {

@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ItemTypeDto } from "src/dtos/itemType.dto";
-import { ItemType } from "src/entities/itemType.entity";
-import { SectionService } from "src/services/section.service";
+import { ItemTypeDto } from "../dtos/itemType.dto";
+import { ItemType } from "../entities/itemType.entity";
+import { SectionService } from "../services/section.service";
 import { Repository } from "typeorm";
 
 @Injectable()
@@ -37,7 +37,8 @@ export class ItemTypeRepository { // <-- Nombre de clase corregido
                 "itemType.id AS id",
                 "itemType.name AS name"
             ])
-            .addSelect("section.id", "sectionId") // <-- Seleccionamos el id de la sección con un alias
+            .addSelect("section.id", "sectionId")
+            .addSelect("section.name", "sectionName") // <-- Seleccionamos el nombre de la sección con un alias
             .getRawMany(); // <-- Obtenemos objetos planos con los alias
     }
 

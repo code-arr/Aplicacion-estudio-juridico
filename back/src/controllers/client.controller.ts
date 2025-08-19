@@ -9,11 +9,11 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CreateClienteDto } from 'src/dtos/cliente';
-import { AdminGuard } from 'src/guards/admin.guard';
-import { AuthGuard } from 'src/guards/auth.guard';
-import { MyMailerService } from 'src/mailer/mailer.service';
-import { ClienteService } from 'src/services/cliente.service';
+import { CreateClienteDto } from '../dtos/cliente';
+import { AdminGuard } from '../guards/admin.guard';
+import { AuthGuard } from '../guards/auth.guard';
+import { MyMailerService } from '../mailer/mailer.service';
+import { ClienteService } from '../services/cliente.service';
 
 @Controller('client')
 export class ClienteController {

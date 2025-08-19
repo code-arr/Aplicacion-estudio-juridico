@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { AbogadoDto } from "src/dtos/lawyer.dto";
-import { Lawyer } from "src/entities/lawyer.entity";
-import { AbogadoRepository } from "src/repositories/lawyer.repository";
+import { AbogadoDto } from "../dtos/lawyer.dto";
+import { Lawyer } from "../entities/lawyer.entity";
+import { AbogadoRepository } from "../repositories/lawyer.repository";
 
 @Injectable()
 export class AbogadoService {

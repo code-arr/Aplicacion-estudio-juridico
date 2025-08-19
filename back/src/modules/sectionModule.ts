@@ -1,10 +1,10 @@
 // section.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { sectionController } from 'src/controllers/section.controller';
-import { Section } from 'src/entities/section.entity';
-import { SectionRepository } from 'src/repositories/section.repository';
-import { SectionService } from 'src/services/section.service';
+import { sectionController } from '../controllers/section.controller';
+import { Section } from '../entities/section.entity';
+import { SectionRepository } from '../repositories/section.repository';
+import { SectionService } from '../services/section.service';
 import { CategoryModule } from './category.module';
 
 

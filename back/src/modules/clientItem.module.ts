@@ -1,10 +1,10 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { ClientItem } from "src/entities/clientItem.entity";
+import { ClientItem } from "../entities/clientItem.entity";
 import { ItemTypeModule } from "./itemType.module";
-import { ClientItemService } from "src/services/clientItem.service";
-import { ClientItemController } from "src/controllers/clientItem.controller";
-import { ClientItemRepository } from "src/repositories/clientItem.repository";
+import { ClientItemService } from "../services/clientItem.service";
+import { ClientItemController } from "../controllers/clientItem.controller";
+import { ClientItemRepository } from "../repositories/clientItem.repository";
 import { ClienteModule } from "./cliente.module";
 import { AbogadoModule } from "./abogado.module";
 

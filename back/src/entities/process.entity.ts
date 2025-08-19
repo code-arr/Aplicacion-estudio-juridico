@@ -3,7 +3,7 @@ import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { ClientItem } from './clientItem.entity';
 @Entity()
-export class Audience {
+export class Process {
   @PrimaryGeneratedColumn('uuid')
   @IsUUID()
   id: string = uuid();
@@ -11,9 +11,12 @@ export class Audience {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  fileUrl: string | null;
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
 
-  @ManyToOne(() => ClientItem, (clientItem) => clientItem.audiences)
+  @Column({ type: 'decimal', precision: 5, scale: 2 })
+  duration: number; // Duración del trabajo en horas
+
+  @ManyToOne(() => ClientItem, (clientItem) => clientItem.processes)
   clientItem: ClientItem;
 }

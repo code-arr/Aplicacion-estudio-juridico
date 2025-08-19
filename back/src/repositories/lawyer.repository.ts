@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AbogadoDto } from 'src/dtos/lawyer.dto';
-import { Lawyer } from 'src/entities/lawyer.entity';
-import { Client } from 'src/entities/client.entity';
-import { ClienteService } from 'src/services/cliente.service';
-import { UserService } from 'src/services/user.service';
-import { abogadosSeedData } from 'src/utils/abogados';
-import { casosSeedData } from 'src/utils/casos';
-import { clientesSeedData } from 'src/utils/clientes';
+import { AbogadoDto } from '../dtos/lawyer.dto';
+import { Lawyer } from '../entities/lawyer.entity';
+import { Client } from '../entities/client.entity';
+import { ClienteService } from '../services/cliente.service';
+import { UserService } from '../services/user.service';
+import { abogadosSeedData } from '../utils/abogados';
+import { casosSeedData } from '../utils/casos';
+import { clientesSeedData } from '../utils/clientes';
 import { Repository } from 'typeorm';
 
 @Injectable()

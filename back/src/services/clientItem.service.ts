@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { ClientItemDto } from "src/dtos/clientItem.dto";
-import { ClientItem } from "src/entities/clientItem.entity";
-import { ClientItemRepository } from "src/repositories/clientItem.repository";
+import { ClientItemDto } from "../dtos/clientItem.dto";
+import { ClientItem } from "../entities/clientItem.entity";
+import { ClientItemRepository } from "../repositories/clientItem.repository";
 
 @Injectable()
 export class ClientItemService {
@@ -22,5 +22,9 @@ export class ClientItemService {
 
  async getAllClientItems(): Promise<any[]> {
     return this.clientItemRepository.getAllClientItems();
+ }
+
+ async getClientItemById(id: string): Promise<ClientItem> {
+   return this.clientItemRepository.getClientItemById(id);
  }
 }

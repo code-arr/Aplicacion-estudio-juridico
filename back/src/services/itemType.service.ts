@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ItemTypeDto } from 'src/dtos/itemType.dto';
-import { ItemType } from 'src/entities/itemType.entity';
-import { ItemTypeRepository } from 'src/repositories/itemType.repository';
+import { ItemTypeDto } from '../dtos/itemType.dto';
+import { ItemType } from '../entities/itemType.entity';
+import { ItemTypeRepository } from '../repositories/itemType.repository';
 
 @Injectable()
 export class ItemTypeService {

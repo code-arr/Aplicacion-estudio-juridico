@@ -1,4 +1,4 @@
-import { SeniorityLevel, typeOffLawyer } from "src/entities/lawyer.entity";
+import { SeniorityLevel, typeOffLawyer } from "../entities/lawyer.entity";
 
 
 export const abogadosSeedData = [

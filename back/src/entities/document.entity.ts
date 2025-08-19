@@ -3,7 +3,6 @@ import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { ClientItem } from './clientItem.entity';
 
-
 @Entity('documents')
 export class Document {
   @PrimaryGeneratedColumn('uuid')
@@ -11,15 +10,11 @@ export class Document {
   id: string = uuid();
 
   @Column({ type: 'varchar', length: 255 })
-  nombre: string;
+  name: string;
 
-  @Column({ type: 'text', nullable: true })
-  type: string; // Tipo de documento (ej. PDF, Word, etc.)
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  fileUrl: string | null;
 
-  @Column({ type: 'text', nullable: true })
-  content: string;
-
-  @ManyToOne(()=> ClientItem , clientItem => clientItem.documents)
-  clientItem : ClientItem
-
+  @ManyToOne(() => ClientItem, (clientItem) => clientItem.documents)
+  clientItem: ClientItem;
 }

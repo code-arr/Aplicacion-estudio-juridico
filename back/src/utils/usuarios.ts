@@ -1,6 +1,6 @@
  // Asegúrate de ajustar la ruta a tu archivo de entidad
 
-import { UserRole } from "src/entities/user.entity";
+import { UserRole } from "../entities/user.entity";
 
 export const usersSeedData = [
   {

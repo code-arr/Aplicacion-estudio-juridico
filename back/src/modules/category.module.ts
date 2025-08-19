@@ -1,10 +1,10 @@
 // category.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CategoryController } from 'src/controllers/category.controller';
-import { Category } from 'src/entities/category.entity';
-import { CategoryRepository } from 'src/repositories/category.repository';
-import { CategoryService } from 'src/services/category.service';
+import { CategoryController } from '../controllers/category.controller';
+import { Category } from '../entities/category.entity';
+import { CategoryRepository } from '../repositories/category.repository';
+import { CategoryService } from '../services/category.service';
 import { ClienteModule } from './cliente.module';
 
 

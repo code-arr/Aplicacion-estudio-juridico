@@ -1,10 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ClientItemDto } from 'src/dtos/clientItem.dto';
-import { ClientItem } from 'src/entities/clientItem.entity';
-import { ClienteService } from 'src/services/cliente.service';
-7;
-import { ItemTypeService } from 'src/services/itemType.service';
+import { ClientItemDto } from '../dtos/clientItem.dto';
+import { ClientItem } from '../entities/clientItem.entity';
+import { ClienteService } from '../services/cliente.service';
+import { ItemTypeService } from '../services/itemType.service';
 import { Repository } from 'typeorm';
 import { AbogadoRepository } from './lawyer.repository';
 
@@ -64,5 +63,13 @@ export class ClientItemRepository {
     .addSelect('client.id', 'clientId') // <-- Selección del ID del cliente
     .addSelect('lawyer.id', 'lawyerId') // <-- Selección del ID del abogado
     .getRawMany();
+}
+
+async getClientItemById(id: string): Promise<ClientItem> {
+  const clientItem = await this.clientItemRepository.findOne({ where: { id } , relations: ['itemType.section' , "documents"] });
+  if (!clientItem) {
+    throw new NotFoundException('ClientItem not found');
+  }
+  return clientItem;
 }
 }

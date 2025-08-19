@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { sectionDto } from "src/dtos/section.dto";
+import { sectionDto } from "../dtos/section.dto";
 import { Repository } from "typeorm";
-import { CategoryService } from "src/services/category.service";
-import { Section } from "src/entities/section.entity";
+import { CategoryService } from "../services/category.service";
+import { Section } from "../entities/section.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 
 @Injectable()

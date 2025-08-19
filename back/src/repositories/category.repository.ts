@@ -1,21 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CategoryDto } from 'src/dtos/category.dto';
-import { Category } from 'src/entities/category.entity';
-import { Client } from 'src/entities/client.entity';
-import { ClienteService } from 'src/services/cliente.service';
+import { CategoryDto } from '../dtos/category.dto';
+import { Category } from '../entities/category.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
 export class CategoryRepository {
   constructor(
     @InjectRepository(Category)
-    private categoryRepository: Repository<Category>,
+    private readonly categoryRepository: Repository<Category>,
   ) {}
 
-  async createCategory(
-    category: CategoryDto,
-  ): Promise<Category> {
+  async createCategory(category: CategoryDto): Promise<Category> {
     try {
       return this.categoryRepository.save(category);
     } catch (error) {
@@ -30,7 +26,7 @@ export class CategoryRepository {
     return await this.categoryRepository.findOne({ where: { id: categoryId } });
   }
 
-  async getAllCategories():Promise<Category[]>{
-    return await this.categoryRepository.find()
+  async getAllCategories(): Promise<Category[]> {
+    return await this.categoryRepository.find();
   }
 }

@@ -5,10 +5,10 @@ import {
   forwardRef,
 } from '@nestjs/common'; // Asegúrate de importar Inject y forwardRef
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateClienteDto } from 'src/dtos/cliente';
-import { Client } from 'src/entities/client.entity';
-import { AbogadoService } from 'src/services/abogado.service'; // Este es el servicio que causa la circularidad
-import { clientesSeedData } from 'src/utils/clientes';
+import { CreateClienteDto } from '../dtos/cliente';
+import { Client } from '../entities/client.entity';
+import { AbogadoService } from '../services/abogado.service'; // Este es el servicio que causa la circularidad
+import { clientesSeedData } from '../utils/clientes';
 import { Repository } from 'typeorm';
 
 @Injectable()
