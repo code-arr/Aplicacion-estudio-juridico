@@ -14,6 +14,15 @@ import { Lawyer } from './lawyer.entity';
 import { Process } from './process.entity';
 import { Audience } from './audience.entity';
 import { Meeting } from './meet.entity';
+import { Category } from './category.entity';
+import { Section } from './section.entity';
+
+export enum status {
+  OPEN = "open",
+  ON_HOLD = "on_hold",
+  CLOSED = "closed"
+}
+
 
 @Entity('clientItems')
 export class ClientItem {
@@ -26,6 +35,9 @@ export class ClientItem {
 
   @Column()
   description: string;
+
+  @Column({ type: 'enum', enum: status, default: status.OPEN })
+  status: status;
 
   @ManyToOne(() => Client, (client) => client.clientItems)
   client: Client;
@@ -47,5 +59,11 @@ export class ClientItem {
 
   @ManyToOne(() => ItemType, (itemType) => itemType.clientItems)
   itemType: ItemType;
+
+  @ManyToOne(() => Category, (category) => category.clientItems)
+  category: Category;
+
+  @ManyToOne(() => Section, (section) => section.clientItems)
+  section: Section;
 }
   

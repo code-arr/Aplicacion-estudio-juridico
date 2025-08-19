@@ -15,6 +15,10 @@ export class ItemTypeService {
     return this.itemTypeRepository.getAllItemTypes();
   }
   async getItemTypeById(id: string): Promise<ItemType | null> {
-    return this.itemTypeRepository.getItemTypeById(id)
+    return this.itemTypeRepository.getItemTypeById(id);
+  }
+
+  async getAllItemTypesSeeder(): Promise<ItemType[]> {
+    return this.itemTypeRepository.getAllItemTypesSeeder();
   }
 }

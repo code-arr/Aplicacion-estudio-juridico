@@ -7,6 +7,8 @@ import {
   JoinTable,
   OneToOne,
   JoinColumn,
+  BeforeInsert,
+  BeforeUpdate,
 } from 'typeorm';
 import { IsUUID } from 'class-validator'; // Importar IsUUID para validación
 import { v4 as uuid } from 'uuid'; // Importar uuid para la generación del ID
@@ -14,10 +16,17 @@ import { Lawyer } from './lawyer.entity';
 import { StopWatch } from './stopwatch.entity';
 import { Category } from './category.entity';
 import { ClientItem } from './clientItem.entity';
+import moment from 'moment-timezone';
 
 export enum clientType {
   FISICA = 'Fisica',
   JURIDICA = 'Juridica',
+}
+
+export enum status {
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+  UNDERREVIEW = "under_review"
 }
 
 @Entity('clients')
@@ -47,8 +56,31 @@ export class Client {
   @Column({ type: 'enum', enum: clientType, default: clientType.FISICA })
   type: clientType;
 
+  @Column({ type: 'enum', enum: status, default: status.ACTIVE })
+  status: status;
+
+ // La columna ya no necesita el "default" ya que lo asignas en el código
+  @Column({ type: 'timestamp' })
+  createAt: Date;
+
+  // La columna ya no necesita "onUpdate"
+  @Column({ type: 'timestamp', nullable: true })
+  updateAt: Date;
+
+  @BeforeInsert()
+  setCreateAt() {
+    this.createAt = moment().tz('America/Santiago').toDate();
+  }
+
+  @BeforeUpdate()
+  setUpdateAt() {
+    this.updateAt = moment().tz('America/Santiago').toDate();
+  }
+
   @ManyToMany(() => Lawyer, (lawyer) => lawyer.clients)
   lawyers: Lawyer[];
+
+
 
   @OneToMany(() => StopWatch, (stopwatch) => stopwatch.client)
   stopwatchs: StopWatch[];

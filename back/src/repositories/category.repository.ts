@@ -5,12 +5,15 @@ import { Category } from '../entities/category.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
-export class CategoryRepository {
+export class CategoryRepository implements OnModuleInit{
   constructor(
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
   ) {}
 
+  async onModuleInit() {
+      await this.seedCategories();
+  }
   async createCategory(category: CategoryDto): Promise<Category> {
     try {
       return this.categoryRepository.save(category);
@@ -29,4 +32,22 @@ export class CategoryRepository {
   async getAllCategories(): Promise<Category[]> {
     return await this.categoryRepository.find();
   }
-}
+
+  async seedCategories(): Promise<void> {
+    const existingCategories = await this.categoryRepository.find();
+    if (existingCategories.length > 0) {
+      return;
+    }
+    const categories: CategoryDto[] = [
+      { name: 'Corporativo' },
+      { name: 'Judicial' },
+      { name: 'Compliance' },
+      { name: 'Informes' },
+      { name: 'Procesos administrativos' }
+    ];
+
+
+    await this.categoryRepository.save(categories);
+  }
+  }
+
