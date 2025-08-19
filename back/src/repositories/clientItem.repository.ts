@@ -96,6 +96,7 @@ export class ClientItemRepository implements OnModuleInit {
       .addSelect('itemType.id', 'itemTypeId')
       .addSelect('client.id', 'clientId') // <-- Selección del ID del cliente
       .addSelect('lawyer.id', 'lawyerId') // <-- Selección del ID del abogado
+      .addSelect('clientItem.status', 'status') // <-- Selección del estado del cliente
       .getRawMany();
   }
 

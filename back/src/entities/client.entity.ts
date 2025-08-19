@@ -16,7 +16,8 @@ import { Lawyer } from './lawyer.entity';
 import { StopWatch } from './stopwatch.entity';
 import { Category } from './category.entity';
 import { ClientItem } from './clientItem.entity';
-import moment from 'moment-timezone';
+import * as moment from 'moment-timezone';
+
 
 export enum clientType {
   FISICA = 'Fisica',
