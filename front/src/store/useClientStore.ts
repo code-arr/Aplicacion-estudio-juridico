@@ -21,7 +21,7 @@ interface ClientState {
   lastFetched: number;
 
   setClients: (clients: Client[]) => void;
-  setClientDetail: (client: Client) => void;
+  setClientDetail: (clientId: string) => void;
   resetClientDetail: () => void;
 
   hydrate: (opts?: { force?: boolean }) => Promise<void>;
@@ -49,7 +49,12 @@ export const useClientStore = create<ClientState>()((set, get) => ({
       lastFetched: Date.now(),
     });
   },
-  setClientDetail: (clientDetail) => set({ clientDetail }),
+  setClientDetail: (clientId: string) => {
+    const clientDetail = get().clients?.find(
+      (client) => client.id === clientId
+    );
+    set({ clientDetail });
+  },
   setFilters: (p) => set((s) => ({ filters: { ...s.filters, ...p } })),
 
   resetClientDetail: () => set({ clientDetail: null }),
@@ -89,12 +94,20 @@ export const useClientStore = create<ClientState>()((set, get) => ({
 export const selectClients = (s: ClientState) => s.clients ?? [];
 export const selectClientDetail = (s: ClientState) => s.clientDetail;
 
+export const selectClientName = (clientId: string) => (s: ClientState) => {
+  const client = s.clients?.find((client) => client.id === clientId);
+
+  if (client?.type === "Fisica")
+    return `${client.firstName}  ${client.lastName}`;
+  else return client?.companyName;
+};
+
 export const selectFilteredClients = (s: ClientState) => {
   const base = s.clients ?? [];
   const { query, status } = s.filters;
   const q = query.trim().toLowerCase();
   return base
-    .filter((client: Client) => !status || client.clientStatus === status)
+    .filter((client: Client) => !status || client.status === status)
     .filter(
       (client: Client) => !q || client.firstName?.toLowerCase().includes(q)
     );

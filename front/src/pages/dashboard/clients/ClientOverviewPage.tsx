@@ -1,29 +1,24 @@
-import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useClientStore } from "@/store/useClientStore";
-import { mockClients } from "@/mocks/mockClients";
-/* import { mockCategories } from "@/mocks/mockCategories"; */
-import { formatTimeFromSeconds } from "@/utils/timeUtils";
-
+import { useNavigate, useParams } from "react-router-dom";
+import { useCatalogStore } from "@/store/useCatalogStore";
+import { selectClientDetail, useClientStore } from "@/store/useClientStore";
+import ItemForm from "@components/items/ItemForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/card";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
-
-import { FileText, Plus, Search, SquarePlus } from "lucide-react";
-import { useCatalogStore } from "@/store/useCatalogStore";
 import { Input } from "@components/ui/input";
-import ItemForm from "@components/items/ItemForm";
+import { formatTimeFromSeconds } from "@/utils/timeUtils";
+import { FileText, Plus, Search, SquarePlus } from "lucide-react";
 
 const ClientOverviewPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { clientDetail, setClientDetail } = useClientStore();
+  const setClientDetail = useClientStore((s) => s.setClientDetail);
+  const clientDetail = useClientStore(selectClientDetail);
   const { categories } = useCatalogStore();
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const mockClientDetail = mockClients.find((client) => client.id === id);
 
   const handleOpenCategory = (categoryId: string) => {
     navigate(`category/${categoryId}`);
@@ -31,18 +26,16 @@ const ClientOverviewPage = () => {
 
   useEffect(() => {
     setLoading(true);
-    if (mockClientDetail) {
-      setClientDetail(mockClientDetail);
-    }
+    if (id) setClientDetail(id);
     setLoading(false);
-  }, [mockClientDetail, setClientDetail, id]);
+  }, [id, setClientDetail]);
 
   const statusMap = {
-    activo: <span className="text-green-600 font-medium">Activo</span>,
-    inactivo: (
+    active: <span className="text-green-600 font-medium">Activo</span>,
+    inactive: (
       <span className="text-muted-foreground font-medium">Inactivo</span>
     ),
-    en_revision: (
+    under_review: (
       <span className="text-yellow-600 font-medium">En revisión</span>
     ),
   };
@@ -191,8 +184,7 @@ const ClientOverviewPage = () => {
               <div>
                 <p className="text-[hsl(225,10%,50%)]">Estado</p>
                 <p className="font-semibold">
-                  {clientDetail?.clientStatus &&
-                    statusMap[clientDetail.clientStatus]}
+                  {clientDetail?.status && statusMap[clientDetail.status]}
                 </p>
               </div>
             </div>

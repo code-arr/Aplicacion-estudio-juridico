@@ -11,17 +11,17 @@ interface ClientCardProps {
 }
 
 const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
-  const getStatusBadge = (status: Client["clientStatus"]) => {
+  /*   const getStatusBadge = (status: Client["status"]) => {
     const statusConfig = {
-      activo: {
+      active: {
         label: "Activo",
         className: "bg-green-100 text-green-800 border-green-200",
       },
-      en_revision: {
+      under_review: {
         label: "En Revisión",
         className: "bg-yellow-100 text-yellow-800 border-yellow-200",
       },
-      inactivo: {
+      inactive: {
         label: "Inactivo",
         className: "bg-gray-100 text-gray-800 border-gray-200",
       },
@@ -33,7 +33,7 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
         {config.label}
       </Badge>
     );
-  };
+  }; */
 
   const getInitials = (name?: string) => {
     if (!name) return "?"; // fallback si no hay nombre
@@ -61,14 +61,16 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
             </Avatar>
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900 text-lg leading-tight">
-                {client.firstName +
-                  " " +
-                  client.lastName.slice(0, client.lastName.indexOf(" "))}
+                {client.lastName?.includes(" ")
+                  ? client.firstName +
+                    " " +
+                    client.lastName?.slice(0, client.lastName.indexOf(" "))
+                  : client.firstName + " " + client.lastName}
               </h3>
-              <p className="text-sm text-gray-600 mt-1">{client.dni}</p>
+              <p className="text-sm text-gray-600 mt-1">{client.rut}</p>
             </div>
           </div>
-          {getStatusBadge(client.clientStatus)}
+          {/* {getStatusBadge(client.status)} */}
         </div>
       </CardHeader>
 

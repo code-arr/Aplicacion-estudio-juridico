@@ -1,13 +1,12 @@
-import type { Case } from "./Case";
 import type { Lawyer } from "./Lawyer";
 
-export type ClientType = "juridica" | "fisica";
-export type ClientStatus = "activo" | "inactivo" | "en_revision";
+export type ClientType = "Juridica" | "Fisica";
+export type ClientStatus = "active" | "inactive" | "under_review";
 
 export interface Client {
   id: string;
   type: ClientType;
-  clientStatus: ClientStatus;
+  status: ClientStatus;
   rut: string;
   email: string;
   phone?: string;
@@ -28,6 +27,5 @@ export interface Client {
   // Jerarquía
   motherId?: string; // Para corporaciones dependientes de otra
 
-  cases?: Case[];
   lawyers?: Lawyer[];
 }

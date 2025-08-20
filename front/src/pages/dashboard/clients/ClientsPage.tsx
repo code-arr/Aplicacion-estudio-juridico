@@ -54,7 +54,7 @@ const ClientsPage = () => {
   const filteredClients = useMemo(() => {
     const term = normalizeText(searchTerm.trim());
 
-    return mockClients.filter((client) => {
+    return clients.filter((client) => {
       // Unís los campos que quieras buscar
       const clientName = normalizeText(
         `${client.firstName ?? ""} ${client.lastName ?? ""} ${
@@ -64,7 +64,7 @@ const ClientsPage = () => {
 
       const matchesSearch = !term || clientName.includes(term);
       const matchesStatus =
-        statusFilter === "todos" || client.clientStatus === statusFilter;
+        statusFilter === "todos" || client.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -75,10 +75,9 @@ const ClientsPage = () => {
     navigate(`${client.id}`);
   };
 
-  const getStatusCount = (status: Client["clientStatus"]) => {
-    return mockClients.filter((client) => client.clientStatus === status)
-      .length;
-  };
+  /*  const getStatusCount = (status: Client["clientStatus"]) => {
+    return clients.filter((client) => client.clientStatus === status).length;
+  }; */
 
   if (isClientsLoading) return <LoadingSpinner />;
 
@@ -86,7 +85,7 @@ const ClientsPage = () => {
     return <ErrorScreen message="Ocurrió un error al cargar los clientes" />;
 
   if (isClientsHydrated && clients.length === 0)
-    return <EmptyArray message="No hay clientes para mostrar" />;
+    return <EmptyArray title="No hay clientes para mostrar" />;
 
   return (
     <div>
@@ -127,7 +126,7 @@ const ClientsPage = () => {
               <div>
                 <p className="text-sm text-gray-600">Total Clientes</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {mockClients.length}
+                  {clients.length}
                 </p>
               </div>
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -140,9 +139,9 @@ const ClientsPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Clientes Activos</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {getStatusCount("activo")}
-                </p>
+                {/* <p className="text-2xl font-bold text-green-600">
+                  {getStatusCount("active")}
+                </p> */}
               </div>
               <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                 <div className="w-6 h-6 bg-green-500 rounded-full"></div>
@@ -154,9 +153,9 @@ const ClientsPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">En Revisión</p>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {getStatusCount("en_revision")}
-                </p>
+                {/* <p className="text-2xl font-bold text-yellow-600">
+                  {getStatusCount("under_review")}
+                </p> */}
               </div>
               <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
                 <div className="w-6 h-6 bg-yellow-500 rounded-full"></div>
@@ -168,9 +167,9 @@ const ClientsPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Clientes Inactivos</p>
-                <p className="text-2xl font-bold text-gray-600">
-                  {getStatusCount("inactivo")}
-                </p>
+                {/* <p className="text-2xl font-bold text-gray-600">
+                  {getStatusCount("inactive")}
+                </p> */}
               </div>
               <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                 <div className="w-6 h-6 bg-gray-500 rounded-full"></div>

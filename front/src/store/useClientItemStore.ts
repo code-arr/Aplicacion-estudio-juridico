@@ -6,7 +6,7 @@ import {
   getRecentClientItemsData,
 } from "@/api/clientItem";
 
-const EMPTY_CLIENT_ITEMS: ClientItem[] = Object.freeze([]);
+const EMPTY_CLIENT_ITEMS = Object.freeze([]);
 const ttlMs = 900000;
 
 interface ClientItemState {
@@ -121,7 +121,7 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
         error: null,
       });
       try {
-        await get().prefetchRecentClientItems({ limit: 50 });
+        await get().fetchClientItems();
       } catch (error) {
         console.error(error);
         const message =

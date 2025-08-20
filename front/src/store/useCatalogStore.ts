@@ -121,6 +121,16 @@ export const selectCategories = (s: CatalogState) => s.categories;
 export const selectSections = (s: CatalogState) => s.sections;
 export const selectItemTypes = (s: CatalogState) => s.itemTypes;
 
+export const selectCategory = (categoryId: string) => (s: CatalogState) => {
+  return s.categories.find((category) => category.id === categoryId);
+};
+export const selectSection = (sectionId: string) => (s: CatalogState) => {
+  return s.sections.find((section) => section.id === sectionId);
+};
+export const selectItemType = (itemTypeId: string) => (s: CatalogState) => {
+  return s.itemTypes.find((itemType) => itemType.id === itemTypeId);
+};
+
 export const selectIsCatalogLoading = (s: CatalogState) => s.isLoading;
 export const selectIsCatalogRefreshing = (s: CatalogState) => s.isRefreshing;
 export const selectIsCatalogHydrated = (s: CatalogState) => s.isHydrated;
