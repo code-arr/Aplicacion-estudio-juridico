@@ -14,7 +14,7 @@ interface ClientItemState {
   clientItemDetail: ClientItem | null;
   clientItemsByClientId: ClientItem[] | null;
 
-  filters: { query: string; status?: string };
+  filters: { query: string; status?: string; order?: string };
   setFilters: (p: Partial<ClientItemState["filters"]>) => void;
 
   isLoading: boolean;
@@ -31,7 +31,7 @@ interface ClientItemState {
   lastFetched: number;
 
   setClientItems: (clientItems: ClientItem[]) => void;
-  setClientItemDetail: (clientItem: ClientItem) => void;
+  setClientItemDetail: (clientItemId: string) => void;
   resetClientItemDetail: () => void;
   setClientItemsByClientId: (clientItems: ClientItem[]) => void;
 
@@ -47,7 +47,7 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
   clientItems: null,
   clientItemDetail: null,
   clientItemsByClientId: null,
-  filters: { query: "", status: undefined },
+  filters: { query: "", status: undefined, order: undefined },
   isLoading: false,
   isHydrated: false,
   isRefreshing: false,
@@ -71,8 +71,12 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
       lastFetched: Date.now(),
     }),
 
-  setClientItemDetail: (clientItem: ClientItem) =>
-    set({ clientItemDetail: clientItem }),
+  setClientItemDetail: (clientItemId: string) => {
+    const clientItemDetail = get().clientItems?.find(
+      (item) => item.id === clientItemId
+    );
+    set({ clientItemDetail });
+  },
 
   resetClientItemDetail: () => set({ clientItemDetail: null }),
 
@@ -191,14 +195,6 @@ export const selectClientItemDetail = (s: ClientItemState) =>
 export const selectClientItemsByClientId = (s: ClientItemState) =>
   s.clientItemsByClientId ?? EMPTY_CLIENT_ITEMS;
 
-export const selectClientItemsByFilters = (s: ClientItemState) => {
-  const base = s.clientItems ?? [];
-  const { query, status } = s.filters;
-  const q = query.trim().toLowerCase();
-  return base
-    .filter((item: ClientItem) => !status || item.status === status)
-    .filter((item: ClientItem) => !q || item.title.toLowerCase().includes(q));
-};
 export const selectClientItemsByFiltersAndClient = (s: ClientItemState) => {
   const base = s.clientItemsByClientId ?? [];
   const { query, status } = s.filters;

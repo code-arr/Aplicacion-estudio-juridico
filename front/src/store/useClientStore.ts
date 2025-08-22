@@ -55,6 +55,7 @@ export const useClientStore = create<ClientState>()((set, get) => ({
     );
     set({ clientDetail });
   },
+
   setFilters: (p) => set((s) => ({ filters: { ...s.filters, ...p } })),
 
   resetClientDetail: () => set({ clientDetail: null }),

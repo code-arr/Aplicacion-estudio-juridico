@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ClientItem } from "@/types/ClientItem";
 import { selectCategories, useCatalogStore } from "@/store/useCatalogStore";
@@ -20,19 +20,63 @@ import {
 import { Button } from "@components/ui/button";
 import { Plus, Search } from "lucide-react";
 
+type SortKey = "recent" | "creation" | "A_Z";
+
+const safeDate = (v?: string | number | Date) =>
+  v ? new Date(v).getTime() : -Infinity;
+const cmp = (n: number) => (n < 0 ? -1 : n > 0 ? 1 : 0);
+const cmpStr = (a?: string, b?: string) =>
+  (a ?? "").localeCompare(b ?? "", "es", { sensitivity: "base" });
+
+const ORDER_CMP: Record<SortKey, (a: ClientItem, b: ClientItem) => number> = {
+  recent: (a, b) =>
+    cmp(safeDate(b.updatedAt) - safeDate(a.updatedAt)) ||
+    cmpStr(a.title, b.title),
+  creation: (a, b) =>
+    cmp(safeDate(b.createdAt) - safeDate(a.createdAt)) ||
+    cmpStr(a.title, b.title),
+  A_Z: (a, b) => cmpStr(a.title, b.title),
+  /* elements: (a, b) =>
+    (b.elementsCount ?? b.elements?.length ?? 0) -
+      (a.elementsCount ?? a.elements?.length ?? 0) || cmpStr(a.title, b.title), */
+};
+
 const ItemsPage = () => {
   const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusCategory, setStatusCategory] = useState<string>("todos");
-  const categories = useCatalogStore(selectCategories);
+  /*   const [categoryFilter, setCategoryFilter] = useState<string>("todos"); */
+  const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [orderBy, setOrderBy] = useState<string>("");
+  /*  const categories = useCatalogStore(selectCategories); */
   const clientItems = useClientItemStore(selectClientItems);
-  console.log(clientItems);
+  /*   const filteredClientItems = useClientItemStore(selectClientItemsByFilters); */
+  const filters = useClientItemStore((s) => s.filters);
+  const setFilters = useClientItemStore((s) => s.setFilters);
 
   const handleViewDetails = (item: ClientItem) => {
-    console.log("Ver detalles del item:", item.title);
-    navigate(`${item.id}`);
+    navigate(`/dashboard/item/${item.id}`);
   };
+
+  const filteredClientItems = useMemo((): ClientItem[] => {
+    const base = clientItems ?? [];
+    const { query, status, order } = filters ?? {};
+    const q = query.trim().toLowerCase();
+    const filtered = base
+      .filter((item: ClientItem) => !status || item.status === status)
+      .filter((item: ClientItem) => !q || item.title.toLowerCase().includes(q));
+
+    const key: SortKey = (order as SortKey) || "recent";
+    return filtered.sort(ORDER_CMP[key]);
+  }, [clientItems, filters]);
+
+  useEffect(() => {
+    setFilters({
+      query: searchTerm,
+      status: statusFilter === "todos" ? undefined : statusFilter,
+      order: orderBy,
+    });
+  }, [setFilters, searchTerm, statusFilter, orderBy]);
 
   return (
     <div>
@@ -66,7 +110,29 @@ const ItemsPage = () => {
                 className="pl-10"
               />
             </div>
-            <Select value={statusCategory} onValueChange={setStatusCategory}>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Estado del item" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los estados</SelectItem>
+                <SelectItem value={"open"}>Abierto</SelectItem>
+                <SelectItem value={"on_hold"}>En espera</SelectItem>
+                <SelectItem value={"closed"}>Cerrado</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={orderBy} onValueChange={setOrderBy}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Actividad reciente</SelectItem>
+                <SelectItem value="creation">Fecha de creacion</SelectItem>
+                <SelectItem value="A_Z">Alfabetico</SelectItem>
+                {/* <SelectItem value="elements">Cantidad de elementos</SelectItem> */}
+              </SelectContent>
+            </Select>
+            {/* <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
@@ -78,7 +144,7 @@ const ItemsPage = () => {
                   </SelectItem>
                 ))}
               </SelectContent>
-            </Select>
+            </Select> */}
             <Button
               onClick={() => setIsDialogOpen(true)}
               className="bg-[#0073e6] hover:opacity-90  cursor-pointer"
@@ -91,7 +157,7 @@ const ItemsPage = () => {
 
         {/* ClientItem Cards Grid */}
         <div className="grid grid-cols-1 pr-10 gap-4">
-          {clientItems.map((item) => (
+          {filteredClientItems.map((item) => (
             <ItemCard
               key={item.id}
               item={item}

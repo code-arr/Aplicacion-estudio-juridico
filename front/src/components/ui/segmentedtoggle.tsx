@@ -9,7 +9,7 @@ const SegmentedToggle = React.forwardRef<
   <ToggleGroupPrimitive.Root
     ref={ref}
     className={cn(
-      "inline-flex w-full max-w-md justify-self-center items-center rounded-md bg-[hsl(210,40%,96.1%)] p-1 px-2 gap-x-1",
+      "inline-flex w-full max-w-fit justify-self-center items-center rounded-md bg-[hsl(210,40%,96.1%)] p-1 px-2 gap-x-1",
       className
     )}
     {...props}

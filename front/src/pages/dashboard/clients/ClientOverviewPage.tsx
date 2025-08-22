@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { selectClientDetail, useClientStore } from "@/store/useClientStore";
 import ItemForm from "@components/items/ItemForm";
@@ -9,11 +9,13 @@ import { Badge } from "@components/ui/badge";
 import { Input } from "@components/ui/input";
 import { formatTimeFromSeconds } from "@/utils/timeUtils";
 import { FileText, Plus, Search, SquarePlus } from "lucide-react";
+import LoadingSpinner from "@components/shared/LoadingSpinner";
+import ErrorScreen from "@components/shared/ErrorScreen";
 
 const ClientOverviewPage = () => {
-  const { id } = useParams();
+  /*   const { id } = useParams(); */
   const navigate = useNavigate();
-  const setClientDetail = useClientStore((s) => s.setClientDetail);
+  /*   const setClientDetail = useClientStore((s) => s.setClientDetail); */
   const clientDetail = useClientStore(selectClientDetail);
   const { categories } = useCatalogStore();
   const [loading, setLoading] = useState(true);
@@ -26,9 +28,8 @@ const ClientOverviewPage = () => {
 
   useEffect(() => {
     setLoading(true);
-    if (id) setClientDetail(id);
-    setLoading(false);
-  }, [id, setClientDetail]);
+    if (clientDetail) setLoading(false);
+  }, [clientDetail]);
 
   const statusMap = {
     active: <span className="text-green-600 font-medium">Activo</span>,
@@ -39,6 +40,11 @@ const ClientOverviewPage = () => {
       <span className="text-yellow-600 font-medium">En revisión</span>
     ),
   };
+
+  if (loading) return <LoadingSpinner />;
+
+  if (!clientDetail)
+    return <ErrorScreen message="Ocurrió un error al mostrar el cliente" />;
 
   return loading ? (
     <p className="p-6 text-gray-700">Cargando cliente...</p>
@@ -143,7 +149,7 @@ const ClientOverviewPage = () => {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-4 py-6 gap-x-6">
+              <div className="grid grid-cols-5 py-6 gap-x-3">
                 {categories.map((category) => (
                   <Button
                     key={category.id}

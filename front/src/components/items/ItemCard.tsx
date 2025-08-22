@@ -81,7 +81,7 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
 
   return (
     <Card className="shadow-none hover:shadow-sm transition-shadow duration-200 border border-gray-200 bg-white">
-      <CardContent className="flex pb-2 pt-4 justify-between">
+      <CardContent className="flex pb-2 pt-4 justify-between cursor-default">
         <div className="flex w-[80%] gap-6" onClick={() => onViewDetails(item)}>
           <div className="p-2.5 mt-1.5 h-fit bg-gray-100 rounded-md">
             {getCardIcon(category?.name)}

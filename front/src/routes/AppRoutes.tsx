@@ -20,6 +20,11 @@ import LoadingScreen from "@components/shared/LoadingScreen";
 import ClientLayout from "@/layouts/ClientLayout";
 import ItemOverviewPage from "@pages/dashboard/items/ItemOverviewPage";
 import ItemsPage from "@pages/dashboard/items/ItemsPage";
+import ItemLayout from "@/layouts/ItemLayout";
+import ItemDocumentsPage from "@pages/dashboard/items/ItemDocumentsPage";
+import ItemAudiencesPage from "@pages/dashboard/items/ItemAudiencesPage";
+import ItemMeetingsPage from "@pages/dashboard/items/ItemMeetingsPage";
+import ItemProcessPage from "@pages/dashboard/items/ItemProcessPage";
 
 const AppRoutes = () => {
   const { isAdmin, isLawyer, isLoadingSession } = useAuthStore();
@@ -50,9 +55,17 @@ const AppRoutes = () => {
                 path="category/:categoryId"
                 element={<ClientCatalogPage />}
               />
-              <Route path="item/:clientItemId" element={<ItemOverviewPage />} />
             </Route>
+
             <Route path="clientItems" element={<ItemsPage />} />
+            <Route path="item/:clientItemId" element={<ItemLayout />}>
+              <Route index element={<ItemOverviewPage />} />
+              <Route path="documents" element={<ItemDocumentsPage />} />
+              <Route path="audiences" element={<ItemAudiencesPage />} />
+              <Route path="meetings" element={<ItemMeetingsPage />} />
+              <Route path="process" element={<ItemProcessPage />} />
+            </Route>
+
             <Route path="statistics" element={<Statistics />} />
             <Route path="settings" element={<LawyerSettings />} />
             <Route index element={<Navigate to="clients" replace />} />
