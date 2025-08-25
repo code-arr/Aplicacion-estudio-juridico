@@ -129,6 +129,8 @@ export class ClientItemRepository implements OnModuleInit {
       .leftJoin('clientItem.itemType', 'itemType') // Unión para obtener el ID de ItemType
       .leftJoin('clientItem.client', 'client') // <-- Unión para obtener el ID de Client
       .leftJoin('clientItem.lawyer', 'lawyer') // <-- Unión para obtener el ID de Lawyer
+      .leftJoin('clientItem.category', 'category') // <-- Unión para obtener el ID de Category
+      .leftJoin("clientItem.section", "section") // <-- Unión para obtener el ID de Section
       .select([
         'clientItem.id AS id',
         'clientItem.title AS title',
@@ -138,6 +140,8 @@ export class ClientItemRepository implements OnModuleInit {
       .addSelect('client.id', 'clientId') // <-- Selección del ID del cliente
       .addSelect('lawyer.id', 'lawyerId') // <-- Selección del ID del abogado
       .addSelect('clientItem.status', 'status') // <-- Selección del estado del cliente
+      .addSelect("clientItem.category.id", "categoryId")
+      .addSelect("clientItem.section.id", "sectionId") // <-- Selección del ID de la sección
       .getRawMany();
   }
 

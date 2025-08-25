@@ -6,8 +6,7 @@ import {
 } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { Buffer } from 'buffer';
-import { UserService } from 'src/services/user.service';
-import { Role } from 'src/enum/role.enum';
+import { UserService } from '../services/user.service';
 
 @Injectable()
 export class MyMailerService {
@@ -65,7 +64,7 @@ export class MyMailerService {
         ],
       });
 
-      return { message: "EL documento para el cliente " + to + " ha sido enviado con éxito." };
+      return { message: "EL documento para el cliente " + subject + " - " + to + " ha sido enviado con éxito." };
 
     } catch (error) {
       console.error('Error al enviar el documento:', error);
