@@ -31,30 +31,28 @@ export class ClienteController {
     return this.clienteService.createCliente(clienteData, abogadoId);
   }
 
-  @Post('send-document')
-  // 'contractFile' debe coincidir con el nombre del campo en el formulario HTML del cliente
+  @Post('/send-document')
   @UseInterceptors(FileInterceptor('contractFile'))
-  async sendContract(
-    @Body('email') email: string,
-    @Body('description') description: string,
-    @Body('title') title: string,
+  async sendDocument(
     @UploadedFile() file: Express.Multer.File,
+    @Body('email') to: string,
+    @Body('subject') subject: string,
+    @Body('description') description: string,
+    @Body('lawyerEmail') lawyerEmail: string,
+    @Body('title') title: string, // <-- Agregamos este parámetro para capturar el título
   ) {
-    // Verificamos que el archivo haya sido subido
-    if (!file) {
-      return { message: 'No se subió ningún archivo.' };
-    }
+    const contractBuffer = file.buffer;
+    const originalFileName = file.originalname;
 
-    // Llamamos al servicio de correo con los datos y el archivo
-    await this.myMailerService.sendDocumentEmail(
-      email,
-      title,
-      file.buffer,
-      file.originalname,
+    return this.myMailerService.sendDocumentEmail(
+      lawyerEmail,
+      to,
+      subject,
+      contractBuffer,
+      originalFileName,
       description,
+      title, // <-- Pasamos el título al servicio
     );
-
-    return { message: 'Contrato enviado con éxito.' };
   }
   @Post('seeder')
   async seedClientes(): Promise<string> {

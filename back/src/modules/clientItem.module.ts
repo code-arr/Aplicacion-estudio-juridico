@@ -7,9 +7,11 @@ import { ClientItemController } from "../controllers/clientItem.controller";
 import { ClientItemRepository } from "../repositories/clientItem.repository";
 import { ClienteModule } from "./cliente.module";
 import { AbogadoModule } from "./abogado.module";
+import { SectionModule } from "./sectionModule";
+import { CategoryModule } from "./category.module";
 
 @Module({
-    imports:[TypeOrmModule.forFeature([ClientItem]) , ItemTypeModule , ClienteModule , AbogadoModule],
+    imports:[TypeOrmModule.forFeature([ClientItem]) , ItemTypeModule , ClienteModule , AbogadoModule , SectionModule , CategoryModule],
     controllers:[ClientItemController],
     providers:[ClientItemService , ClientItemRepository ],
     exports:[ClientItemService ,ClientItemRepository ]

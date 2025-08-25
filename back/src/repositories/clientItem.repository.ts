@@ -42,6 +42,8 @@ import {
   PublicosLaudosClientItems,
   RenunciasClientItems,
 } from 'src/utils/clientItems';
+import { CategoryService } from 'src/services/category.service';
+import { SectionService } from 'src/services/section.service';
 
 @Injectable()
 export class ClientItemRepository implements OnModuleInit {
@@ -50,7 +52,9 @@ export class ClientItemRepository implements OnModuleInit {
     private clientItemRepository: Repository<ClientItem>,
     private readonly itemTypeService: ItemTypeService,
     private readonly clientService: ClienteService,
-    private readonly lawyerService: AbogadoRepository, // Assuming you have a LawyerService to handle lawyers
+    private readonly lawyerService: AbogadoRepository,
+    private readonly categoryService: CategoryService,
+    private readonly sectionService: SectionService,
   ) {}
 
   async onModuleInit() {
@@ -84,6 +88,38 @@ export class ClientItemRepository implements OnModuleInit {
       lawyer: lawyer,
     });
 
+    return await this.clientItemRepository.save(newClientItem);
+  }
+
+  async createClientItemCategory(
+    clientItem: ClientItemDto,
+    categoryId: string,
+  ): Promise<ClientItem> {
+    const category = await this.categoryService.getOneById(categoryId);
+    if (!category) {
+      throw new NotFoundException('Categoría no encontrada');
+    }
+
+    const newClientItem = this.clientItemRepository.create({
+      ...clientItem,
+      category: category,
+    });
+    return await this.clientItemRepository.save(newClientItem);
+  }
+
+  async createClientItemInSection(
+    clientItem: ClientItemDto,
+    sectionId: string
+  ): Promise<ClientItem> {
+    const section = await this.sectionService.getOneById(sectionId);
+    if (!section) {
+      throw new NotFoundException('Sección no encontrada');
+    }
+
+    const newClientItem = this.clientItemRepository.create({
+      ...clientItem,
+      section: section,
+    });
     return await this.clientItemRepository.save(newClientItem);
   }
 

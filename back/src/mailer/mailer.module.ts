@@ -1,6 +1,8 @@
 import { MailerModule } from '@nestjs-modules/mailer';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MyMailerService } from './mailer.service';
+import { ClienteModule } from 'src/modules/cliente.module';
+import { UsersModule } from 'src/modules/users.module';
 
 @Module({
   imports: [
@@ -18,6 +20,7 @@ import { MyMailerService } from './mailer.service';
         from: process.env.DEFAULT_EMAIL_FROM,
       },
     }),
+    forwardRef(() => UsersModule),
   ],
   providers: [MyMailerService],
   exports: [MyMailerService],

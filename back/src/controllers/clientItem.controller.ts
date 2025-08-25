@@ -17,6 +17,21 @@ export class ClientItemController {
     return this.ClientItemService.createClientItem(clientItem, itemTypeId , clientId , lawyerId);
   }
 
+  @Post("createInCategory/:categoryId")
+  async createInCategory(
+    @Body() clientItem: ClientItemDto,
+    @Param('categoryId') categoryId: string
+  ) {
+    return this.ClientItemService.createClientItemCategory(clientItem, categoryId);
+  }
+  @Post("createInSection/:sectionId")
+  async createInSection(
+    @Body() clientItem: ClientItemDto,
+    @Param('sectionId') sectionId: string
+  ) {
+    return this.ClientItemService.createClientItemInSection(clientItem, sectionId);
+  }
+
   @Get("getAll")
   async getAllClientItems():Promise<any> {
     return this.ClientItemService.getAllClientItems();
