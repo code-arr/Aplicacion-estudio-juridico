@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientItemDto } from '../dtos/clientItem.dto';
 import { ClientItem } from '../entities/clientItem.entity';
@@ -118,131 +123,134 @@ export class ClientItemRepository implements OnModuleInit {
   }
 
   async seedClientItems() {
-
     const lawyerExists = await this.lawyerService.getAllLawyers();
     const clientsExists = await this.clientService.getAllClientes();
-   if (lawyerExists.length > 1 && clientsExists.length > 1) {
-     const itemTypes = await this.itemTypeService.getAllItemTypesSeeder();
-     const itemClientsExists = await this.clientItemRepository.find();
-     const client = await this.clientService.findByEmail("maria.gonzalez@example.com");
-     const lawyer = await this.lawyerService.getAbogadoByEmail("abogado1@example.com")
-     if (!lawyer) {
-       throw new NotFoundException('Abogado no encontrado');
-     }
-     if (!client) {
-       throw new NotFoundException('Cliente no encontrado');
-     }
-     if (itemClientsExists.length > 0) {
-       return;
-     }
- 
-     // Se crea un mapa para un acceso más rápido a los itemTypes por nombre
-     const itemTypesMap = new Map();
-     for (const item of itemTypes) {
-       itemTypesMap.set(item.name, item);
-     }
- 
-     for (const item of itemTypes) {
-       if (item.section.name === 'Sociedad') {
-         if (item.name === 'Constitucion') {
-           await this.clientItemRepository.save(
-             ConstitucionClientItems.map((clientItem) => ({
-               ...clientItem,
-               itemType: item,
-               client : client,
-               lawyer : lawyer
-             })),
-           );
-         } else if (item.name === 'Modificaciones') {
-           await this.clientItemRepository.save(
-             ModificacionesClientItems.map((clientItem) => ({
-               ...clientItem,
-               itemType: item,
-               client : client,
-               lawyer : lawyer
-             })),
-           );
-         } else if (item.name === 'Disolucion') {
-           await this.clientItemRepository.save(
-             DisolucionClientItems.map((clientItem) => ({
-               ...clientItem,
-               itemType: item,
-               client : client,
-               lawyer : lawyer
-             })),
-           );
-         }
-       } else if (item.section.name === 'Directorios') {
-         if (item.name === 'Nombramientos') {
-           await this.clientItemRepository.save(
-             NombramientosClientItems.map((clientItem) => ({
-               ...clientItem,
-               itemType: item,
-               client : client,
-               lawyer : lawyer
-             })),
-           );
-         } else if (item.name === 'Renuncias') {
-           await this.clientItemRepository.save(
-             RenunciasClientItems.map((clientItem) => ({
-               ...clientItem,
-               itemType: item,
-               client : client,
-               lawyer : lawyer
-             })),
-           );
-         } else if (item.name === 'Poderes') {
-           await this.clientItemRepository.save(
-             PoderesClientItems.map((clientItem) => ({
-               ...clientItem,
-               itemType: item,
-               client : client,
-               lawyer : lawyer
-             })),
-           );
-         }
-       } else if (item.section.name === 'Juntas accionistas') {
-         if (item.name === 'Ordinarias') {
-           await this.clientItemRepository.save(
-             JuntasOrdinariasClientItems.map((clientItem) => ({
-               ...clientItem,
-               itemType: item,
-               client : client,
-               lawyer : lawyer
-             })),
-           );
-         } else if (item.name === 'Extraordinarias') {
-           await this.clientItemRepository.save(
-             JuntasExtraordinariasClientItems.map((clientItem) => ({
-               ...clientItem,
-               itemType: item,
-               client : client,
-               lawyer : lawyer
-             })),
-           );
-         } else if (item.name === 'Actas') {
-           await this.clientItemRepository.save(
-             JuntasActasClientItems.map((clientItem) => ({
-               ...clientItem,
-               itemType: item,
-               client : client,
-               lawyer : lawyer
-             })),
-           );
-         }
-       } else if (item.section.name === 'Contratos') {
-         if (item.name === 'Laborales') {
-           await this.clientItemRepository.save(
-             ContratosLaboralesClientItems.map((clientItem) => ({
-               ...clientItem,
-               itemType: item,
-               client : client,
-               lawyer : lawyer
-             })),
-           );
-         }
-       }
-     }
-   }
-   }
+    if (lawyerExists.length > 1 && clientsExists.length > 1) {
+      const itemTypes = await this.itemTypeService.getAllItemTypesSeeder();
+      const itemClientsExists = await this.clientItemRepository.find();
+      const client = await this.clientService.findByEmail(
+        'maria.gonzalez@example.com',
+      );
+      const lawyer = await this.lawyerService.getAbogadoByEmail(
+        'abogado1@example.com',
+      );
+      if (!lawyer) {
+        throw new NotFoundException('Abogado no encontrado');
+      }
+      if (!client) {
+        throw new NotFoundException('Cliente no encontrado');
+      }
+      if (itemClientsExists.length > 0) {
+        return;
+      }
+
+      // Se crea un mapa para un acceso más rápido a los itemTypes por nombre
+      const itemTypesMap = new Map();
+      for (const item of itemTypes) {
+        itemTypesMap.set(item.name, item);
+      }
+
+      for (const item of itemTypes) {
+        if (item.section.name === 'Sociedad') {
+          if (item.name === 'Constitucion') {
+            await this.clientItemRepository.save(
+              ConstitucionClientItems.map((clientItem) => ({
+                ...clientItem,
+                itemType: item,
+                client: client,
+                lawyer: lawyer,
+              })),
+            );
+          } else if (item.name === 'Modificaciones') {
+            await this.clientItemRepository.save(
+              ModificacionesClientItems.map((clientItem) => ({
+                ...clientItem,
+                itemType: item,
+                client: client,
+                lawyer: lawyer,
+              })),
+            );
+          } else if (item.name === 'Disolucion') {
+            await this.clientItemRepository.save(
+              DisolucionClientItems.map((clientItem) => ({
+                ...clientItem,
+                itemType: item,
+                client: client,
+                lawyer: lawyer,
+              })),
+            );
+          }
+        } else if (item.section.name === 'Directorios') {
+          if (item.name === 'Nombramientos') {
+            await this.clientItemRepository.save(
+              NombramientosClientItems.map((clientItem) => ({
+                ...clientItem,
+                itemType: item,
+                client: client,
+                lawyer: lawyer,
+              })),
+            );
+          } else if (item.name === 'Renuncias') {
+            await this.clientItemRepository.save(
+              RenunciasClientItems.map((clientItem) => ({
+                ...clientItem,
+                itemType: item,
+                client: client,
+                lawyer: lawyer,
+              })),
+            );
+          } else if (item.name === 'Poderes') {
+            await this.clientItemRepository.save(
+              PoderesClientItems.map((clientItem) => ({
+                ...clientItem,
+                itemType: item,
+                client: client,
+                lawyer: lawyer,
+              })),
+            );
+          }
+        } else if (item.section.name === 'Juntas accionistas') {
+          if (item.name === 'Ordinarias') {
+            await this.clientItemRepository.save(
+              JuntasOrdinariasClientItems.map((clientItem) => ({
+                ...clientItem,
+                itemType: item,
+                client: client,
+                lawyer: lawyer,
+              })),
+            );
+          } else if (item.name === 'Extraordinarias') {
+            await this.clientItemRepository.save(
+              JuntasExtraordinariasClientItems.map((clientItem) => ({
+                ...clientItem,
+                itemType: item,
+                client: client,
+                lawyer: lawyer,
+              })),
+            );
+          } else if (item.name === 'Actas') {
+            await this.clientItemRepository.save(
+              JuntasActasClientItems.map((clientItem) => ({
+                ...clientItem,
+                itemType: item,
+                client: client,
+                lawyer: lawyer,
+              })),
+            );
+          }
+        } else if (item.section.name === 'Contratos') {
+          if (item.name === 'Laborales') {
+            await this.clientItemRepository.save(
+              ContratosLaboralesClientItems.map((clientItem) => ({
+                ...clientItem,
+                itemType: item,
+                client: client,
+                lawyer: lawyer,
+              })),
+            );
+          }
+        }
+      }
+    }
+  }
 }

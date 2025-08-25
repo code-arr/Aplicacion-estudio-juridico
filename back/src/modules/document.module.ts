@@ -5,6 +5,7 @@ import { DocumentRepository } from "../repositories/document.repository";
 import { DocumentService } from "../services/document.service";
 import { clientItemModule } from "./clientItem.module";
 import { Document } from "../entities/document.entity";
+import { AwsS3Service } from "../aws/aws.service";
 
 @Module({
   imports: [
@@ -12,7 +13,7 @@ import { Document } from "../entities/document.entity";
     forwardRef(() => clientItemModule)
   ],
   controllers: [DocumentController],
-  providers: [DocumentService, DocumentRepository],
+  providers: [DocumentService, DocumentRepository , AwsS3Service],
   exports: [DocumentService, DocumentRepository],
 })
 export class DocumentModule {}

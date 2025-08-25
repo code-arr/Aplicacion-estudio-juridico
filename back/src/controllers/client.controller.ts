@@ -36,8 +36,8 @@ export class ClienteController {
   @UseInterceptors(FileInterceptor('contractFile'))
   async sendContract(
     @Body('email') email: string,
-    @Body("description") description :string,
-    @Body("title") title : string,
+    @Body('description') description: string,
+    @Body('title') title: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
     // Verificamos que el archivo haya sido subido
@@ -51,7 +51,7 @@ export class ClienteController {
       title,
       file.buffer,
       file.originalname,
-      description
+      description,
     );
 
     return { message: 'Contrato enviado con éxito.' };
@@ -64,6 +64,10 @@ export class ClienteController {
   //@UseGuards(AuthGuard)
   async getAllClientes() {
     return this.clienteService.getAllClientes();
+  }
+  @Get('getByLawyerId/:id')
+  async getClientsByLawyerId(@Param('id') lawyerId: string) {
+    return this.clienteService.getClientsByLawyerId(lawyerId);
   }
   @Get(':id')
   //@UseGuards(AuthGuard , AdminGuard)

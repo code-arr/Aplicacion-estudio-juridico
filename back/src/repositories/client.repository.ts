@@ -95,4 +95,10 @@ export class ClienteRepository {
   async saveAll(clientes: Client[]): Promise<Client[]> {
     return this.clienteRepository.save(clientes);
   }
+
+  async getClientsByLawyerId(lawyerId: string): Promise<Client[]> {
+    return this.clienteRepository.find({
+      where: { lawyers: { id: lawyerId } },
+    });
+  }
 }

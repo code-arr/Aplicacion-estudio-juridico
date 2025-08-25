@@ -24,4 +24,8 @@ export class ClienteService {
   async getClienteById(id: string): Promise<Client | null> {
     return this.clienteRepository.getClienteById(id);
   }
+
+  async getClientsByLawyerId(lawyerId: string): Promise<Client[]> {
+    return this.clienteRepository.getClientsByLawyerId(lawyerId);
+  }
 }
