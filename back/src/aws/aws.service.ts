@@ -26,7 +26,7 @@ export class AwsS3Service {
   private objectUrl(key: string): string {
     // En us-east-1 el dominio es s3.amazonaws.com; en el resto: s3.<region>.amazonaws.com
     const host = this.region === 'us-east-1' ? 's3.amazonaws.com' : `s3.${this.region}.amazonaws.com`;
-    return `https://${this.bucket}.${host}/${encodeURIComponent(key)}`;
+    return `https://${this.bucket}.${host}/${encodeURIComponent(key)}`
   }
 
   /**
