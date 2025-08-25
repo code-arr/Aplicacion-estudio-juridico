@@ -13,7 +13,7 @@ import {
   SegmentedToggleItem,
 } from "@components/ui/segmentedtoggle";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useState } from "react";
+import { Button } from "@components/ui/button";
 
 interface ItemHeaderProps {
   item: ClientItem;
@@ -47,11 +47,8 @@ const ItemHeader = ({ item }: ItemHeaderProps) => {
     };
     return (
       <Badge
-        className={`${cfg.className} flex gap-x-1 rounded-xl font-semibold cursor-default`}
+        className={`${cfg.className} place-self-start h-fit py-1 rounded-md text-base font-medium cursor-default`}
       >
-        <span className="text-2xl pb-[0.17rem]">
-          {status === "closed" ? "✓" : "●"}
-        </span>
         {cfg.label}
       </Badge>
     );
@@ -73,38 +70,69 @@ const ItemHeader = ({ item }: ItemHeaderProps) => {
       : clientDetail?.companyName ?? "";
 
   return (
-    <div>
+    <div className="bg-white py-6">
       <div className="flex flex-col">
-        <div className="flex gap-x-4">
-          <div className="flex flex-col">
-            <p>{`${name} / ${category} / ${section} / ${itemType}`}</p>
-            <div>
-              <h1>{item.title}</h1>
-              {StatusBadge(item.status)}
+        <div className="flex justify-between gap-x-4 px-8">
+          <div className="flex flex-col pb-5 w-1/2 px-2">
+            <p className="text-lg pb-4">{`${category?.name} / ${section?.name} / ${itemType?.name}`}</p>
+            <div className="grid items-start gap-x-3 self-start max-w-[32rem]">
+              {/* grid-cols-[minmax(40%,1fr)_auto] */}
+              <h1 className="text-3xl font-semibold leading-tight">
+                {item.title}
+              </h1>
+              <div className="row-start-1 col-start-2 whitespace-nowrap">
+                {StatusBadge(item.status)}
+              </div>
             </div>
-            <div>
-              <p>{`Cliente:  ${fullName}`}</p>
-              <p>{`Ultima actualizacion: ${item.updatedAt}`}</p>
+
+            <div className="flex gap-x-4 text-lg">
+              <p>
+                {"Cliente: "}
+                <span className="cursor-pointer text-blue-950">{fullName}</span>
+              </p>
+              <p>{`Última actualización: ${item.updatedAt}`}</p>
             </div>
           </div>
-          <div></div>
+
+          <div className="flex items-center gap-x-3 pb-6">
+            <Button className="bg-transparent text-gray-900 border text-lg font-normal">
+              Nuevo documento
+            </Button>
+            <Button className="bg-transparent text-gray-900 border text-lg font-normal">
+              Nueva audiencia
+            </Button>
+            <Button className="bg-blue-900 text-lg font-normal">
+              Registrar tramite
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-x-2">
-          <SegmentedToggle
-            type="single"
-            value={currentTab}
-            onValueChange={(next) => {
-              if (next == null) return;
-              navigate(next === "index" ? basePath : `${basePath}/${next}`);
-            }}
-            aria-label="Secciones del ítem"
-          >
-            {tabs.map((tab) => (
-              <SegmentedToggleItem key={tab.value} value={tab.value}>
-                {tab.label}
-              </SegmentedToggleItem>
-            ))}
-          </SegmentedToggle>
+        <div className="border-y border-gray-200">
+          <div className="flex gap-x-2 px-8">
+            <SegmentedToggle
+              className="bg-transparent py-0"
+              type="single"
+              value={currentTab}
+              onValueChange={(next) => {
+                if (next == null) return;
+                navigate(next === "index" ? basePath : `${basePath}/${next}`);
+              }}
+              aria-label="Secciones del ítem"
+            >
+              {tabs.map((tab) => (
+                <div
+                  className="border-b border-transparent transition-colors duration-150 ease-out has-[button[data-state=on]]:border-black mx-2"
+                  key={tab.value}
+                >
+                  <SegmentedToggleItem
+                    className="bg-transparent! py-2.5 text-lg text-[hsl(225,15%,15%)]/90 transition-colors duration-150 ease-out data-[state=on]:text-black data-[state=on]:font-semibold cursor-pointer"
+                    value={tab.value}
+                  >
+                    {tab.label}
+                  </SegmentedToggleItem>
+                </div>
+              ))}
+            </SegmentedToggle>
+          </div>
         </div>
       </div>
     </div>

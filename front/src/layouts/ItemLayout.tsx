@@ -35,14 +35,16 @@ const ItemLayout = () => {
     return <ErrorScreen message="Ocurrió un error al encontrar el item" />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="p-6">
+    <div className="min-h-screen bg-gray-100">
+      <main className="p-10">
         <ItemHeader
           item={itemDetail}
           onBack={() => navigate(-1)}
           timer="00:00" // más adelante podrías sacarlo de un hook
         />
-        <Outlet />
+        <div className="bg-white px-6 pb-4">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
