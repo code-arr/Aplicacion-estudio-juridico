@@ -11,30 +11,49 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
-
-      - name: Change to backend directory
-        run: cd back
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: back/package-lock.json
 
       - name: Install dependencies
-        run: |
-          cd back
-          npm install
+        working-directory: back
+        run: npm ci
 
       - name: Build
-        run: |
-          cd back
-          npm run build
+        working-directory: back
+        run: npm run build
 
-      - name: Zip for deployment
+      - name: Package app
+        working-directory: back
+        run: zip -r ../app.zip dist package.json package-lock.json Procfile
+
+      # Credenciales para usar AWS CLI en el paso de "wait until Ready"
+      - name: Configure AWS credentials for AWS CLI
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Wait for EB environment to be Ready
+        shell: bash
         run: |
-          cd back
-          zip -r ../app.zip dist package.json package-lock.json Procfile
+          ENV="Estudio-backend-dev-env"
+          echo "Waiting for $ENV to be Ready..."
+          for i in {1..90}; do
+            STATUS=$(aws elasticbeanstalk describe-environments \
+              --environment-names "$ENV" \
+              --query 'Environments[0].Status' --output text 2>/dev/null || echo "Unknown")
+            echo "Status=$STATUS"
+            [[ "$STATUS" == "Ready" ]] && exit 0
+            sleep 10
+          done
+          echo "Environment not Ready after waiting." && exit 1
 
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v21
@@ -42,7 +61,9 @@ jobs:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           application_name: estudio-backend-dev
-          environment_name: estudio-backend-dev-env
-          version_label: v-${{ github.run_number }}
+          environment_name: Estudio-backend-dev-env
           region: us-east-1
           deployment_package: app.zip
+          # label único (no uses funciones tipo substr en expresiones)
+          version_label: v-${{ github.run_number }}-${{ github.sha }}
+          wait_for_deployment: true
