@@ -11,22 +11,21 @@ export class AwsS3Service {
 
   // El constructor inicializa la propiedad s3Client.
   constructor() {
-    const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    
     const region = process.env.AWS_S3_REGION;
 
-    if (!accessKeyId || !secretAccessKey || !region) {
-      throw new InternalServerErrorException(
-        'Faltan variables de entorno para la configuración de AWS.'
-      );
-    }
+    // if (!accessKeyId || !secretAccessKey || !region) {
+    //   throw new InternalServerErrorException(
+    //     'Faltan variables de entorno para la configuración de AWS.'
+    //   );
+    // }
 
     this.s3Client = new S3Client({
       region: region,
-      credentials: {
-        accessKeyId: accessKeyId,
-        secretAccessKey: secretAccessKey,
-      },
+      // credentials: {
+      //   accessKeyId: accessKeyId,
+      //   secretAccessKey: secretAccessKey,
+      // },
     });
   }
 
