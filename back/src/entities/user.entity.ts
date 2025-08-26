@@ -26,6 +26,9 @@ export class User {
   @Column({ type: 'varchar', length: 100 })
   password: string;
 
+  @Column({type : 'varchar', length: 100, default: '' })
+  googleRefreshToken: string;
+
   @Column({ type: 'varchar', length: 100, default: '' })
   mailerKey: string;
 

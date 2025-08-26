@@ -6,7 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import typeormConfig from './config/typeorm';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm'; // <-- Importa esto aquí también
 import { JwtModule } from '@nestjs/jwt';
-import { AuthModule } from './modules/auth.module';
+import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './modules/users.module';
 import { AbogadoModule } from './modules/abogado.module';
 import { AdminModule } from './modules/admin.module';
@@ -18,6 +18,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { clientItemModule } from './modules/clientItem.module';
 import { DocumentModule } from './modules/document.module';
 import { ProcessModule } from './modules/process.module';
+import { GoogleModule } from './auth/google.module';
 
 
 @Module({
@@ -47,7 +48,8 @@ import { ProcessModule } from './modules/process.module';
     MailerModule,
     clientItemModule,
     DocumentModule,
-    ProcessModule
+    ProcessModule,
+    GoogleModule
   ],
   controllers: [AppController ],
   providers: [AppService ],

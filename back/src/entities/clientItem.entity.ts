@@ -15,7 +15,7 @@ import { ItemType } from './itemType.entity';
 import { Lawyer } from './lawyer.entity';
 import { Process } from './process.entity';
 import { Audience } from './audience.entity';
-import { Meeting } from './meet.entity';
+import { Meeting } from './meeting.entity';
 import { Category } from './category.entity';
 import { Section } from './section.entity';
 import moment from 'moment-timezone';

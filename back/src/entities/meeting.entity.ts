@@ -3,7 +3,7 @@ import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { ClientItem } from './clientItem.entity';
 
-@Entity('reuniones')
+@Entity('meetings')
 export class Meeting {
   @PrimaryGeneratedColumn('uuid')
   @IsUUID()
@@ -17,6 +17,9 @@ export class Meeting {
 
   @Column({ type: 'timestamp' })
   date: Date; // Fecha y hora de la reunión
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  url: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;

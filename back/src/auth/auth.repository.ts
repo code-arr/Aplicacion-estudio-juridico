@@ -12,7 +12,7 @@ export class AuthRepository {
     private readonly jwtService: JwtService,
   ) {}
 
-  async register(user: registerUserDto): Promise<Partial<User> | void> {
+  async register(user): Promise<Partial<User> | void> {
     try {
       this.userService.createUser(user);
     } catch (error) {
@@ -41,17 +41,17 @@ export class AuthRepository {
   async login(
     email: string,
     password: string,
-    
-  ): Promise<{ message: string; token?: string ; userData? : any , user? : any }> {
+  ): Promise<{ message: string; token?: string; userData?: any; user?: any }> {
     try {
       const Newuser = await this.userService.findOneByEmail(email);
       const user = {
-        email : Newuser?.email,
-        id : Newuser?.id,
-        role : Newuser?.role
-      }
+        email: Newuser?.email,
+        id: Newuser?.id,
+        role: Newuser?.role,
+      };
       if (!Newuser) {
-        throw new BadRequestException('Usuario no encontrado');      }
+        throw new BadRequestException('Usuario no encontrado');
+      }
 
       const isPasswordValid = await bcrypt.compare(password, Newuser.password);
       if (!isPasswordValid) {
@@ -59,13 +59,26 @@ export class AuthRepository {
       }
 
       const token = await this.createJwtToken(Newuser);
-      return { message: 'Login exitoso', token , user  };
+      return { message: 'Login exitoso', token, user };
     } catch (error) {
-     if (error instanceof BadRequestException) {
-      throw error;
-     }
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new Error('Error al iniciar sesión: ' + error);
     }
   }
-  
+
+  async validateUser(profile: any, refreshToken: string): Promise<User> {
+    const email = profile.emails[0].value;
+
+    // 1. Busca si el usuario ya existe en tu base de datos
+    let user = await this.userService.findOneByEmail(email);
+
+    if (!user) {
+      throw new BadRequestException('Usuario no registrado');
+    }
+
+    user.googleRefreshToken = refreshToken;
+    return user;
+  }
 }
