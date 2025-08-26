@@ -61,7 +61,7 @@ jobs:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           application_name: estudio-backend-dev
-          environment_name: Estudio-backend-dev-env
+          environment_name: Estudio-backend-dev-env-1
           region: us-east-1
           deployment_package: app.zip
           # label único (no uses funciones tipo substr en expresiones)
