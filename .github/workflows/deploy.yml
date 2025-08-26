@@ -30,14 +30,7 @@ jobs:
 
       - name: Package app (zip with Procfile and .ebextensions if present)
         working-directory: back
-        shell: bash
-        run: |
-          set -euo pipefail
-          files=("dist" "package.json" "package-lock.json")
-          [[ -f "Procfile" ]] && files+=("Procfile")
-          [[ -d ".ebextensions" ]] && files+=(".ebextensions")
-          [[ -d ".platform" ]] && files+=(".platform")   # opcional
-          zip -r ../app.zip "${files[@]}"
+        run: zip -r ../app.zip dist package.json package-lock.json Procfile
 
       # Credenciales para usar AWS CLI en el paso de "wait until Ready"
       - name: Configure AWS credentials for AWS CLI
