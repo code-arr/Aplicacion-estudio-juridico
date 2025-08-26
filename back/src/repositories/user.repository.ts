@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { registerUserDto } from '../dtos/user.dto';
@@ -74,5 +75,35 @@ export class UserRepository {
 
   async getAllUsers():Promise<User[]>{
     return await this.userRepository.find();
+  }
+
+  async getOneById(id: string): Promise<User | null> {
+    try {
+      return await this.userRepository.findOne({ where: { id } });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error al buscar el usuario por ID: REPOSITORIO ' + error.message,
+      );
+    }
+  }
+
+  async updateUser(id: string, userData: Partial<User>): Promise<Partial<User> | void> {
+    try {
+      const user = await this.userRepository.findOne({ where: { id } });
+      if (!user) {
+        throw new NotFoundException('Usuario no encontrado.');
+      }
+      Object.assign(user, userData);
+      await this.userRepository.save(user);
+      const { password, ...updatedUser } = user;
+      return updatedUser;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Error inesperado al actualizar el usuario. REPOSITORIO',
+      );
+    }
   }
 }

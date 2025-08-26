@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { GoogleStrategy } from './google.strategy';
+// import { GoogleStrategy } from './google.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../entities/user.entity';
 import { AuthRepository } from './auth.repository';
@@ -13,13 +13,13 @@ import { UserRepository } from 'src/repositories/user.repository';
     TypeOrmModule.forFeature([User]),
   ],
   providers: [
-    GoogleStrategy, 
+    //GoogleStrategy, 
     AuthRepository,
     UserService,
     UserRepository
   ],
   exports: [
-    GoogleStrategy, 
+   // GoogleStrategy, 
     AuthRepository,
     UserService
   ],

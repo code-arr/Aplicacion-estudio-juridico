@@ -3,7 +3,7 @@ import { User } from 'src/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UserService } from 'src/services/user.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class AuthRepository {
@@ -81,4 +81,20 @@ export class AuthRepository {
     user.googleRefreshToken = refreshToken;
     return user;
   }
+
+//   async linkGoogleAccount(userId: string, googleData: {  googleRefreshToken: string }): Promise<User> {
+//     const user = await this.userService.getOneById(userId);
+
+//     if (!user) {
+//         throw new NotFoundException('Usuario no encontrado.');
+//     }
+    
+//     user.googleRefreshToken = googleData.googleRefreshToken;
+
+//      this.userService.updateUser(userId, user);
+
+//      return user;
+// }
+
+
 }

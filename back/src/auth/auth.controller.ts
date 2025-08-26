@@ -1,11 +1,20 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { registerUserDto } from 'src/dtos/user.dto';
 import { User } from 'src/entities/user.entity';
 import { AuthRepository } from 'src/auth/auth.repository';
 import { Request, Response } from 'express';
 import { AuthGuard } from 'src/guards/auth.guard';
-import { GoogleAuthGuard } from 'src/guards/google.guard';
-import { AuthGuard as PassportAuthGuard } from '@nestjs/passport'; 
+//import { GoogleAuthGuard } from 'src/guards/google.guard';
+import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
+import { UserService } from 'src/services/user.service';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authRepository: AuthRepository) {}
@@ -34,21 +43,40 @@ export class AuthController {
     }
   }
 
- 
-@Get('google/connect')
-  @UseGuards(AuthGuard) // Solo usamos tu guard de JWT para verificar el token.
-  async connectGoogleAccount(@Req() req, @Res() res: Response) {
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent("http://estudio-backend-dev-env.us-east-1.elasticbeanstalk.com/auth/google/callback")}&access_type=offline&prompt=consent`;
+  // @Get('google/connect')
+  // @UseGuards(AuthGuard)
+  // async connectGoogleAccount(@Req() req, @Res() res: Response) {
+  //   console.log('estamos en google conect');
 
-    // Devolvemos la URL al frontend.
-    res.json({ redirectUrl: googleAuthUrl })
-  }
+  //   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent('http://localhost:3000/auth/google/callback')}&access_type=offline&prompt=consent`;
 
-  // Este es el callback que recibe la respuesta de Google.
-  @Get('google/callback')
-  @UseGuards(PassportAuthGuard('google'))
-  async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
-    // Aquí es donde guardas el token de Google.
-    res.redirect('http://tu-frontend.com/dashboard');
-  }
+  //   res.json({ redirectUrl: googleAuthUrl });
+  // }
+
+  // @Get('google/callback')
+  // @UseGuards(PassportAuthGuard('google'))
+  // async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
+  //   const user = req.user as any;
+  //   console.log('User: ', user);
+
+  //   if (!user || !user.user || !user.googleTokens) {
+  //     return res.redirect('http://tu-frontend.com/error?reason=no_google_data');
+  //   }
+
+  //   try {
+  //     const userId = user.user.id;
+  //     const googleTokens = user.googleTokens;
+  //     const googleProfile = user.profile;
+
+  //     await this.authRepository.linkGoogleAccount(userId, {
+  //       googleRefreshToken: googleTokens.refreshToken,
+  //     });
+
+  //     res.redirect('http://127.0.0.1:5500/index.html');
+  //   } catch (error) {
+  //     console.log(error);
+
+  //     res.redirect(`http://tu-frontend.com/error?reason=${error.message}`);
+  //   }
+  // }
 }

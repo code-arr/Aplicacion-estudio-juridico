@@ -20,4 +20,12 @@ export class UserService {
     async getAllUsers():Promise<User[]>{
     return this.userRepository.getAllUsers();
   }
+
+  async getOneById(id: string): Promise<User | null> {
+    return this.userRepository.getOneById(id);
+  }
+
+  async updateUser(id: string, userData: Partial<User>): Promise<Partial<User> | void> {
+    return this.userRepository.updateUser(id, userData);
+  }
 }

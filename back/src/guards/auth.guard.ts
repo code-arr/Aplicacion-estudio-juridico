@@ -7,6 +7,7 @@ import {
   import { config as dotenvConfig } from 'dotenv';
   import { JwtService } from '@nestjs/jwt';
   import { Observable } from 'rxjs';
+import { log } from 'node:console';
   
   dotenvConfig({ path: '.env' });
   
@@ -28,7 +29,10 @@ import {
   
         request.user = payload;
         console.log(payload);
-        
+        console.log(process.env.GOOGLE_CLIENT_ID);
+        console.log(process.env.GOOGLE_CLIENT_SECRET);
+        console.log(process.env.GOOGLE_CALLBACK_URL);
+
         return payload;
       } catch (error) {
         throw new ForbiddenException('Invalid token');
