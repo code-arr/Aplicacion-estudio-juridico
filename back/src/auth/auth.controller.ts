@@ -41,7 +41,7 @@ export class AuthController {
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent("http://estudio-backend-dev-env.us-east-1.elasticbeanstalk.com/auth/google/callback")}&access_type=offline&prompt=consent`;
 
     // Devolvemos la URL al frontend.
-    res.json({ redirectUrl: googleAuthUrl });
+    res.json({ redirectUrl: googleAuthUrl })
   }
 
   // Este es el callback que recibe la respuesta de Google.
