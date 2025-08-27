@@ -83,7 +83,7 @@ export class AuthController {
     } catch (error) {
       console.log("error 1" + error);
 
-      res.redirect(`http://tu-frontend.com/error?reason=${error.message}`);
+      return res.redirect(`http://tu-frontend.com/error?reason=${encodeURIComponent(error.message)}`);
     }
   }
 }
