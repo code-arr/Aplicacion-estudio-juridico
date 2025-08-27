@@ -54,7 +54,7 @@ export class SectionRepository implements OnModuleInit { // <-- Nombre de clase 
         
     }
 
-    async createSection(section: sectionDto, categoryId: string): Promise<Section> { // <-- Tipo de retorno corregido a 'Section'
+    async createSection(section: sectionDto, categoryId: string): Promise<Section> { // <--  de retorno corregido a 'Section'
         // Usa 'await' para esperar la respuesta asíncrona
         const category = await this.categoryService.getOneById(categoryId);
 

@@ -17,6 +17,7 @@ import { StopWatch } from './stopwatch.entity';
 import { Category } from './category.entity';
 import { ClientItem } from './clientItem.entity';
 import * as moment from 'moment-timezone';
+import { Meeting } from './meeting.entity';
 
 
 export enum clientType {
@@ -81,7 +82,8 @@ export class Client {
   @ManyToMany(() => Lawyer, (lawyer) => lawyer.clients)
   lawyers: Lawyer[];
 
-
+  @OneToMany(() => Meeting, (meeting) => meeting.client)
+  meetings: Meeting[];
 
   @OneToMany(() => StopWatch, (stopwatch) => stopwatch.client)
   stopwatchs: StopWatch[];

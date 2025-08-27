@@ -19,6 +19,8 @@ import { clientItemModule } from './modules/clientItem.module';
 import { DocumentModule } from './modules/document.module';
 import { ProcessModule } from './modules/process.module';
 import { GoogleModule } from './auth/google.module';
+import { meet } from 'googleapis/build/src/apis/meet';
+import { MeetingModule } from './modules/meeting.module';
 
 
 @Module({
@@ -49,7 +51,8 @@ import { GoogleModule } from './auth/google.module';
     clientItemModule,
     DocumentModule,
     ProcessModule,
-    GoogleModule
+    GoogleModule,
+    MeetingModule
   ],
   controllers: [AppController ],
   providers: [AppService ],
