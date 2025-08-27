@@ -47,8 +47,13 @@ export class AuthController {
   @UseGuards(AuthGuard)
   async connectGoogleAccount(@Req() req, @Res() res: Response) {
     console.log('estamos en google conect');
-
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent('http://localhost:3000/auth/google/callback')}&access_type=offline&prompt=consent`;
+    const callback = process.env.GOOGLE_CALLBACK_URL;
+    if (!callback) {
+      throw new Error('Google callback URL no está definida');
+    }
+    console.log("callback" + callback);
+    
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent(callback)}&access_type=offline&prompt=consent`;
 
     res.json({ redirectUrl: googleAuthUrl });
   }
@@ -60,6 +65,8 @@ export class AuthController {
     console.log('User: ', user);
 
     if (!user || !user.user || !user.googleTokens) {
+      console.log("ERROR GOOGLE TOKEN");
+      
       return res.redirect('http://tu-frontend.com/error?reason=no_google_data');
     }
 
@@ -74,7 +81,7 @@ export class AuthController {
 
       res.redirect('http://127.0.0.1:5500/index.html');
     } catch (error) {
-      console.log(error);
+      console.log("error 1" + error);
 
       res.redirect(`http://tu-frontend.com/error?reason=${error.message}`);
     }
