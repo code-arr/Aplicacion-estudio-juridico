@@ -30,6 +30,8 @@ async function bootstrap() {
 
   // Puerto y host correctos para EB
   const port = Number(process.env.PORT) || 3000;
+  console.log('🟢 Booting Nest… PORT=', process.env.PORT);
   await app.listen(port, '0.0.0.0');
+  console.log('🟢 Nest listening on', port);
 }
 bootstrap();
