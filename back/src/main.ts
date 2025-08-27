@@ -5,8 +5,14 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // CORS: simple para dev. En prod, pasá orígenes permitidos por env si querés.
-  app.enableCors({
-  origin: true,
+app.enableCors({
+  origin: (origin, cb) => {
+    const allow = ['http://localhost:5173','http://127.0.0.1:5173'];
+    const o = origin ? origin.replace(/\/$/, '') : origin;
+    if (!o) return cb(null, true);      // Electron/file://, curl, etc.
+    if (allow.includes(o)) return cb(null, true);
+    return cb(new Error('Origen no permitido por CORS'), false);
+  },
   methods: ['GET','HEAD','PUT','PATCH','POST','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
 });
