@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Catch, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { MeetingDto } from 'src/dtos/meeting.dto';
 import { Meeting } from 'src/entities/meeting.entity';
 import { GoogleCalendarService } from 'src/lib/google/calendar';
@@ -16,7 +16,7 @@ export class MeetingService {
     clientItemId: string,
     lawyerEmail: string,
     to: string,
-  ) {
+  ): Promise<Meeting | void> {
     const { date, name, meetingType } = meetingData;
 
     if (meetingType === 'google-meet') {
@@ -24,32 +24,47 @@ export class MeetingService {
         // Solo llama al servicio de calendario
 
         const meetingDate = new Date(date);
-        await this.googleCalendarService.scheduleMeeting(
+        // Crea el registro en la base de datos con el ID del evento de Google
+
+        const newMeeting = await this.meetingRepository.createMeeting(
+          { ...meetingData, date: meetingDate },
+          clientItemId,
+        );
+
+        const googleEvent = await this.googleCalendarService.scheduleMeeting(
           lawyerEmail,
           to,
           meetingDate,
           name,
         );
-
-        // Crea el registro en la base de datos con el ID del evento de Google
-
-        return this.meetingRepository.createMeeting(
-          { ...meetingData, date: meetingDate },
-          clientItemId,
-        );
+        const url = googleEvent.htmlLink;
+        if (!url) {
+          throw new InternalServerErrorException(
+            'No se pudo obtener la URL del evento de Google.',
+          );
+        }
+        this.meetingRepository.updateMeeting(newMeeting.id, { url });
       } catch (error) {
         throw new InternalServerErrorException(
           'Falló la creación de la reunión en Google Meet.',
         );
       }
     } else if (meetingType === 'in-person') {
-      const meetingDate = new Date(date);
-      return this.meetingRepository.createMeeting(
-        { ...meetingData, date: meetingDate },
-        clientItemId,
-      );
-    }
+      try {
+        const meetingDate = new Date(date);
+        return this.meetingRepository.createMeeting(
+          { ...meetingData, date: meetingDate },
+          clientItemId,
+        );
+      } catch (error) {
+        throw new InternalServerErrorException(
+          'Falló la creación de la reunión en persona.',
+        );
+      }
+    }  
+  }
 
-    throw new InternalServerErrorException('Tipo de reunión no válido.');
+  async getAllMeetings(): Promise<Meeting[]> {
+    return this.meetingRepository.getAllMeetings();
   }
 }

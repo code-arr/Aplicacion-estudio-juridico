@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Get,
 } from '@nestjs/common';
 import { GoogleCalendarService } from '../lib/google/calendar';
 import { MeetingDto } from 'src/dtos/meeting.dto';
@@ -35,5 +36,10 @@ export class MeetingsController {
       // añadir una lógica de manejo de errores específica, puedes hacerlo aquí.
       throw error;
     }
+  }
+
+  @Get("GetAll")
+  async getAllMeetings() {
+    return this.meetingService.getAllMeetings();
   }
 }

@@ -78,8 +78,7 @@ export class GoogleCalendarService {
         sendUpdates: 'all',
       });
 
-      console.log('Evento creado:', res.data.htmlLink);
-      return { message: `La reunión para ${to} se agendó con éxito.` };
+      return res.data;
     } catch (err: any) {
       console.error('Error al agendar la reunión:', err?.message || err);
       throw new InternalServerErrorException('No se pudo agendar la reunión.');

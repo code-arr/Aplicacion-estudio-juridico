@@ -5,7 +5,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // CORS: simple para dev. En prod, pasá orígenes permitidos por env si querés.
-  app.enableCors({ origin: '*', credentials: false });
+  app.enableCors({
+    origin: ['http://localhost:5173/', 'http://127.0.0.1:5173/'],
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  });
 
   // Cierre limpio en reemplazos/actualizaciones de EB
   app.enableShutdownHooks();
@@ -22,7 +26,7 @@ async function bootstrap() {
   const httpAdapter: any = app.getHttpAdapter();
   const expressLike = httpAdapter.getInstance?.() ?? httpAdapter;
   expressLike.get('/health', (_req: any, res: any) =>
-    res.status(200).json({ status: 'ok' })
+    res.status(200).json({ status: 'ok' }),
   );
 
   // Puerto y host correctos para EB
