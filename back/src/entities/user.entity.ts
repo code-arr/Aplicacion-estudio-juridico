@@ -23,10 +23,13 @@ export class User {
   @Column({ type: 'varchar', length: 100, unique: true })
   email: string;
 
+  @Column({ type: 'varchar', length: 100 , default: '' })
+  googleEmail: string;
+
   @Column({ type: 'varchar', length: 100 })
   password: string;
 
-  @Column({type : 'varchar', length: 300, default: '' })
+  @Column({ type: 'varchar', length: 300, default: '' })
   googleRefreshToken: string;
 
   @Column({ type: 'varchar', length: 100, default: '' })
@@ -41,7 +44,7 @@ export class User {
 
   //relacion con admin
   @OneToOne(() => Admin, (admin) => admin.user)
-  @JoinColumn() 
+  @JoinColumn()
   admin: Admin;
 
   //relacion con abogado

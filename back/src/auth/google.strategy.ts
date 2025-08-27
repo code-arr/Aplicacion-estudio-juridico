@@ -8,8 +8,9 @@ import { UserService } from 'src/services/user.service';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
-  constructor(private authRepository: AuthRepository,
-    private userService: UserService
+  constructor(
+    private authRepository: AuthRepository,
+    private userService: UserService,
   ) {
     super({
       clientID: process.env.GOOGLE_CLIENT_ID,
@@ -36,8 +37,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   ): Promise<any> {
     const { email } = profile;
 
-    console.log(email);
     const user = await this.userService.findOneByEmail(email);
+    if (!user) {
+      return done(
+        new UnauthorizedException('Usuario no autenticado con JWT.'),
+        false,
+      );
+    }
+    user.googleEmail = email;
+
+    await this.userService.updateUser(user.id, user);
 
     if (!user) {
       return done(
@@ -49,7 +58,6 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     try {
       // Usamos el servicio para vincular la cuenta de Google al usuario existente
       const updatedUser = await this.authRepository.linkGoogleAccount(user.id, {
-        
         googleRefreshToken: refreshToken,
       });
 

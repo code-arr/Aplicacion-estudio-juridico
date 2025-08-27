@@ -1,5 +1,13 @@
 import { IsUUID } from 'class-validator';
-import { Column, Entity, JoinTable, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { User } from './user.entity';
 import { StopWatch } from './stopwatch.entity';
@@ -10,7 +18,6 @@ export enum typeOffLawyer {
   CRIMINAL = 'criminal',
   CIVIL = 'civil',
   FAMILIAR = 'familiar',
- 
 }
 
 export enum SeniorityLevel {
@@ -38,12 +45,12 @@ export class Lawyer {
   phone: string;
 
   @Column({ type: 'varchar', length: 100, unique: true })
-  rut : string;
+  rut: string;
 
   @Column({
     type: 'enum',
     enum: typeOffLawyer,
-    nullable : true,
+    nullable: true,
   })
   type: typeOffLawyer;
 
@@ -54,10 +61,8 @@ export class Lawyer {
   })
   seniorityLevel: SeniorityLevel;
 
-  @Column({type: 'int', default: 0})
+  @Column({ type: 'int', default: 0 })
   workedHours: number;
-
-  
 
   //relacion con usuario
   @OneToOne(() => User, (usuario) => usuario.lawyer)
