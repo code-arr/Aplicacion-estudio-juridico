@@ -16,7 +16,7 @@ export class MeetingService {
     clientItemId: string,
     lawyerEmail: string,
     to: string,
-  ): Promise<Meeting | void> {
+  ): Promise<Meeting | null | void> {
     const { date, name, meetingType } = meetingData;
 
     if (meetingType === 'google-meet') {
@@ -43,7 +43,14 @@ export class MeetingService {
             'No se pudo obtener la URL del evento de Google.',
           );
         }
-        this.meetingRepository.updateMeeting(newMeeting.id, { url });
+        const meeting = this.meetingRepository.updateMeeting(newMeeting.id, { url });
+
+        if (!meeting) {
+          throw new InternalServerErrorException(
+            'No se pudo actualizar la reunión con la URL de Google Meet.',
+          );
+        }
+        return meeting;
       } catch (error) {
         throw new InternalServerErrorException(
           'Falló la creación de la reunión en Google Meet.',

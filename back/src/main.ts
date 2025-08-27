@@ -6,11 +6,19 @@ async function bootstrap() {
 
   // CORS: simple para dev. En prod, pasá orígenes permitidos por env si querés.
   app.enableCors({
-    origin: ['http://localhost:5173/', 'http://127.0.0.1:5173/'],
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  });
-
+  origin: (origin, cb) => {
+    const allowList = [
+      'http://localhost:5173/',
+      'http://127.0.0.1:5173/',
+    ];
+    if (!origin) return cb(null, true); // Electron/file://, curl, etc.
+    if (allowList.includes(origin)) return cb(null, true);
+    return cb(new Error('Origen no permitido por CORS'), false);
+  },
+  methods: ['GET','HEAD','PUT','PATCH','POST','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
+  optionsSuccessStatus: 204,
+});
   // Cierre limpio en reemplazos/actualizaciones de EB
   app.enableShutdownHooks();
 
