@@ -12,7 +12,7 @@ import { User } from 'src/entities/user.entity';
 import { AuthRepository } from 'src/auth/auth.repository';
 import { Request, Response } from 'express';
 import { AuthGuard } from 'src/guards/auth.guard';
-//import { GoogleAuthGuard } from 'src/guards/google.guard';
+import { GoogleAuthGuard } from 'src/guards/google.guard';
 import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 import { UserService } from 'src/services/user.service';
 @Controller('auth')
@@ -43,40 +43,40 @@ export class AuthController {
     }
   }
 
-  // @Get('google/connect')
-  // @UseGuards(AuthGuard)
-  // async connectGoogleAccount(@Req() req, @Res() res: Response) {
-  //   console.log('estamos en google conect');
+  @Get('google/connect')
+  @UseGuards(AuthGuard)
+  async connectGoogleAccount(@Req() req, @Res() res: Response) {
+    console.log('estamos en google conect');
 
-  //   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent('http://localhost:3000/auth/google/callback')}&access_type=offline&prompt=consent`;
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent('http://localhost:3000/auth/google/callback')}&access_type=offline&prompt=consent`;
 
-  //   res.json({ redirectUrl: googleAuthUrl });
-  // }
+    res.json({ redirectUrl: googleAuthUrl });
+  }
 
-  // @Get('google/callback')
-  // @UseGuards(PassportAuthGuard('google'))
-  // async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
-  //   const user = req.user as any;
-  //   console.log('User: ', user);
+  @Get('google/callback')
+  @UseGuards(PassportAuthGuard('google'))
+  async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
+    const user = req.user as any;
+    console.log('User: ', user);
 
-  //   if (!user || !user.user || !user.googleTokens) {
-  //     return res.redirect('http://tu-frontend.com/error?reason=no_google_data');
-  //   }
+    if (!user || !user.user || !user.googleTokens) {
+      return res.redirect('http://tu-frontend.com/error?reason=no_google_data');
+    }
 
-  //   try {
-  //     const userId = user.user.id;
-  //     const googleTokens = user.googleTokens;
-  //     const googleProfile = user.profile;
+    try {
+      const userId = user.user.id;
+      const googleTokens = user.googleTokens;
+      const googleProfile = user.profile;
 
-  //     await this.authRepository.linkGoogleAccount(userId, {
-  //       googleRefreshToken: googleTokens.refreshToken,
-  //     });
+      await this.authRepository.linkGoogleAccount(userId, {
+        googleRefreshToken: googleTokens.refreshToken,
+      });
 
-  //     res.redirect('http://127.0.0.1:5500/index.html');
-  //   } catch (error) {
-  //     console.log(error);
+      res.redirect('http://127.0.0.1:5500/index.html');
+    } catch (error) {
+      console.log(error);
 
-  //     res.redirect(`http://tu-frontend.com/error?reason=${error.message}`);
-  //   }
-  // }
+      res.redirect(`http://tu-frontend.com/error?reason=${error.message}`);
+    }
+  }
 }

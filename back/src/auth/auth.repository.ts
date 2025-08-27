@@ -82,19 +82,19 @@ export class AuthRepository {
     return user;
   }
 
-//   async linkGoogleAccount(userId: string, googleData: {  googleRefreshToken: string }): Promise<User> {
-//     const user = await this.userService.getOneById(userId);
+  async linkGoogleAccount(userId: string, googleData: {  googleRefreshToken: string }): Promise<User> {
+    const user = await this.userService.getOneById(userId);
 
-//     if (!user) {
-//         throw new NotFoundException('Usuario no encontrado.');
-//     }
+    if (!user) {
+        throw new NotFoundException('Usuario no encontrado.');
+    }
     
-//     user.googleRefreshToken = googleData.googleRefreshToken;
+    user.googleRefreshToken = googleData.googleRefreshToken;
 
-//      this.userService.updateUser(userId, user);
+     this.userService.updateUser(userId, user);
 
-//      return user;
-// }
+     return user;
+}
 
 
 }

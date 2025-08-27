@@ -41,6 +41,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "dotenv": "^17.2.0",
+    "googleapis": "^158.0.0",
     "jsonwebtoken": "^9.0.2",
     "moment-timezone": "^0.6.0",
     "multer": "^2.0.2",
@@ -84,12 +85,20 @@
     "typescript-eslint": "^8.20.0"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
-    "transform": { "^.+\\.(t|j)s$": "ts-jest" },
-    "collectCoverageFrom": ["/*.(t|j)s"],
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "/*.(t|j)s"
+    ],
     "coverageDirectory": "../coverage",
-    "testEnvironment":"node"
-}
+    "testEnvironment": "node"
+  }
 }
