@@ -10,6 +10,7 @@ import {
 import { GoogleCalendarService } from '../lib/google/calendar';
 import { MeetingDto } from 'src/dtos/meeting.dto';
 import { MeetingService } from 'src/services/meeting.service';
+import { Meeting } from 'src/entities/meeting.entity';
 // Asegúrate de que la ruta sea correcta
 
 @Controller('meeting')
@@ -23,14 +24,15 @@ export class MeetingsController {
     @Param('clientItemId') clientItemId: string,
     @Body('lawyerEmail') lawyerEmail: string,
     @Body('to') to: string,
-  ) {
+  ): Promise<Meeting | null | void> {
     try {
-      this.meetingService.createAndSchedule(
+      const meeting = await this.meetingService.createAndSchedule(
         meetingData,
         clientItemId,
         lawyerEmail,
         to,
       );
+      return meeting;
     } catch (error) {
       // NestJS maneja los errores lanzados por el servicio, pero si quieres
       // añadir una lógica de manejo de errores específica, puedes hacerlo aquí.

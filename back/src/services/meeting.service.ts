@@ -43,7 +43,7 @@ export class MeetingService {
             'No se pudo obtener la URL del evento de Google.',
           );
         }
-        const meeting = this.meetingRepository.updateMeeting(newMeeting.id, { url });
+        const meeting = await this.meetingRepository.updateMeeting(newMeeting.id, { url });
 
         if (!meeting) {
           throw new InternalServerErrorException(

@@ -59,7 +59,7 @@ export class MyMailerService {
 
     // 2) Construir MIME (HTML + PDF)
     const raw = buildMimeMessage({
-      from: user.email, // debe ser la misma cuenta del refresh token
+      from: user.googleEmail, // debe ser la misma cuenta del refresh token
       to,
       subject: `${subject} - ${title}`,
       html: descriptionHtml,
