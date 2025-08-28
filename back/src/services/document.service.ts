@@ -25,4 +25,12 @@ export class DocumentService {
   async getAllDocuments(): Promise<Document[]> {
     return this.documentRepository.getAllDocuments();
   }
+
+  async getDocumentByUrl(fileUrl: string): Promise<Document> {
+    return this.documentRepository.getDocumentByUrl(fileUrl);
+  }
+
+  async deleteDocumentByUrl(fileUrl: string, documentId: string): Promise<void> {
+    return this.documentRepository.deleteDocumentByUrl(fileUrl , documentId);
+  }
 }

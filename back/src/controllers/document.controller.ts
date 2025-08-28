@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { DocumentDto } from '../dtos/document.dto';
 import { Document } from '../entities/document.entity';
 import { DocumentService } from '../services/document.service';
@@ -26,6 +26,10 @@ export class DocumentController {
       dbName,
       mimetype, // <-- Pasamos el mimetype al servicio/repositorio
     );
+  }
+  @Delete('/delete/:documentId')
+  async deleteDocumentByUrl(@Body('fileUrl') fileUrl: string , @Param("documentId") documentId : string): Promise<void> {
+    return this.documentService.deleteDocumentByUrl(fileUrl , documentId);
   }
 
   @Get('getAll')

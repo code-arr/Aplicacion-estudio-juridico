@@ -41,7 +41,8 @@ export class AudiencieRepository {
       const s3Url = await this.awsS3Service.uploadDocument(
         fileBuffer,
         safeS3Key,
-        mimetype, // <-- Asegúrate de pasarlo aquí
+        mimetype,
+        clientItemId
       );
 
       return await this.audiencieRepository.save({

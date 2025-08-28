@@ -21,22 +21,21 @@ export class DocumentRepository {
     private readonly awsS3Service: AwsS3Service, // <-- Inyectamos el servicio S3
   ) {}
 
-    
-   
- async createDocument(
+  async createDocument(
     clientItemId: string,
     fileBuffer: Buffer,
     originalFileName: string,
     dbName: string,
-    mimetype: string // <-- Agrega el mimetype aquí
+    mimetype: string, // <-- Agrega el mimetype aquí
   ): Promise<Document> {
     try {
-      const clientItem = await this.clientItemService.getClientItemById(clientItemId);
+      const clientItem =
+        await this.clientItemService.getClientItemById(clientItemId);
 
       if (!clientItem) {
         throw new NotFoundException('ClientItem not found');
       }
-      
+
       const fileExtension = path.extname(originalFileName);
       const safeS3Key = `${Date.now()}-${dbName.replace(/\s/g, '_')}${fileExtension}`;
 
@@ -44,7 +43,8 @@ export class DocumentRepository {
       const s3Url = await this.awsS3Service.uploadDocument(
         fileBuffer,
         safeS3Key,
-        mimetype // <-- Asegúrate de pasarlo aquí
+        mimetype,
+        clientItemId,
       );
 
       return await this.documentRepository.save({
@@ -59,7 +59,50 @@ export class DocumentRepository {
   }
 
   async getAllDocuments(): Promise<Document[]> {
-    return this.documentRepository.find({ relations: ['clientItem'] });
+    return this.documentRepository.find({relations:["clientItem"]});
+  }
+
+  async getDocumentByUrl(fileUrl: string): Promise<Document> {
+    try {
+      const document = await this.documentRepository.findOne({
+        where: { fileUrl: fileUrl },
+      });
+
+      if (!document) {
+        throw new NotFoundException('Document not found');
+      }
+
+      return document;
+    } catch (error) {
+      console.error('Error fetching document by URL:', error);
+      throw new InternalServerErrorException('Error fetching document');
+    }
+  }
+
+  async deleteDocumentByUrl(
+    fileUrl: string,
+    documentId: string,
+  ): Promise<any> {
+    try {
+      const document = await this.documentRepository.findOne({
+        where: { id: documentId },
+      });
+
+      if (!document) {
+        throw new NotFoundException('Document not found');
+      }
+
+      // Primero elimina el archivo de S3
+      await this.awsS3Service.deleteDocumentByUrl(fileUrl);
+
+      // Luego elimina el registro de la base de datos
+      await this.documentRepository.remove(document);
+
+      return   document;
+    } catch (error) {
+      console.error('Error deleting document by URL:', error);
+      throw new InternalServerErrorException('Error deleting document');
+    }
   }
 
   async seedDocuments() {}

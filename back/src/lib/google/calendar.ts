@@ -1,5 +1,3 @@
-// src/google-calendar/google-calendar.service.ts
-
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { google } from 'googleapis';
 import axios from 'axios';
@@ -32,6 +30,11 @@ export class GoogleCalendarService {
     }
   }
 
+  // Función para formatear fecha sin la Z (hora local)
+  private formatDateToGoogle(date: Date) {
+    return date.toISOString().slice(0, 19); // 'YYYY-MM-DDTHH:mm:ss'
+  }
+
   async scheduleMeeting(
     lawyerEmail: string,
     to: string,
@@ -59,6 +62,10 @@ export class GoogleCalendarService {
       const calendar = google.calendar({ version: 'v3' });
       const oauth2Client = new google.auth.OAuth2();
       oauth2Client.setCredentials({ access_token: accessToken });
+
+      const startDate = new Date(date);
+      const endDate = new Date(date.getTime() + 60 * 60 * 1000); // +1 hora
+
       const res = await calendar.events.insert({
         auth: oauth2Client,
         calendarId: 'primary',
@@ -66,13 +73,12 @@ export class GoogleCalendarService {
           summary: subject,
           attendees: [{ email: lawyerEmail }, { email: to }],
           start: {
-            dateTime: date.toISOString(),
-            timeZone: 'America/Argentina/Buenos_Aires',
+            dateTime: this.formatDateToGoogle(startDate),
+            timeZone: 'America/Argentina/Buenos_Aires', //RECORDAR CAMBIAR A CHILE!!!!!!!!!!!!!!!!!
           },
           end: {
-            // <--- This is what you were missing
-            dateTime: new Date(date.getTime() + 60 * 60 * 1000).toISOString(),
-            timeZone: 'America/Argentina/Buenos_Aires',
+            dateTime: this.formatDateToGoogle(endDate),
+            timeZone: 'America/Argentina/Buenos_Aires', //RECORDAR CAMBIAR A CHILE!!!!!!!!!!!!!!!!!
           },
         },
         sendUpdates: 'all',
