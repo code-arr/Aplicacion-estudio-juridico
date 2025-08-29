@@ -33,10 +33,10 @@ export class Lawyer {
   id: string = uuid();
 
   @Column({ type: 'varchar', length: 100 })
-  name: string;
+  firstName: string;
 
   @Column({ type: 'varchar', length: 100 })
-  lastname: string;
+  lastName: string;
 
   @Column({ type: 'varchar', length: 100, unique: true })
   adress: string;
