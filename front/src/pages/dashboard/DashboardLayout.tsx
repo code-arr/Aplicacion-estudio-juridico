@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useLawyerStore } from "@/store/useLawyerStore";
 import {
   useCatalogStore,
   selectIsCatalogLoading,
@@ -25,10 +26,12 @@ import { mockLawyer } from "@/mocks/mockLawyer";
 
 const DashboardLayout = () => {
   // ⏰ Hooks se activan apenas entra al dashboard
-  /* useTokenExpirationWatcher(); */ // Hook que detecta si el token definitivo del back ya expiro o es invalido y cierra sesion
+  useTokenExpirationWatcher(); // Hook que detecta si el token definitivo del back ya expiro o es invalido y cierra sesion
   useInactivityLogout(); // Hook que detecta la inactividad del usuario para cerrar sesion
 
-  const user = useAuthStore((s) => s.user);
+  const logOut = useAuthStore((s) => s.logout);
+
+  const lawyer = useLawyerStore((s) => s.lawyer);
 
   /*   const isRefreshingClients = useClientStore((s) => s.isRefreshing); */
   const hydrateClients = useClientStore((s) => s.hydrate);
@@ -40,7 +43,7 @@ const DashboardLayout = () => {
   const isLoadingCatalog = useCatalogStore(selectIsCatalogLoading);
   const isHydratedCatalog = useCatalogStore(selectIsCatalogHydrated);
 
-  const hydrateClientItems = useClientItemStore((s) => s.hydrate);
+  const hydrateClientItems = useClientItemStore((s) => s.hydrateByLawyer);
   const itemClientsIsPrefetched = useClientItemStore(
     selectIsClientItemsPrefetched
   );
@@ -48,22 +51,23 @@ const DashboardLayout = () => {
   // Primer montaje: respeta TTL (no bloquear si hay cache, sí bloquear si es primer fetch)
   useEffect(() => {
     hydrateCatalog(); // respeta TTL
-    hydrateClients(); // respeta TTL
-  }, [hydrateCatalog, hydrateClients]);
+    if (lawyer) hydrateClients(lawyer.id); // respeta TTL
+  }, [hydrateCatalog, hydrateClients, lawyer]);
 
   //Prefecth de clientItems, despues de renderizar la vista "Mis Clientes"
   useEffect(() => {
     if (isHydratedCatalog && isHydratedClients && !itemClientsIsPrefetched)
-      hydrateClientItems();
+      if (lawyer) hydrateClientItems(lawyer.id);
   }, [
     isHydratedCatalog,
     isHydratedClients,
     hydrateClientItems,
     itemClientsIsPrefetched,
+    lawyer,
   ]);
 
   const onLogout = () => {
-    // logout real
+    logOut();
   };
 
   if (
@@ -75,7 +79,7 @@ const DashboardLayout = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex items-start w-full bg-gray-50">
-        <AppSidebar lawyer={mockLawyer} onLogout={onLogout} />
+        <AppSidebar lawyer={lawyer} onLogout={onLogout} />
         {/* Aca en seria mejor pasarle role={user.role} en lugar de lawyer={user} */}
         <main className="flex-1 pb-1">
           <Outlet />

@@ -50,6 +50,8 @@ const ItemsPage = () => {
   const [orderBy, setOrderBy] = useState<string>("");
   /*  const categories = useCatalogStore(selectCategories); */
   const clientItems = useClientItemStore(selectClientItems);
+  console.log(clientItems);
+
   /*   const filteredClientItems = useClientItemStore(selectClientItemsByFilters); */
   const filters = useClientItemStore((s) => s.filters);
   const setFilters = useClientItemStore((s) => s.setFilters);
@@ -157,13 +159,15 @@ const ItemsPage = () => {
 
         {/* ClientItem Cards Grid */}
         <div className="grid grid-cols-1 pr-10 gap-4">
-          {filteredClientItems.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              onViewDetails={handleViewDetails}
-            />
-          ))}
+          {filteredClientItems.map((item) => {
+            return (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onViewDetails={handleViewDetails}
+              />
+            );
+          })}
         </div>
       </div>
     </div>

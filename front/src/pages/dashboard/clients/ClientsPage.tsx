@@ -43,6 +43,7 @@ const ClientsPage = () => {
   const isClientsHydrated = useClientStore(selectIsClientsHydrated);
   const isClientsLoading = useClientStore(selectIsLoadingClients);
   const clientsError = useClientStore(selectClientsError);
+  console.log(clients[0]);
 
   // Función utilitaria
   const normalizeText = (text: string) =>
@@ -75,9 +76,9 @@ const ClientsPage = () => {
     navigate(`${client.id}`);
   };
 
-  /*  const getStatusCount = (status: Client["clientStatus"]) => {
-    return clients.filter((client) => client.clientStatus === status).length;
-  }; */
+  const getStatusCount = (status: Client["status"]) => {
+    return clients.filter((client) => client.status === status).length;
+  };
 
   if (isClientsLoading) return <LoadingSpinner />;
 
@@ -139,9 +140,9 @@ const ClientsPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Clientes Activos</p>
-                {/* <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-green-600">
                   {getStatusCount("active")}
-                </p> */}
+                </p>
               </div>
               <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                 <div className="w-6 h-6 bg-green-500 rounded-full"></div>
@@ -153,9 +154,9 @@ const ClientsPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">En Revisión</p>
-                {/* <p className="text-2xl font-bold text-yellow-600">
+                <p className="text-2xl font-bold text-yellow-600">
                   {getStatusCount("under_review")}
-                </p> */}
+                </p>
               </div>
               <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
                 <div className="w-6 h-6 bg-yellow-500 rounded-full"></div>
@@ -167,9 +168,9 @@ const ClientsPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Clientes Inactivos</p>
-                {/* <p className="text-2xl font-bold text-gray-600">
+                <p className="text-2xl font-bold text-gray-600">
                   {getStatusCount("inactive")}
-                </p> */}
+                </p>
               </div>
               <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                 <div className="w-6 h-6 bg-gray-500 rounded-full"></div>

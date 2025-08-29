@@ -18,11 +18,13 @@ import type { Lawyer } from "@/types/Lawyer";
 import { useState } from "react";
 
 interface AppSidebarProps {
-  lawyer: Lawyer;
+  lawyer: Lawyer | null;
   onLogout: () => void;
 }
 
 const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
+  console.log(lawyer);
+
   const { pathname, hash } = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -134,7 +136,7 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
           <>
             <Avatar className="h-8 w-8 mb-0 cursor-pointer">
               <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] text-sm">
-                {lawyer.firstname.charAt(0).toUpperCase()}
+                {lawyer?.firstName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <Button
@@ -151,12 +153,12 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
             <div className="flex items-center space-x-3">
               <Avatar className="h-8 w-8 cursor-pointer">
                 <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] text-sm">
-                  {lawyer.firstname.charAt(0).toUpperCase()}
+                  {lawyer?.firstName.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <p className="text-sm font-medium text-[hsl(210,40%,98%)] truncate">
-                  {lawyer.firstname + " " + lawyer.lastname}
+                  {lawyer?.firstName + " " + lawyer?.lastName}
                 </p>
                 <p className="text-xs text-[hsl(210,40%,98%)]/70 truncate">
                   Abogado

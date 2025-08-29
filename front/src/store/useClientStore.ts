@@ -1,5 +1,6 @@
 import type { Client } from "@/types/Client";
-import { getClientsData } from "@/api/client";
+import { getClients, getClientsByLawyerId } from "@/api/client";
+import { useLawyerStore } from "@/store/useLawyerStore";
 import { create } from "zustand";
 
 const ttlMs = 86400000;
@@ -24,7 +25,7 @@ interface ClientState {
   setClientDetail: (clientId: string) => void;
   resetClientDetail: () => void;
 
-  hydrate: (opts?: { force?: boolean }) => Promise<void>;
+  hydrate: (lawyerId: string, opts?: { force?: boolean }) => Promise<void>;
 }
 
 export const useClientStore = create<ClientState>()((set, get) => ({
@@ -60,7 +61,7 @@ export const useClientStore = create<ClientState>()((set, get) => ({
 
   resetClientDetail: () => set({ clientDetail: null }),
 
-  hydrate: async (opts?: { force?: boolean }) => {
+  hydrate: async (lawyerId: string, opts?: { force?: boolean }) => {
     if (get().inFlight) return;
     const isFresh =
       get().lastFetched > 0 && Date.now() - get().lastFetched < ttlMs;
@@ -71,7 +72,7 @@ export const useClientStore = create<ClientState>()((set, get) => ({
     else set({ isLoading: true, inFlight: true, error: null });
 
     try {
-      const data = await getClientsData();
+      const data = await getClientsByLawyerId(lawyerId);
       get().setClients(data);
     } catch (error) {
       console.error(error);

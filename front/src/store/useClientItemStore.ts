@@ -2,8 +2,9 @@ import { create } from "zustand";
 import type { ClientItem } from "@/types/ClientItem";
 import {
   getClientItemsByClientId,
-  getClientItemsData,
-  getRecentClientItemsData,
+  getClientItems,
+  getRecentClientItems,
+  getClientItemsByLawyerId,
 } from "@/api/clientItem";
 
 const EMPTY_CLIENT_ITEMS = Object.freeze([]);
@@ -36,10 +37,15 @@ interface ClientItemState {
   setClientItemsByClientId: (clientItems: ClientItem[]) => void;
 
   fetchClientItems: () => Promise<void>;
+  fetchClientItemsByLawyerId: (lawyerId: string) => Promise<void>;
   prefetchRecentClientItems: (opts?: { limit?: number }) => Promise<void>;
   fetchClientItemsByClientId: (clientId: string) => Promise<void>;
 
   hydrate: (opts?: { force?: boolean }) => Promise<void>;
+  hydrateByLawyer: (
+    lawyerId: string,
+    opts?: { force?: boolean }
+  ) => Promise<void>;
   reset: () => void;
 }
 
@@ -86,12 +92,17 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
   setFilters: (p) => set((s) => ({ filters: { ...s.filters, ...p } })),
 
   fetchClientItems: async () => {
-    const data = await getClientItemsData();
+    const data = await getClientItems();
+    get().setClientItems(data);
+  },
+
+  fetchClientItemsByLawyerId: async (lawyerId: string) => {
+    const data = await getClientItemsByLawyerId(lawyerId);
     get().setClientItems(data);
   },
 
   prefetchRecentClientItems: async (opts) => {
-    const data = await getRecentClientItemsData(opts?.limit ?? 50);
+    const data = await getRecentClientItems(opts?.limit ?? 50);
     get().setClientItems(data);
   },
 
@@ -155,6 +166,62 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
 
       try {
         await get().fetchClientItems();
+      } catch (error) {
+        console.error(error);
+        const message =
+          error instanceof Error
+            ? error.message
+            : "No fue posible cargar los datos: ClientItems";
+
+        set((s) => ({
+          isHydrated: s.isHydrated,
+          error: message,
+        }));
+      } finally {
+        set({ inFlightFetch: false, isLoading: false, isRefreshing: false });
+      }
+    }
+  },
+
+  hydrateByLawyer: async (lawyerId: string, opts?: { force?: boolean }) => {
+    if (!get().isPrefetched) {
+      if (get().inFlightPrefetch) return;
+      set({
+        isPrefetching: true,
+        inFlightPrefetch: true,
+        error: null,
+      });
+      try {
+        await get().fetchClientItems();
+      } catch (error) {
+        console.error(error);
+        const message =
+          error instanceof Error
+            ? error.message
+            : "No fue posible cargar los datos: ClientItems";
+        set((s) => ({
+          isPrefetched: false,
+          isHydrated: s.isHydrated,
+          error: message,
+        }));
+      } finally {
+        set({ inFlightPrefetch: false, isPrefetching: false });
+      }
+    } else {
+      if (get().inFlightFetch) return;
+      const isFresh =
+        get().lastFetched > 0 && Date.now() - get().lastFetched < ttlMs;
+      if (!opts?.force && isFresh) {
+        if (get().error) set({ error: null });
+        return;
+      }
+
+      if (get().isHydrated)
+        set({ isRefreshing: true, inFlightFetch: true, error: null });
+      else set({ isLoading: true, inFlightFetch: true, error: null });
+
+      try {
+        await get().fetchClientItemsByLawyerId(lawyerId);
       } catch (error) {
         console.error(error);
         const message =

@@ -1,11 +1,17 @@
 import type { ClientItem } from "@/types/ClientItem";
 import axios from "./axios";
 
-export const getClientItemsData = async (): Promise<ClientItem[]> => {
+export const getClientItems = async (): Promise<ClientItem[]> => {
   return (await axios.get("/clientItem/getAll")).data;
 };
 
-export const getRecentClientItemsData = async (
+export const getClientItemsByLawyerId = async (
+  lawyerId: string
+): Promise<ClientItem[]> => {
+  return (await axios.get(`/clientItem/getByLawyerId/${lawyerId}`)).data;
+};
+
+export const getRecentClientItems = async (
   limit?: number
 ): Promise<ClientItem[]> => {
   return (await axios.get("/clientItem/recent")).data;

@@ -48,7 +48,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
   logout: async () => {
     console.log("Entra a logout");
-    await window.electronAPI?.invoke("auth:clear");
+    /* await window.electronAPI?.invoke("auth:clear"); */
     set(() => ({
       user: null,
       token: null,

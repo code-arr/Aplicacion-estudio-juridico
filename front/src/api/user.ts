@@ -16,7 +16,6 @@ export const loginUser = async (
       password,
     });
     return response.data;
-    /* const lawyer = await axios.post("lawyer/getLaweyer/:email", {email: user.email}) */
   } catch (error) {
     console.log("No se pudo iniciar sesión:", error);
     throw error;
@@ -52,5 +51,24 @@ export const resetPassword = async (
     await axios.patch("/auth/resetPassword", { token, newPassword: password });
   } catch (error) {
     console.error("Error al cambiar la contraseña", error);
+  }
+};
+
+export const googleConnect = async (
+  token: string,
+  email: string
+): Promise<void> => {
+  try {
+    const { data } = await axios.get(`/auth/google/connect?email=${email}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (data?.redirectUrl) {
+      window.location.href = data.redirectUrl; // te manda a Google
+    } else {
+      console.error("No vino redirectUrl en la respuesta");
+    }
+  } catch (error) {
+    console.error("Error al conectar con google", error);
   }
 };

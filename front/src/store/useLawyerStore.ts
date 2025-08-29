@@ -1,14 +1,18 @@
 import type { Lawyer } from "@/types/Lawyer";
+import { getLawyerByEmail } from "@/api/lawyer";
 import { create } from "zustand";
 
 interface LawyerState {
   lawyer: Lawyer | null;
-  setLawyer: (lawyer: Lawyer) => void;
+  setLawyer: (email: string) => void;
   resetLawyer: () => void;
 }
 
 export const useLawyerStore = create<LawyerState>()((set) => ({
   lawyer: null,
-  setLawyer: (lawyer) => set({ lawyer }),
+  setLawyer: async (email: string) => {
+    const lawyer = await getLawyerByEmail(email);
+    set({ lawyer });
+  },
   resetLawyer: () => set({ lawyer: null }),
 }));

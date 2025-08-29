@@ -2,8 +2,22 @@ import { Avatar, AvatarFallback } from "@components/ui/avatar";
 import { Button } from "@components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/card";
 import { Switch } from "@components/ui/switch";
+import googleLogo from "@/assets/logos/google.png";
+import { useAuthStore } from "@/store/useAuthStore";
+import { googleConnect } from "@/api/user";
+import { useState } from "react";
 
 const Settings = () => {
+  const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const handleGoogleConnect = async () => {
+    setIsLoading(true);
+    if (token && user) await googleConnect(token, user.email);
+    setIsLoading(false);
+  };
+
   return (
     <div className="px-40 py-3 pr-56">
       <div className="mb-5">
@@ -165,22 +179,50 @@ const Settings = () => {
               </div>
             </CardContent>
           </div>
-          <div className="min-w-[35%]">
-            <CardHeader className="flex-row justify-between pb-4 pt-1">
-              <CardTitle className="flex items-center gap-2 font-medium tracking-[0.01em] text-[hsl(225,15%,15%)]">
-                Gestión de tiempo
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pl-">
-              <div className="flex flex-col w-fit border-2 border-gray-200 rounded-lg divide-y divide-gray-200">
-                {/* Recordatorios de plazos */}
-                <div className="flex items-center justify-between p-3 py-2">
-                  <p className="font-normal text-[hsl(225,15%,15%)]">
-                    Valor por hora: $150.000 CLP
-                  </p>
+          <div className="flex flex-col min-w-[35%]">
+            <div>
+              <CardHeader className="flex-row justify-between pb-4 pt-1">
+                <CardTitle className="flex items-center gap-2 font-medium tracking-[0.01em] text-[hsl(225,15%,15%)]">
+                  Gestión de tiempo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col w-fit border-2 border-gray-200 rounded-lg divide-y divide-gray-200">
+                  {/* Recordatorios de plazos */}
+                  <div className="flex items-center justify-between p-3 py-2">
+                    <p className="font-normal text-[hsl(225,15%,15%)]">
+                      Valor por hora: $150.000 CLP
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
+              </CardContent>
+            </div>
+            <div>
+              <CardHeader className="flex-row justify-between pb-4 pt-1">
+                <CardTitle className="flex items-center gap-2 font-medium tracking-[0.01em] text-[hsl(225,15%,15%)]">
+                  Integración
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col w-fit border-2 border-gray-200 rounded-lg divide-y divide-gray-200">
+                  {/* Recordatorios de plazos */}
+                  <button
+                    onClick={handleGoogleConnect}
+                    disabled={isLoading}
+                    className="flex items-center justify-between p-3 py-2 gap-x-2 shadow-sm hover:shadow-md"
+                  >
+                    <img
+                      src={googleLogo}
+                      alt="Logo de Google"
+                      className="w-5 h-5"
+                    />
+                    <span className="font-medium text-gray-800">
+                      {isLoading ? "Conectando..." : "Conectar con Google"}
+                    </span>
+                  </button>
+                </div>
+              </CardContent>
+            </div>
           </div>
         </div>
       </Card>

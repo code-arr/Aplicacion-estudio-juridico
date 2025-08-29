@@ -6,6 +6,7 @@ import { Spinner } from "@radix-ui/themes";
 import type { LoginError } from "@/types/LoginError";
 import { mockUser } from "@/mocks/mockUser";
 import { useNavigate } from "react-router-dom";
+import { useLawyerStore } from "@/store/useLawyerStore";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const { isLoggedIn, login, isLoadingSession, user, isAdmin, isLawyer } =
     useAuthStore();
+  const setLawyer = useLawyerStore((s) => s.setLawyer);
   const [error, setError] = useState<LoginError>({
     status: false,
     message: "",
@@ -30,8 +32,8 @@ const LoginPage = () => {
 
   const handleLogin = async (email: string, password: string) => {
     try {
-      /* const { user, token } = await loginUser(email, password); */
-      const { user, token } = { user: mockUser, token: "veverv777777erge" };
+      const { user, token } = await loginUser(email, password);
+      setLawyer(user.email);
       await login(user, token);
     } catch (error) {
       console.log(error);
