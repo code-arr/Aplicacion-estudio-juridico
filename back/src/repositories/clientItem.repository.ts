@@ -207,7 +207,7 @@ export class ClientItemRepository implements OnModuleInit {
         'maria.gonzalez@example.com',
       );
       const lawyer = await this.lawyerService.getAbogadoByEmail(
-        'abogado1@example.com',
+        'benjadelcampo15@gmail.com',
       );
       if (!lawyer) {
         throw new NotFoundException('Abogado no encontrado');

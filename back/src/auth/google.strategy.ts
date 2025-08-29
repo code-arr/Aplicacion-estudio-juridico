@@ -5,6 +5,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from './auth.repository';
 import { User } from 'src/entities/user.entity';
 import { UserService } from 'src/services/user.service';
+import { STATUS_CODES } from 'http';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -37,7 +38,13 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   ): Promise<any> {
     const { email } = profile;
 
-    const user = await this.userService.findOneByEmail(email);
+    const rawState = req.query.state as string;
+    const state = JSON.parse(
+      Buffer.from(rawState, 'base64url').toString('utf-8'),
+    ) as { email: string };
+    console.log('DB EMAIL - ' + state.email);
+
+    const user = await this.userService.findOneByEmail(state.email);
     if (!user) {
       return done(
         new UnauthorizedException('Usuario no autenticado con JWT.'),

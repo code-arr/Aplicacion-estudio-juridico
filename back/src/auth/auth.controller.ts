@@ -15,6 +15,7 @@ import { AuthGuard } from 'src/guards/auth.guard';
 import { GoogleAuthGuard } from 'src/guards/google.guard';
 import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 import { UserService } from 'src/services/user.service';
+import { buffer } from 'stream/consumers';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authRepository: AuthRepository) {}
@@ -46,6 +47,9 @@ export class AuthController {
   @Get('google/connect')
   @UseGuards(AuthGuard)
   async connectGoogleAccount(@Req() req, @Res() res: Response) {
+    const dbEmail = req.query.email;
+    const statePayload = { email: dbEmail };
+    const state = Buffer.from(JSON.stringify(statePayload)).toString('base64');
     console.log('estamos en google conect');
     const callback = process.env.GOOGLE_CALLBACK_URL;
     if (!callback) {
@@ -53,7 +57,7 @@ export class AuthController {
     }
     console.log("callback" + callback);
     
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent(callback)}&access_type=offline&prompt=consent`;
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent(callback)}&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`;
 
     res.json({ redirectUrl: googleAuthUrl });
   }
