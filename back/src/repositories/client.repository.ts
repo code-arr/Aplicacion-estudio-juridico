@@ -37,9 +37,7 @@ export class ClienteRepository {
       const newCliente = this.clienteRepository.create(clienteData);
       await this.clienteRepository.save(newCliente);
 
-      abogado.clients.push(newCliente);
       await this.abogadoService.saveAbogado(abogado);
-      console.log('abogado.clientes', abogado.clients);
 
       return newCliente;
     }

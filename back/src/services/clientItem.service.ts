@@ -31,6 +31,10 @@ export class ClientItemService {
     );
   }
 
+  async getClientItemsByLawyerId(lawyerId: string): Promise<ClientItem[]> {
+    return this.clientItemRepository.getByLawyerId(lawyerId);
+  }
+
   async createClientItemInSection(
     clientItem: ClientItemDto,
     sectionId: string

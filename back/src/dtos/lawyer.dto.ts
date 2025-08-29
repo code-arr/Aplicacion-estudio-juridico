@@ -7,13 +7,13 @@ export class AbogadoDto {
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(100)
-  name: string;
+  firstName: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(100)
-  lastname: string;
+  lastName: string;
 
   @IsString()
   @IsNotEmpty()

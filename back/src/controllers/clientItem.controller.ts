@@ -41,4 +41,10 @@ export class ClientItemController {
   async getClientItemById(@Param('id') id: string): Promise<any> {
     return this.ClientItemService.getClientItemById(id);
   }
+
+  @Get("getByLawyerId/:lawyerId")
+  async getClientItemsByLawyerId(@Param('lawyerId') lawyerId: string): Promise<any> {
+    return this.ClientItemService.getClientItemsByLawyerId(lawyerId);
+  }
+
 }

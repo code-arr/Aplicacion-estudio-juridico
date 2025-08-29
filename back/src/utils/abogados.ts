@@ -3,8 +3,8 @@ import { SeniorityLevel, typeOffLawyer } from "../entities/lawyer.entity";
 
 export const abogadosSeedData = [
   {
-    name: 'Ana',
-    lastname: 'García',
+    firstName: 'Ana',
+    lastName: 'García',
     adress: 'Calle Falsa 123',
     phone: '1122334455',
     rut: '12345678-9',
@@ -16,8 +16,8 @@ export const abogadosSeedData = [
     // 'usuario' se asociará después de crear el usuario.
   },
   {
-    name: 'Luis',
-    lastname: 'Martínez',
+    firstName: 'Luis',
+    lastName: 'Martínez',
     adress: 'Avenida Siempre Viva 742',
     phone: '6677889900',
     rut: '98765432-1',
@@ -27,8 +27,8 @@ export const abogadosSeedData = [
     userEmail : 'abogado1@example.com'
   },
   {
-    name: 'Sofía',
-    lastname: 'Rodríguez',
+    firstName: 'Sofía',
+    lastName: 'Rodríguez',
     adress: 'Bulevar de los Sueños Rotos 45',
     phone: '2233445566',
     rut: '11223344-5',

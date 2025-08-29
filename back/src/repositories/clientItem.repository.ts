@@ -191,6 +191,12 @@ export class ClientItemRepository implements OnModuleInit {
     return clientItem;
   }
 
+  async getByLawyerId(lawyerId: string): Promise<ClientItem[]> {
+    return this.clientItemRepository.find({
+      where: { lawyer: { id: lawyerId } },
+    });
+  }
+
   async seedClientItems() {
     const lawyerExists = await this.lawyerService.getAllLawyers();
     const clientsExists = await this.clientService.getAllClientes();
