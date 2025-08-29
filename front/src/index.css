@@ -8,3 +8,12 @@
     hsl(210, 100%, 35%) 100%
   );
 }
+
+/* Ocultar barra de scroll en ItemMeetingsPage */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none; /* IE y Edge */
+  scrollbar-width: none; /* Firefox */
+}

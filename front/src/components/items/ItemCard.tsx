@@ -37,8 +37,24 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
   const clientName = useClientStore(selectClientName(item.clientId));
 
   const itemType = useCatalogStore(selectItemType(item.itemTypeId ?? ""));
-  const section = useCatalogStore(selectSection(itemType?.sectionId ?? ""));
-  const category = useCatalogStore(selectCategory(section?.categoryId ?? ""));
+  const section = useCatalogStore(
+    selectSection(
+      item.sectionId
+        ? item.sectionId
+        : itemType?.sectionId
+        ? itemType?.sectionId
+        : ""
+    )
+  );
+  const category = useCatalogStore(
+    selectCategory(
+      item.categoryId
+        ? item.categoryId
+        : section?.categoryId
+        ? section.categoryId
+        : ""
+    )
+  );
 
   const StatusBadge = (status: ClientItem["status"]) => {
     const cfg = CLIENTITEM_STATUS_MAP[status] ?? {
@@ -68,11 +84,12 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
       case "Compliance":
         return <ClipboardList className="w-8 h-8 text-gray-700" />;
         break;
-      case "Procesos Administrativos":
+      case "Procesos administrativos":
         return <FolderOpen className="w-8 h-8 text-gray-700" />;
         break;
       case "Informes":
         return <Library className="w-8 h-8 text-gray-700" />;
+        break;
       default:
         <AlignJustify className="w-8 h-8 text-gray-700" />;
         break;

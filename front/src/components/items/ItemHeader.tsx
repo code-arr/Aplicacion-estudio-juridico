@@ -14,6 +14,7 @@ import {
 } from "@components/ui/segmentedtoggle";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 interface ItemHeaderProps {
   item: ClientItem;
@@ -32,12 +33,24 @@ const ItemHeader = ({ item }: ItemHeaderProps) => {
     ? pathname.slice(basePath.length + 1) // p.ej. "documents"
     : "index";
   const clientDetail = useClientStore(selectClientDetail);
-  const itemType = useCatalogStore(selectItemType(item.itemTypeId));
+  const itemType = useCatalogStore(selectItemType(item?.itemTypeId ?? ""));
   const section = useCatalogStore(
-    selectSection(itemType?.sectionId ? itemType.sectionId : "")
+    selectSection(
+      item?.sectionId
+        ? item.sectionId
+        : itemType?.sectionId
+        ? itemType?.sectionId
+        : ""
+    )
   );
   const category = useCatalogStore(
-    selectCategory(section?.categoryId ? section?.categoryId : "")
+    selectCategory(
+      item?.categoryId
+        ? item.categoryId
+        : section?.categoryId
+        ? section.categoryId
+        : ""
+    )
   );
 
   const StatusBadge = (status: ClientItem["status"]) => {
@@ -70,11 +83,20 @@ const ItemHeader = ({ item }: ItemHeaderProps) => {
       : clientDetail?.companyName ?? "";
 
   return (
-    <div className="bg-white py-6">
+    <div className="bg-white py-6 rounded-t-lg">
       <div className="flex flex-col">
         <div className="flex justify-between gap-x-4 px-8">
           <div className="flex flex-col pb-5 w-1/2 px-2">
-            <p className="text-lg pb-4">{`${category?.name} / ${section?.name} / ${itemType?.name}`}</p>
+            <div className="flex items-center pb-4 gap-x-2">
+              <button className="cursor-pointer" onClick={() => navigate(-1)}>
+                <ArrowLeft />
+              </button>
+              <p className="text-lg ">
+                <span>{category?.name} </span>
+                <span>{section ? ` / ${section?.name}` : ""} </span>
+                <span>{itemType ? ` / ${itemType?.name}` : ""}</span>
+              </p>
+            </div>
             <div className="grid items-start gap-x-3 self-start max-w-[32rem]">
               {/* grid-cols-[minmax(40%,1fr)_auto] */}
               <h1 className="text-3xl font-semibold leading-tight">
@@ -85,7 +107,7 @@ const ItemHeader = ({ item }: ItemHeaderProps) => {
               </div>
             </div>
 
-            <div className="flex gap-x-4 text-lg">
+            <div className="flex gap-x-4 text-lg pt-2">
               <p>
                 {"Cliente: "}
                 <span className="cursor-pointer text-blue-950">{fullName}</span>
@@ -106,7 +128,7 @@ const ItemHeader = ({ item }: ItemHeaderProps) => {
             </Button>
           </div>
         </div>
-        <div className="border-y border-gray-200">
+        <div className="border-y-[1.6px] border-gray-200">
           <div className="flex gap-x-2 px-8">
             <SegmentedToggle
               className="bg-transparent py-0"
@@ -120,7 +142,7 @@ const ItemHeader = ({ item }: ItemHeaderProps) => {
             >
               {tabs.map((tab) => (
                 <div
-                  className="border-b border-transparent transition-colors duration-150 ease-out has-[button[data-state=on]]:border-black mx-2"
+                  className="border-b border-transparent transition-colors duration-150 ease-out has-[button[data-state=on]]:border-b-blue-950 has-[button[data-state=on]]:shadow-[0px_1px_0px_0px_blue] mx-2"
                   key={tab.value}
                 >
                   <SegmentedToggleItem

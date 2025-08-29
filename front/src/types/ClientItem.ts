@@ -21,7 +21,9 @@ export const CLIENTITEM_STATUS_MAP: Record<
 
 export interface ClientItem {
   id: string;
-  itemTypeId: string;
+  categoryId?: string;
+  sectionId?: string;
+  itemTypeId?: string;
   clientId: string;
   title: string;
   description?: string;

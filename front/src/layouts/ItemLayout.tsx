@@ -42,7 +42,7 @@ const ItemLayout = () => {
           onBack={() => navigate(-1)}
           timer="00:00" // más adelante podrías sacarlo de un hook
         />
-        <div className="bg-white px-6 pb-4">
+        <div className="bg-white px-6 pb-4 rounded-b-lg">
           <Outlet />
         </div>
       </main>
