@@ -17,6 +17,9 @@ export class Process {
   @Column({ type: 'decimal', precision: 5, scale: 2 })
   duration: number; // Duración del trabajo en horas
 
+  @Column({ type: 'timestamp' , default: () => 'CURRENT_TIMESTAMP' })
+  date : Date;
+  
   @ManyToOne(() => ClientItem, (clientItem) => clientItem.processes)
   clientItem: ClientItem;
 }

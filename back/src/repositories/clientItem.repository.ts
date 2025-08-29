@@ -124,29 +124,56 @@ export class ClientItemRepository implements OnModuleInit {
   }
 
   async getAllClientItems(): Promise<any[]> {
-    return this.clientItemRepository
-      .createQueryBuilder('clientItem')
-      .leftJoin('clientItem.itemType', 'itemType') // Unión para obtener el ID de ItemType
-      .leftJoin('clientItem.client', 'client') // <-- Unión para obtener el ID de Client
-      .leftJoin('clientItem.lawyer', 'lawyer') // <-- Unión para obtener el ID de Lawyer
-      .leftJoin('clientItem.category', 'category') // <-- Unión para obtener el ID de Category
-      .leftJoin("clientItem.section", "section") // <-- Unión para obtener el ID de Section
-      .leftJoin("clientItem.documents", "documents")
-      .select([
-        'clientItem.id AS id',
-        'clientItem.title AS title',
-        'clientItem.description AS description',
-      ])
-      .addSelect('itemType.id', 'itemTypeId')
-      .addSelect('client.id', 'clientId') // <-- Selección del ID del cliente
-      .addSelect('lawyer.id', 'lawyerId') // <-- Selección del ID del abogado
-      .addSelect('clientItem.status', 'status') // <-- Selección del estado del cliente
-      .addSelect("clientItem.category.id", "categoryId")
-      .addSelect("clientItem.section.id", "sectionId") // <-- Selección del ID de la sección
-      .addSelect("documents.id", "documentId") // <-- Selección del ID del documento
-      .getRawMany();
-  }
+  const rows = await this.clientItemRepository
+    .createQueryBuilder('clientItem')
+    .leftJoin('clientItem.itemType', 'itemType')
+    .leftJoin('clientItem.client', 'client')
+    .leftJoin('clientItem.lawyer', 'lawyer')
+    .leftJoin('clientItem.category', 'category')
+    .leftJoin('clientItem.section', 'section')
+    .leftJoin('clientItem.documents', 'documents')
+    .select([
+      'clientItem.id AS id',
+      'clientItem.title AS title',
+      'clientItem.description AS description',
+    ])
+    .addSelect('itemType.id', 'itemTypeId')
+    .addSelect('client.id', 'clientId')
+    .addSelect('lawyer.id', 'lawyerId')
+    .addSelect('clientItem.status', 'status')
+    .addSelect('category.id', 'categoryId')
+    .addSelect('section.id', 'sectionId')
+    .addSelect('documents.id', 'documentId')
+    .getRawMany();
 
+  // 🔹 Agrupamos para evitar duplicados
+  const result = Object.values(
+    rows.reduce((acc, row) => {
+      if (!acc[row.id]) {
+        acc[row.id] = {
+          id: row.id,
+          title: row.title,
+          description: row.description,
+          itemTypeId: row.itemTypeId,
+          clientId: row.clientId,
+          lawyerId: row.lawyerId,
+          status: row.status,
+          categoryId: row.categoryId,
+          sectionId: row.sectionId,
+          documents: [],
+        };
+      }
+
+      if (row.documentId) {
+        acc[row.id].documents.push({ id: row.documentId });
+      }
+
+      return acc;
+    }, {}),
+  );
+
+  return result;
+}
   async getAllClientItemSeeder(): Promise<ClientItem[]> {
     return this.clientItemRepository.find({
       relations: ['itemType', 'client', 'lawyer'],
