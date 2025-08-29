@@ -20,9 +20,9 @@ export class AbogadoController {
     return this.abogadoService.getAllLawyers();
   }
   
-  @Get("getByEmail")
+  @Get("getByEmail/:email")
  // @UseGuards(AuthGuard)
-  async getAbogadoByEmail(@Body("email") email : string) :Promise<Lawyer | null>{
+  async getAbogadoByEmail(@Param("email") email : string) :Promise<Lawyer | null>{
     
     
     return this.abogadoService.getAbogadoByEmail(email)
