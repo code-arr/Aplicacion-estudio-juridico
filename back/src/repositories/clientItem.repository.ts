@@ -131,6 +131,7 @@ export class ClientItemRepository implements OnModuleInit {
       .leftJoin('clientItem.lawyer', 'lawyer') // <-- Unión para obtener el ID de Lawyer
       .leftJoin('clientItem.category', 'category') // <-- Unión para obtener el ID de Category
       .leftJoin("clientItem.section", "section") // <-- Unión para obtener el ID de Section
+      .leftJoin("clientItem.documents", "documents")
       .select([
         'clientItem.id AS id',
         'clientItem.title AS title',
@@ -142,6 +143,7 @@ export class ClientItemRepository implements OnModuleInit {
       .addSelect('clientItem.status', 'status') // <-- Selección del estado del cliente
       .addSelect("clientItem.category.id", "categoryId")
       .addSelect("clientItem.section.id", "sectionId") // <-- Selección del ID de la sección
+      .addSelect("documents.id", "documentId") // <-- Selección del ID del documento
       .getRawMany();
   }
 
@@ -154,7 +156,7 @@ export class ClientItemRepository implements OnModuleInit {
   async getClientItemById(id: string): Promise<ClientItem> {
     const clientItem = await this.clientItemRepository.findOne({
       where: { id },
-      relations: ['itemType.section', 'documents'],
+      relations: ['itemType.section', 'documents' , 'itemType.section.category', "category" , "category.clientItems" , "section" , "section.clientItems" , "section.category"],
     });
     if (!clientItem) {
       throw new NotFoundException('ClientItem not found');

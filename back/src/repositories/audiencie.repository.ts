@@ -33,6 +33,7 @@ export class AudiencieRepository {
       if (!clientItem) {
         throw new NotFoundException('ClientItem not found');
       }
+      const audience = this.audiencieRepository.create();
 
       const fileExtension = path.extname(originalFileName);
       const safeS3Key = `${Date.now()}-${dbName.replace(/\s/g, '_')}${fileExtension}`;
@@ -42,14 +43,13 @@ export class AudiencieRepository {
         fileBuffer,
         safeS3Key,
         mimetype,
-        clientItemId
+        clientItemId,
+        audience.id,
       );
-
-      return await this.audiencieRepository.save({
-        name: dbName,
-        fileUrl: s3Url,
-        clientItem: clientItem,
-      });
+      audience.name = dbName;
+      audience.fileUrl = s3Url;
+      audience.clientItem = clientItem;
+      return await this.audiencieRepository.save(audience);
     } catch (error) {
       console.error('Error creating document:', error);
       throw new InternalServerErrorException('Error creating document');

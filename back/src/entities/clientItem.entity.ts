@@ -18,7 +18,7 @@ import { Audience } from './audience.entity';
 import { Meeting } from './meeting.entity';
 import { Category } from './category.entity';
 import { Section } from './section.entity';
-import moment from 'moment-timezone';
+import * as moment from 'moment-timezone';
 
 export enum status {
   OPEN = 'open',

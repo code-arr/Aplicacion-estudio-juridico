@@ -38,6 +38,8 @@ export class DocumentRepository {
 
       const fileExtension = path.extname(originalFileName);
       const safeS3Key = `${Date.now()}-${dbName.replace(/\s/g, '_')}${fileExtension}`;
+      let document = this.documentRepository.create();
+      
 
       // Pasa el mimetype a la función de AWS
       const s3Url = await this.awsS3Service.uploadDocument(
@@ -45,13 +47,13 @@ export class DocumentRepository {
         safeS3Key,
         mimetype,
         clientItemId,
+        document.id,
       );
 
-      return await this.documentRepository.save({
-        name: dbName,
-        fileUrl: s3Url,
-        clientItem: clientItem,
-      });
+      document.name = dbName;
+      document.fileUrl = s3Url;
+      document.clientItem = clientItem;
+      return await this.documentRepository.save(document);
     } catch (error) {
       console.error('Error creating document:', error);
       throw new InternalServerErrorException('Error creating document');
@@ -59,7 +61,7 @@ export class DocumentRepository {
   }
 
   async getAllDocuments(): Promise<Document[]> {
-    return this.documentRepository.find({relations:["clientItem"]});
+    return this.documentRepository.find({ relations: ['clientItem'] });
   }
 
   async getDocumentByUrl(fileUrl: string): Promise<Document> {
@@ -79,10 +81,7 @@ export class DocumentRepository {
     }
   }
 
-  async deleteDocumentByUrl(
-    fileUrl: string,
-    documentId: string,
-  ): Promise<any> {
+  async deleteDocumentByUrl(fileUrl: string, documentId: string): Promise<any> {
     try {
       const document = await this.documentRepository.findOne({
         where: { id: documentId },
@@ -98,7 +97,7 @@ export class DocumentRepository {
       // Luego elimina el registro de la base de datos
       await this.documentRepository.remove(document);
 
-      return   document;
+      return document;
     } catch (error) {
       console.error('Error deleting document by URL:', error);
       throw new InternalServerErrorException('Error deleting document');
