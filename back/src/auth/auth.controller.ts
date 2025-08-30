@@ -83,11 +83,11 @@ export class AuthController {
         googleRefreshToken: googleTokens.refreshToken,
       });
 
-      res.redirect('http://127.0.0.1:5500/index.html');
+      res.redirect(`${process.env.FRONTEND_URL}#/dashboard/settings`);
     } catch (error) {
       console.log("error 1" + error);
 
-      return res.redirect(`http://tu-frontend.com/error?reason=${encodeURIComponent(error.message)}`);
+      return res.redirect(`${process.env.FRONTEND_URL}/error?reason=${encodeURIComponent(error.message)}`);
     }
   }
 }
