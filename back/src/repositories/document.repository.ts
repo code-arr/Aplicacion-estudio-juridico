@@ -53,6 +53,7 @@ export class DocumentRepository {
       document.name = dbName;
       document.fileUrl = s3Url;
       document.clientItem = clientItem;
+      document.type = mimetype; // Guarda el tipo de documento (mimetype)
       return await this.documentRepository.save(document);
     } catch (error) {
       console.error('Error creating document:', error);

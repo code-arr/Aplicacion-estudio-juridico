@@ -15,6 +15,9 @@ export class Document {
   @Column({ type: 'varchar', length: 255, nullable: true })
   fileUrl: string | null;
 
+  @Column({ type: 'varchar', length: 50 })
+  type: string;
+
   @ManyToOne(() => ClientItem, (clientItem) => clientItem.documents)
   clientItem: ClientItem;
 }
