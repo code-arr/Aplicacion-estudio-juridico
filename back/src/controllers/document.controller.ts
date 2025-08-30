@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { DocumentDto } from '../dtos/document.dto';
 import { Document } from '../entities/document.entity';
 import { DocumentService } from '../services/document.service';
@@ -8,7 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
- @Post('/create/:clientItemId')
+  @Post('/create/:clientItemId')
   @UseInterceptors(FileInterceptor('file'))
   async createDocument(
     @UploadedFile() file: Express.Multer.File,
@@ -28,12 +37,22 @@ export class DocumentController {
     );
   }
   @Delete('/delete/:documentId')
-  async deleteDocumentByUrl(@Body('fileUrl') fileUrl: string , @Param("documentId") documentId : string): Promise<void> {
-    return this.documentService.deleteDocumentByUrl(fileUrl , documentId);
+  async deleteDocumentByUrl(
+    @Body('fileUrl') fileUrl: string,
+    @Param('documentId') documentId: string,
+  ): Promise<void> {
+    return this.documentService.deleteDocumentByUrl(fileUrl, documentId);
   }
 
   @Get('getAll')
   async getAllDocuments(): Promise<Document[]> {
     return this.documentService.getAllDocuments();
+  }
+
+  @Get('getByClientItemId/:clientItemId')
+  async getDocumentsByClientItemId(
+    @Param('clientItemId') clientItemId: string,
+  ): Promise<Document[]> {
+    return this.documentService.getDocumentsByClientItemId(clientItemId);
   }
 }

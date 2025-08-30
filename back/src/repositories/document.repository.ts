@@ -112,6 +112,12 @@ export class DocumentRepository {
     }
   }
 
+  async getDocumentsByClientItemId(clientItemId: string): Promise<Document[]> {
+    return this.documentRepository.find({
+      where: { clientItem: { id: clientItemId } },
+    });
+  }
+
   async seedDocuments() {}
 }
 

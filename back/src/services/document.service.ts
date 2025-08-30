@@ -33,4 +33,8 @@ export class DocumentService {
   async deleteDocumentByUrl(fileUrl: string, documentId: string): Promise<void> {
     return this.documentRepository.deleteDocumentByUrl(fileUrl , documentId);
   }
+
+  async getDocumentsByClientItemId(clientItemId: string): Promise<Document[]> {
+    return this.documentRepository.getDocumentsByClientItemId(clientItemId);
+  }
 }
