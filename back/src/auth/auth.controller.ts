@@ -83,7 +83,7 @@ export class AuthController {
         googleRefreshToken: googleTokens.refreshToken,
       });
 
-      res.redirect(`${process.env.FRONTEND_URL}#/dashboard/settings`);
+      res.redirect(`${process.env.FRONTEND_URL}/#/dashboard/settings`);
     } catch (error) {
       console.log("error 1" + error);
 
