@@ -53,7 +53,14 @@ export class DocumentRepository {
       document.name = dbName;
       document.fileUrl = s3Url;
       document.clientItem = clientItem;
-      document.type = mimetype; // Guarda el tipo de documento (mimetype)
+      const type = mimetype.split('/').pop(); // Guarda el tipo de documento (mimetype)
+      if (!type) {
+        throw new InternalServerErrorException('Invalid file type');
+      }
+      document.type = type;
+      document.size = fileBuffer.length;
+      console.log("tamaño : " +  fileBuffer.length);
+      
       return await this.documentRepository.save(document);
     } catch (error) {
       console.error('Error creating document:', error);

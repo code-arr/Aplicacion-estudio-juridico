@@ -18,6 +18,9 @@ export class Document {
   @Column({ type: 'varchar', length: 50 })
   type: string;
 
+  @Column({ type: 'int' })
+  size: number;
+
   @ManyToOne(() => ClientItem, (clientItem) => clientItem.documents)
   clientItem: ClientItem;
 }
