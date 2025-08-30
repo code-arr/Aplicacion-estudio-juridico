@@ -48,6 +48,7 @@ export class AuthRepository {
         email: Newuser?.email,
         id: Newuser?.id,
         role: Newuser?.role,
+        googleEmail: Newuser?.googleEmail ? Newuser.googleEmail : null,
       };
       if (!Newuser) {
         throw new BadRequestException('Usuario no encontrado');
