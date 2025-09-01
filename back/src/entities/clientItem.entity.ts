@@ -41,7 +41,10 @@ export class ClientItem {
   @Column({ type: 'enum', enum: status, default: status.OPEN })
   status: status;
 
-  @Column({ type: 'timestamp' , default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'int', default: 0 })
+  activeTime: number;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createAt: Date;
 
   // La columna ya no necesita "onUpdate"

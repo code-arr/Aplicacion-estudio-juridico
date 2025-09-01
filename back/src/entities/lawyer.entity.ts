@@ -1,5 +1,7 @@
 import { IsUUID } from 'class-validator';
 import {
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   Entity,
   JoinTable,
@@ -13,6 +15,7 @@ import { User } from './user.entity';
 import { StopWatch } from './stopwatch.entity';
 import { Client } from './client.entity';
 import { ClientItem } from './clientItem.entity';
+import * as moment from 'moment-timezone';
 
 export enum typeOffLawyer {
   CRIMINAL = 'criminal',
@@ -63,6 +66,23 @@ export class Lawyer {
 
   @Column({ type: 'int', default: 0 })
   workedHours: number;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createAt: Date;
+
+  // La columna ya no necesita "onUpdate"
+  @Column({ type: 'timestamp', nullable: true })
+  updateAt: Date;
+
+  @BeforeInsert()
+  setCreateAt() {
+    this.createAt = moment().tz('America/Santiago').toDate();
+  }
+
+  @BeforeUpdate()
+  setUpdateAt() {
+    this.updateAt = moment().tz('America/Santiago').toDate();
+  }
 
   //relacion con usuario
   @OneToOne(() => User, (usuario) => usuario.lawyer)

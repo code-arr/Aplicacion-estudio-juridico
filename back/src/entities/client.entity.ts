@@ -19,16 +19,15 @@ import { ClientItem } from './clientItem.entity';
 import * as moment from 'moment-timezone';
 import { Meeting } from './meeting.entity';
 
-
 export enum clientType {
   FISICA = 'Fisica',
   JURIDICA = 'Juridica',
 }
 
 export enum status {
-  ACTIVE = "active",
-  INACTIVE = "inactive",
-  UNDERREVIEW = "under_review"
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  UNDERREVIEW = 'under_review',
 }
 
 @Entity('clients')
@@ -61,7 +60,10 @@ export class Client {
   @Column({ type: 'enum', enum: status, default: status.ACTIVE })
   status: status;
 
- // La columna ya no necesita el "default" ya que lo asignas en el código
+  @Column({ type: 'int', default: 0 })
+  activeTime: number;
+
+  // La columna ya no necesita el "default" ya que lo asignas en el código
   @Column({ type: 'timestamp' })
   createAt: Date;
 

@@ -1,4 +1,6 @@
 import {
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   Entity,
   JoinColumn,
@@ -9,6 +11,7 @@ import {
 import { IsUUID } from 'class-validator';
 import { Admin } from './admin.entity';
 import { Lawyer } from './lawyer.entity';
+import * as moment from 'moment-timezone';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -23,7 +26,7 @@ export class User {
   @Column({ type: 'varchar', length: 100, unique: true })
   email: string;
 
-  @Column({ type: 'varchar', length: 100 , default: '' })
+  @Column({ type: 'varchar', length: 100, default: '' })
   googleEmail: string;
 
   @Column({ type: 'varchar', length: 100 })
@@ -41,6 +44,23 @@ export class User {
     default: UserRole.LAWYER,
   })
   role: UserRole;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createAt: Date;
+
+  // La columna ya no necesita "onUpdate"
+  @Column({ type: 'timestamp', nullable: true })
+  updateAt: Date;
+
+  @BeforeInsert()
+  setCreateAt() {
+    this.createAt = moment().tz('America/Santiago').toDate();
+  }
+
+  @BeforeUpdate()
+  setUpdateAt() {
+    this.updateAt = moment().tz('America/Santiago').toDate();
+  }
 
   //relacion con admin
   @OneToOne(() => Admin, (admin) => admin.user)
