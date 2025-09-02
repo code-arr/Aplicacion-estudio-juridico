@@ -3,12 +3,16 @@ import { MeetingDto } from 'src/dtos/meeting.dto';
 import { Meeting } from 'src/entities/meeting.entity';
 import { GoogleCalendarService } from 'src/lib/google/calendar';
 import { MeetingRepository } from 'src/repositories/meeting.repository';
+import { EventService } from './event.service';
+import { AbogadoService } from './abogado.service';
 
 @Injectable()
 export class MeetingService {
   constructor(
     private readonly meetingRepository: MeetingRepository,
     private readonly googleCalendarService: GoogleCalendarService,
+    private readonly eventService: EventService,
+    private readonly lawyerService: AbogadoService,
   ) {}
 
   async createAndSchedule(
@@ -50,6 +54,19 @@ export class MeetingService {
             'No se pudo actualizar la reunión con la URL de Google Meet.',
           );
         }
+
+        const lawyer = await this.lawyerService.getAbogadoByEmail(lawyerEmail);
+        if (!lawyer) {
+          throw new InternalServerErrorException(
+            'No se pudo obtener el abogado por su correo electrónico.',
+          );
+        }
+        this.eventService.createEvent({
+          action: "CREATE",
+          entityName: "MEETING",
+          entityId: meeting.id,
+          lawyerId: lawyer.id,
+        });
         return meeting;
       } catch (error) {
         throw new InternalServerErrorException(

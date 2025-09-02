@@ -18,7 +18,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     phone: '1122334455',
     address: 'Calle Falsa 123, Ciudad A',
     rut: '12.345.678-9',
-    abogadoAsociadoEmail: 'abogado1@example.com', // Asociado a Abogado 1
+    abogadoAsociadoEmail: 'benjadelcampo15@gmail.com', // Asociado a Abogado 1
   },
   {
     firstName: 'María',
@@ -45,7 +45,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     phone: '4455667788',
     address: 'Plaza Mayor 789, Ciudad C',
     rut: '44.555.666-7',
-    abogadoAsociadoEmail: 'abogado1@example.com', // Asociado a Abogado 1
+    abogadoAsociadoEmail: 'benjadelcampo15@gmail.com', // Asociado a Abogado 1
   },
   {
     firstName: 'Pedro',
@@ -72,7 +72,7 @@ export const clientesSeedData: ClienteSeedItem[] = [
     phone: '7788990011',
     address: 'Callejón del Gato 202, Ciudad E',
     rut: '55.666.777-8',
-    abogadoAsociadoEmail: 'abogado1@example.com', // Asociado a Abogado 1
+    abogadoAsociadoEmail: 'benjadelcampo15@gmail.com', // Asociado a Abogado 1
   },
   {
     firstName: 'Sofía',
@@ -99,6 +99,6 @@ export const clientesSeedData: ClienteSeedItem[] = [
     phone: '0011223344',
     address: 'Alameda Principal 505, Ciudad H',
     rut: '66.777.888-9',
-    abogadoAsociadoEmail: 'abogado1@example.com', // Asociado a Abogado 1
+    abogadoAsociadoEmail: 'benjadelcampo15@gmail.com', // Asociado a Abogado 1
   },
 ];

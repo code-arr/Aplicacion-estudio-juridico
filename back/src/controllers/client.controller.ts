@@ -54,6 +54,12 @@ export class ClienteController {
       title, // <-- Pasamos el título al servicio
     );
   }
+
+  @Post('create/:lawyerId')
+  async createClient(@Body() createClientDto: CreateClienteDto, @Param('lawyerId') lawyerId: string): Promise<any> {
+    return this.clienteService.createClient(createClientDto, lawyerId);
+  }
+
   @Post('seeder')
   async seedClientes(): Promise<string> {
     return this.clienteService.seedClientes();

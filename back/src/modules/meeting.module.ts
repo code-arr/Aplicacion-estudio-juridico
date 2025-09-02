@@ -13,9 +13,11 @@ import { MeetingService } from 'src/services/meeting.service';
 import { UserService } from 'src/services/user.service';
 import { UsersModule } from './users.module';
 import { clientItemModule } from './clientItem.module';
+import { EventModule } from './event.module';
+import { AbogadoModule } from './abogado.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Meeting]) , UsersModule , clientItemModule],
+  imports: [TypeOrmModule.forFeature([Meeting]) , UsersModule , clientItemModule , EventModule , AbogadoModule],
   controllers: [MeetingsController],
   providers: [MeetingService, GoogleCalendarService, MeetingRepository],
 })

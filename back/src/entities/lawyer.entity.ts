@@ -16,6 +16,7 @@ import { StopWatch } from './stopwatch.entity';
 import { Client } from './client.entity';
 import { ClientItem } from './clientItem.entity';
 import * as moment from 'moment-timezone';
+import { Event } from './events.entity';
 
 export enum typeOffLawyer {
   CRIMINAL = 'criminal',
@@ -111,4 +112,7 @@ export class Lawyer {
     },
   })
   clients: Client[];
+
+  @OneToMany(() => Event, (event) => event.lawyer)
+  events: Event[];
 }

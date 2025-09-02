@@ -23,6 +23,7 @@ export class DocumentController {
     @UploadedFile() file: Express.Multer.File,
     @Param('clientItemId') clientItemId: string,
     @Body('fileName') dbName: string,
+    @Body('lawyerId') lawyerId: string,
   ): Promise<Document> {
     const fileBuffer = file.buffer;
     const originalFileName = file.originalname;
@@ -33,7 +34,8 @@ export class DocumentController {
       fileBuffer,
       originalFileName,
       dbName,
-      mimetype, // <-- Pasamos el mimetype al servicio/repositorio
+      mimetype,
+      lawyerId 
     );
   }
   @Delete('/delete/:documentId')

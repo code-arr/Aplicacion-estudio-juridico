@@ -6,8 +6,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import * as path from 'path';
 import { AwsS3Service } from 'src/aws/aws.service';
+import { EventDto } from 'src/dtos/event.dto';
 import { Audience } from 'src/entities/audience.entity';
 import { ClientItemService } from 'src/services/clientItem.service';
+import { EventService } from 'src/services/event.service';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -17,6 +19,7 @@ export class AudiencieRepository {
     private readonly audiencieRepository: Repository<Audience>,
     private readonly clientItemService: ClientItemService,
     private readonly awsS3Service: AwsS3Service,
+    private readonly eventService: EventService,
   ) {}
 
   async createAudience(
@@ -24,7 +27,8 @@ export class AudiencieRepository {
     fileBuffer: Buffer,
     originalFileName: string,
     dbName: string,
-    mimetype: string, // <-- Agrega el mimetype aquí
+    mimetype: string,
+    lawyerId: string,
   ): Promise<Audience> {
     try {
       const clientItem =
@@ -49,6 +53,13 @@ export class AudiencieRepository {
       audience.name = dbName;
       audience.fileUrl = s3Url;
       audience.clientItem = clientItem;
+      const eventData: EventDto = {
+        action: 'create',
+        entityName: 'Audience',
+        entityId: audience.id,
+        lawyerId: lawyerId,
+      };
+      await this.eventService.createEvent(eventData);
       return await this.audiencieRepository.save(audience);
     } catch (error) {
       console.error('Error creating document:', error);

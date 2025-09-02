@@ -11,6 +11,9 @@ export class ClienteService {
   }
 
 
+  async createClient(createClientDto: any, lawyerId: string): Promise<any> {
+    return this.clienteRepository.createClient(createClientDto, lawyerId);
+  }
   async seedClientes(): Promise<string> {
     return this.clienteRepository.seedClientes();
   }

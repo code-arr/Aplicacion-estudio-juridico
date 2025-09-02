@@ -11,6 +11,8 @@ import * as path from 'path';
 
 import { Repository } from 'typeorm';
 import { AwsS3Service } from 'src/aws/aws.service';
+import { EventService } from 'src/services/event.service';
+import { EventDto } from 'src/dtos/event.dto';
 
 @Injectable()
 export class DocumentRepository {
@@ -18,7 +20,8 @@ export class DocumentRepository {
     @InjectRepository(Document)
     private documentRepository: Repository<Document>,
     private readonly clientItemService: ClientItemService,
-    private readonly awsS3Service: AwsS3Service, // <-- Inyectamos el servicio S3
+    private readonly awsS3Service: AwsS3Service,
+    private readonly eventService: EventService, // <-- Inyectamos el servicio de eventos
   ) {}
 
   async createDocument(
@@ -26,7 +29,8 @@ export class DocumentRepository {
     fileBuffer: Buffer,
     originalFileName: string,
     dbName: string,
-    mimetype: string, // <-- Agrega el mimetype aquí
+    mimetype: string,
+    lawyerId: string,
   ): Promise<Document> {
     try {
       const clientItem =
@@ -39,7 +43,6 @@ export class DocumentRepository {
       const fileExtension = path.extname(originalFileName);
       const safeS3Key = `${Date.now()}-${dbName.replace(/\s/g, '_')}${fileExtension}`;
       let document = this.documentRepository.create();
-      
 
       // Pasa el mimetype a la función de AWS
       const s3Url = await this.awsS3Service.uploadDocument(
@@ -59,8 +62,19 @@ export class DocumentRepository {
       }
       document.type = type;
       document.size = fileBuffer.length;
-      console.log("tamaño : " +  fileBuffer.length);
-      
+      console.log('tamaño : ' + fileBuffer.length);
+
+      const eventData : EventDto = {
+        action: 'create',
+        entityName: 'Document',
+        entityId: document.id,
+        lawyerId: lawyerId,
+      };
+
+      await this.eventService.createEvent({
+        ...eventData
+      });
+
       return await this.documentRepository.save(document);
     } catch (error) {
       console.error('Error creating document:', error);

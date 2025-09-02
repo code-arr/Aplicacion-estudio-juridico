@@ -7,9 +7,10 @@ import { Client } from "src/entities/client.entity";
 import { clientItemModule } from "./clientItem.module";
 import { AudiencieRepository } from "src/repositories/audiencie.repository";
 import { AwsS3Service } from "src/aws/aws.service";
+import { EventModule } from "./event.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Audience]) , clientItemModule],
+    imports: [TypeOrmModule.forFeature([Audience]) , clientItemModule , EventModule],
     controllers: [AudienceController ],
     providers: [AudienceService , AudiencieRepository , AwsS3Service],
 })

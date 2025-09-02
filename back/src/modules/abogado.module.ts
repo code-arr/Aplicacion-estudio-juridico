@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { AbogadoController } from "../controllers/lawyer.controller";
 import { Lawyer } from "../entities/lawyer.entity";
@@ -10,9 +10,10 @@ import { UserRepository } from "../repositories/user.repository";
 import { AbogadoService } from "../services/abogado.service";
 import { ClienteService } from "../services/cliente.service";
 import { UserService } from "../services/user.service";
+import { EventModule } from "./event.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Lawyer , User , Client])],
+  imports: [TypeOrmModule.forFeature([Lawyer , User , Client]) , forwardRef(() => EventModule)],
   controllers: [AbogadoController],
   providers: [AbogadoService, AbogadoRepository , UserService , UserRepository , ClienteService , ClienteRepository  ],
   exports: [AbogadoService, AbogadoRepository], 

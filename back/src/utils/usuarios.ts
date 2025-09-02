@@ -9,7 +9,7 @@ export const usersSeedData = [
     role: UserRole.ADMIN,
   },
   {
-    email: 'abogado1@example.com',
+    email: 'benjadelcampo15@gmail.com',
     password: 'hashedpasswordAbogado456', // ¡Recuerda hashear esta contraseña!
     role: UserRole.LAWYER,
   },

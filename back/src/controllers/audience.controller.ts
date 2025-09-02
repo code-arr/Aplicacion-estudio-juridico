@@ -21,6 +21,7 @@ export class AudienceController {
     @UploadedFile() file: Express.Multer.File,
     @Param('clientItemId') clientItemId: string,
     @Body('fileName') dbName: string,
+    @Body('lawyerId') lawyerId: string,
   ): Promise<Audience> {
     const fileBuffer = file.buffer;
     const originalFileName = file.originalname;
@@ -31,7 +32,8 @@ export class AudienceController {
       fileBuffer,
       originalFileName,
       dbName,
-      mimetype, // <-- Pasamos el mimetype al servicio/repositorio
+      mimetype,
+      lawyerId // <-- Pasamos el mimetype al servicio/repositorio
     );
   }
 

@@ -12,14 +12,16 @@ export class DocumentService {
     fileBuffer: Buffer,
     originalFileName: string,
     dbName: string,
-    mimetype: string 
+    mimetype: string ,
+    lawyerId: string
   ): Promise<Document> {
     return this.documentRepository.createDocument(
       clientItemId,
       fileBuffer,
       originalFileName,
       dbName,
-      mimetype
+      mimetype,
+      lawyerId
     );
   }
   async getAllDocuments(): Promise<Document[]> {

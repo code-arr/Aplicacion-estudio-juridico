@@ -99,4 +99,14 @@ export class ClienteRepository {
       where: { lawyers: { id: lawyerId } },
     });
   }
+
+  async createClient(createClientDto: CreateClienteDto, lawyerId: string): Promise<any> {
+    const client = this.clienteRepository.create(createClientDto);
+    const lawyer = await this.abogadoService.getAbogadoById(lawyerId);
+    if (!lawyer) {
+      throw new NotFoundException('Abogado no encontrado');
+    }
+    client.lawyers = [lawyer];
+    return this.clienteRepository.save(client);
+  }
 }

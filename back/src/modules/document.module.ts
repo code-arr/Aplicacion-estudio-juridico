@@ -6,11 +6,15 @@ import { DocumentService } from "../services/document.service";
 import { clientItemModule } from "./clientItem.module";
 import { Document } from "../entities/document.entity";
 import { AwsS3Service } from "../aws/aws.service";
+import { EventModule } from "./event.module";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Document]),
-    forwardRef(() => clientItemModule)
+    EventModule,
+    forwardRef(() => clientItemModule ,
+    
+  )
   ],
   controllers: [DocumentController],
   providers: [DocumentService, DocumentRepository , AwsS3Service],

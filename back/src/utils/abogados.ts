@@ -24,7 +24,7 @@ export const abogadosSeedData = [
     type: typeOffLawyer.CRIMINAL,
     seniorityLevel: SeniorityLevel.MID,
     horasTrabajadas: 800,
-    userEmail : 'abogado1@example.com'
+    userEmail : 'benjadelcampo15@gmail.com'
   },
   {
     firstName: 'Sofía',

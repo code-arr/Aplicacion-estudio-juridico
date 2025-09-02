@@ -14,6 +14,7 @@ export class AudienceService {
         originalFileName: string,
         dbName: string,
         mimetype: string,
+        lawyerId : string
     ): Promise<Audience> {
         return this.audiencieRepository.createAudience(
             clientItemId,
@@ -21,6 +22,7 @@ export class AudienceService {
             originalFileName,
             dbName,
             mimetype,
+            lawyerId
         );
     }
 
