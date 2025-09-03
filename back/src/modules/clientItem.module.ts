@@ -9,9 +9,10 @@ import { ClienteModule } from "./cliente.module";
 import { AbogadoModule } from "./abogado.module";
 import { SectionModule } from "./sectionModule";
 import { CategoryModule } from "./category.module";
+import { EventModule } from "./event.module";
 
 @Module({
-    imports:[TypeOrmModule.forFeature([ClientItem]) , ItemTypeModule , ClienteModule , AbogadoModule , SectionModule , CategoryModule],
+    imports:[TypeOrmModule.forFeature([ClientItem]) , ItemTypeModule , ClienteModule , AbogadoModule , SectionModule , CategoryModule , EventModule],
     controllers:[ClientItemController],
     providers:[ClientItemService , ClientItemRepository ],
     exports:[ClientItemService ,ClientItemRepository ]

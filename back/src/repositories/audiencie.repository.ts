@@ -55,8 +55,9 @@ export class AudiencieRepository {
       audience.clientItem = clientItem;
       const eventData: EventDto = {
         action: 'create',
-        entityName: 'Audience',
+        entityName: audience.name,
         entityId: audience.id,
+        entityType: 'Audience',
         lawyerId: lawyerId,
       };
       await this.eventService.createEvent(eventData);

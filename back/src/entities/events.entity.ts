@@ -13,6 +13,9 @@ export class Event {
   entityId: string;
 
   @Column()
+  entityType: string; // Ej: "Document", "Client", etc.
+
+  @Column()
   action: string; // Ej: CREATED, UPDATED, DELETED
 
   @CreateDateColumn({nullable: true})

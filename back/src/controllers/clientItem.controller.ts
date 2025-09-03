@@ -20,16 +20,20 @@ export class ClientItemController {
   @Post("createInCategory/:categoryId")
   async createInCategory(
     @Body() clientItem: ClientItemDto,
-    @Param('categoryId') categoryId: string
+    @Param('categoryId') categoryId: string,
+    @Body("lawyerId") lawyerId : string,
+    @Body("clientId") clientId : string
   ) {
-    return this.ClientItemService.createClientItemCategory(clientItem, categoryId);
+    return this.ClientItemService.createClientItemCategory(clientItem, categoryId, lawyerId, clientId);
   }
   @Post("createInSection/:sectionId")
   async createInSection(
     @Body() clientItem: ClientItemDto,
+    @Body("lawyerId") lawyerId : string,
+    @Body("clientId") clientId : string,
     @Param('sectionId') sectionId: string
   ) {
-    return this.ClientItemService.createClientItemInSection(clientItem, sectionId);
+    return this.ClientItemService.createClientItemInSection(clientItem, sectionId, lawyerId, clientId);
   }
 
   @Get("getAll")

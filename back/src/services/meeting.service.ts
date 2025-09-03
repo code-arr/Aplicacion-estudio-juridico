@@ -1,4 +1,8 @@
-import { Catch, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Catch,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { MeetingDto } from 'src/dtos/meeting.dto';
 import { Meeting } from 'src/entities/meeting.entity';
 import { GoogleCalendarService } from 'src/lib/google/calendar';
@@ -47,7 +51,10 @@ export class MeetingService {
             'No se pudo obtener la URL del evento de Google.',
           );
         }
-        const meeting = await this.meetingRepository.updateMeeting(newMeeting.id, { url });
+        const meeting = await this.meetingRepository.updateMeeting(
+          newMeeting.id,
+          { url },
+        );
 
         if (!meeting) {
           throw new InternalServerErrorException(
@@ -62,9 +69,10 @@ export class MeetingService {
           );
         }
         this.eventService.createEvent({
-          action: "CREATE",
-          entityName: "MEETING",
+          action: 'CREATE',
+          entityName: meeting.name,
           entityId: meeting.id,
+          entityType: 'MEETING',
           lawyerId: lawyer.id,
         });
         return meeting;
@@ -85,7 +93,7 @@ export class MeetingService {
           'Falló la creación de la reunión en persona.',
         );
       }
-    }  
+    }
   }
 
   async getAllMeetings(): Promise<Meeting[]> {

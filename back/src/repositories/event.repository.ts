@@ -26,10 +26,12 @@ export class EventRepository {
         lawyer: lawyer,
       });
       console.log(
-        `📢 EVENT | 👨‍⚖️ Abogado: ${event.lawyer.firstName} ${event.lawyer.lastName} | ` +
-          `Acción: ${event.action} | ` +
-          `Entidad: ${event.entityName} | ` +
-          `ID: ${event.entityId}`,
+        `\n📢 [EVENT LOG] \n` +
+          `👨‍⚖️  Abogado   : ${event.lawyer.firstName} ${event.lawyer.lastName}\n` +
+          `⚡  Acción     : ${event.action}\n` +
+          `📂  Entidad    : ${event.entityType}\n` +
+          `📝  Nombre     : ${event.entityName}\n` +
+          `🆔  ID         : ${event.entityId}\n`,
       );
 
       return this.eventRepository.save(event);

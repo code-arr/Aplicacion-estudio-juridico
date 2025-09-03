@@ -44,6 +44,7 @@ import {
 } from 'src/utils/clientItems';
 import { CategoryService } from 'src/services/category.service';
 import { SectionService } from 'src/services/section.service';
+import { EventService } from 'src/services/event.service';
 
 @Injectable()
 export class ClientItemRepository implements OnModuleInit {
@@ -55,6 +56,7 @@ export class ClientItemRepository implements OnModuleInit {
     private readonly lawyerService: AbogadoRepository,
     private readonly categoryService: CategoryService,
     private readonly sectionService: SectionService,
+    private readonly eventService: EventService,
   ) {}
 
   async onModuleInit() {
@@ -88,92 +90,140 @@ export class ClientItemRepository implements OnModuleInit {
       lawyer: lawyer,
     });
 
+    this.eventService.createEvent({
+      action: 'CREATE',
+      entityName: newClientItem.title,
+      entityId: newClientItem.id,
+      entityType: 'CLIENT_ITEM',
+      lawyerId: lawyer.id,
+    });
+
     return await this.clientItemRepository.save(newClientItem);
   }
 
   async createClientItemCategory(
     clientItem: ClientItemDto,
     categoryId: string,
+    lawyerId: string,
+    clientId: string,
   ): Promise<ClientItem> {
     const category = await this.categoryService.getOneById(categoryId);
     if (!category) {
       throw new NotFoundException('Categoría no encontrada');
     }
 
+    const lawyer = await this.lawyerService.getAbogadoById(lawyerId);
+    const client = await this.clientService.getClienteById(clientId);
+    if (!lawyer) {
+      throw new NotFoundException('Abogado no encontrado');
+    }
+    if (!client) {
+      throw new NotFoundException('Cliente no encontrado');
+    }
+
     const newClientItem = this.clientItemRepository.create({
       ...clientItem,
       category: category,
+      lawyer: lawyer,
+      client: client,
     });
+
+    this.eventService.createEvent({
+      action: 'CREATE',
+      entityName: newClientItem.title,
+      entityId: newClientItem.id,
+      entityType: 'CLIENT_ITEM',
+      lawyerId: lawyer.id,
+    });
+
     return await this.clientItemRepository.save(newClientItem);
   }
 
   async createClientItemInSection(
     clientItem: ClientItemDto,
-    sectionId: string
+    sectionId: string,
+    lawyerId: string,
+    clientId: string,
   ): Promise<ClientItem> {
     const section = await this.sectionService.getOneById(sectionId);
     if (!section) {
       throw new NotFoundException('Sección no encontrada');
     }
-
+    const lawyer = await this.lawyerService.getAbogadoById(lawyerId);
+    const client = await this.clientService.getClienteById(clientId);
+    if (!lawyer) {
+      throw new NotFoundException('Abogado no encontrado');
+    }
+    if (!client) {
+      throw new NotFoundException('Cliente no encontrado');
+    }
     const newClientItem = this.clientItemRepository.create({
       ...clientItem,
       section: section,
+      lawyer: lawyer,
+      client: client,
+    });
+    this.eventService.createEvent({
+      action: 'CREATE',
+      entityName: newClientItem.title,
+      entityId: newClientItem.id,
+      entityType: 'CLIENT_ITEM',
+      lawyerId: lawyer.id,
     });
     return await this.clientItemRepository.save(newClientItem);
   }
 
   async getAllClientItems(): Promise<any[]> {
-  const rows = await this.clientItemRepository
-    .createQueryBuilder('clientItem')
-    .leftJoin('clientItem.itemType', 'itemType')
-    .leftJoin('clientItem.client', 'client')
-    .leftJoin('clientItem.lawyer', 'lawyer')
-    .leftJoin('clientItem.category', 'category')
-    .leftJoin('clientItem.section', 'section')
-    .leftJoin('clientItem.documents', 'documents')
-    .select([
-      'clientItem.id AS id',
-      'clientItem.title AS title',
-      'clientItem.description AS description',
-    ])
-    .addSelect('itemType.id', 'itemTypeId')
-    .addSelect('client.id', 'clientId')
-    .addSelect('lawyer.id', 'lawyerId')
-    .addSelect('clientItem.status', 'status')
-    .addSelect('category.id', 'categoryId')
-    .addSelect('section.id', 'sectionId')
-    .addSelect('documents.id', 'documentId')
-    .getRawMany();
+    const rows = await this.clientItemRepository
+      .createQueryBuilder('clientItem')
+      .leftJoin('clientItem.itemType', 'itemType')
+      .leftJoin('clientItem.client', 'client')
+      .leftJoin('clientItem.lawyer', 'lawyer')
+      .leftJoin('clientItem.category', 'category')
+      .leftJoin('clientItem.section', 'section')
+      .leftJoin('clientItem.documents', 'documents')
+      .select([
+        'clientItem.id AS id',
+        'clientItem.title AS title',
+        'clientItem.description AS description',
+      ])
+      .addSelect('itemType.id', 'itemTypeId')
+      .addSelect('client.id', 'clientId')
+      .addSelect('lawyer.id', 'lawyerId')
+      .addSelect('clientItem.status', 'status')
+      .addSelect('category.id', 'categoryId')
+      .addSelect('section.id', 'sectionId')
+      .addSelect('documents.id', 'documentId')
+      .getRawMany();
 
-  // 🔹 Agrupamos para evitar duplicados
-  const result = Object.values(
-    rows.reduce((acc, row) => {
-      if (!acc[row.id]) {
-        acc[row.id] = {
-          id: row.id,
-          title: row.title,
-          description: row.description,
-          itemTypeId: row.itemTypeId,
-          clientId: row.clientId,
-          lawyerId: row.lawyerId,
-          status: row.status,
-          categoryId: row.categoryId,
-          sectionId: row.sectionId,
-          documents: [],
-        };
-      }
+    // 🔹 Agrupamos para evitar duplicados
+    const result = Object.values(
+      rows.reduce((acc, row) => {
+        if (!acc[row.id]) {
+          acc[row.id] = {
+            id: row.id,
+            title: row.title,
+            description: row.description,
+            itemTypeId: row.itemTypeId,
+            clientId: row.clientId,
+            lawyerId: row.lawyerId,
+            status: row.status,
+            categoryId: row.categoryId,
+            sectionId: row.sectionId,
+            documents: [],
+          };
+        }
 
-      if (row.documentId) {
-        acc[row.id].documents.push({ id: row.documentId });
-      }
+        if (row.documentId) {
+          acc[row.id].documents.push({ id: row.documentId });
+        }
 
-      return acc;
-    }, {}),
-  );
+        return acc;
+      }, {}),
+    );
 
-  return result;
-}
+    return result;
+  }
   async getAllClientItemSeeder(): Promise<ClientItem[]> {
     return this.clientItemRepository.find({
       relations: ['itemType', 'client', 'lawyer'],
@@ -183,7 +233,16 @@ export class ClientItemRepository implements OnModuleInit {
   async getClientItemById(id: string): Promise<ClientItem> {
     const clientItem = await this.clientItemRepository.findOne({
       where: { id },
-      relations: ['itemType.section', 'documents' , 'itemType.section.category', "category" , "category.clientItems" , "section" , "section.clientItems" , "section.category"],
+      relations: [
+        'itemType.section',
+        'documents',
+        'itemType.section.category',
+        'category',
+        'category.clientItems',
+        'section',
+        'section.clientItems',
+        'section.category',
+      ],
     });
     if (!clientItem) {
       throw new NotFoundException('ClientItem not found');

@@ -24,10 +24,14 @@ export class ClientItemService {
   async createClientItemCategory(
     clientItem: ClientItemDto,
     categoryId: string,
+    lawyerId: string,
+    clientId: string
   ): Promise<ClientItem> {
     return this.clientItemRepository.createClientItemCategory(
       clientItem,
       categoryId,
+      lawyerId,
+      clientId
     );
   }
 
@@ -37,11 +41,15 @@ export class ClientItemService {
 
   async createClientItemInSection(
     clientItem: ClientItemDto,
-    sectionId: string
+    sectionId: string,
+    lawyerId: string,
+    clientId: string
   ): Promise<ClientItem> {
     return this.clientItemRepository.createClientItemInSection(
       clientItem,
-      sectionId
+      sectionId,
+      lawyerId,
+      clientId
     );
   }
 
