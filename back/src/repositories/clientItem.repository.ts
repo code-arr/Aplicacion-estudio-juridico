@@ -186,6 +186,9 @@ export class ClientItemRepository implements OnModuleInit {
         'clientItem.id AS id',
         'clientItem.title AS title',
         'clientItem.description AS description',
+        "clientItem.createAt AS createAt",
+        "clientItem.updateAt AS updateAt",
+        'clientItem.activeTime AS activeTime',
       ])
       .addSelect('itemType.id', 'itemTypeId')
       .addSelect('client.id', 'clientId')
@@ -194,6 +197,7 @@ export class ClientItemRepository implements OnModuleInit {
       .addSelect('category.id', 'categoryId')
       .addSelect('section.id', 'sectionId')
       .addSelect('documents.id', 'documentId')
+
       .getRawMany();
 
     // 🔹 Agrupamos para evitar duplicados
