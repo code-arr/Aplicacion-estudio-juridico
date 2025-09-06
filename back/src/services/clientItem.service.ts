@@ -60,4 +60,7 @@ export class ClientItemService {
   async getClientItemById(id: string): Promise<ClientItem> {
     return await this.clientItemRepository.getClientItemById(id);
   }
+  async getClientItemsByClientId(clientId: string): Promise<ClientItem[]> {
+    return this.clientItemRepository.getClientItemsByClientId(clientId);
+  }
 }

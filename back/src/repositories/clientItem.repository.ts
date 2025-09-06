@@ -173,6 +173,12 @@ export class ClientItemRepository implements OnModuleInit {
     return await this.clientItemRepository.save(newClientItem);
   }
 
+  async getClientItemsByClientId(clientId: string): Promise<ClientItem[]> {
+    return this.clientItemRepository.find({
+      where: { client: { id: clientId } },
+    });
+  }
+
   async getAllClientItems(): Promise<any[]> {
     const rows = await this.clientItemRepository
       .createQueryBuilder('clientItem')
@@ -182,14 +188,12 @@ export class ClientItemRepository implements OnModuleInit {
       .leftJoin('clientItem.category', 'category')
       .leftJoin('clientItem.section', 'section')
       .leftJoin('clientItem.documents', 'documents')
-      .select([
-        'clientItem.id AS id',
-        'clientItem.title AS title',
-        'clientItem.description AS description',
-        "clientItem.createAt AS createAt",
-        "clientItem.updateAt AS updateAt",
-        'clientItem.activeTime AS activeTime',
-      ])
+      .select('clientItem.id', 'id')
+      .addSelect('clientItem.title', 'title')
+      .addSelect('clientItem.description', 'description')
+      .addSelect('clientItem.createAt', 'createAt')
+      .addSelect('clientItem.updateAt', 'updateAt')
+      .addSelect('clientItem.activeTime', 'activeTime')
       .addSelect('itemType.id', 'itemTypeId')
       .addSelect('client.id', 'clientId')
       .addSelect('lawyer.id', 'lawyerId')
@@ -197,7 +201,6 @@ export class ClientItemRepository implements OnModuleInit {
       .addSelect('category.id', 'categoryId')
       .addSelect('section.id', 'sectionId')
       .addSelect('documents.id', 'documentId')
-
       .getRawMany();
 
     // 🔹 Agrupamos para evitar duplicados
@@ -208,6 +211,9 @@ export class ClientItemRepository implements OnModuleInit {
             id: row.id,
             title: row.title,
             description: row.description,
+            createAt: row.createAt,
+            updateAt: row.updateAt,
+            activeTime: row.activeTime,
             itemTypeId: row.itemTypeId,
             clientId: row.clientId,
             lawyerId: row.lawyerId,
