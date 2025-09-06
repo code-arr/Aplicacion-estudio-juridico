@@ -48,7 +48,7 @@ export class ClientItemController {
 
   @Get("getByClientId/:clientId")
   async getClientItemsByClientId(@Param('clientId') clientId: string): Promise<any> {
-    return this.ClientItemService.getClientItemsByClientId(clientId);
+    return this.ClientItemService.getByClientId(clientId);
   }
 
   @Get("getByLawyerId/:lawyerId")
