@@ -20,5 +20,5 @@ export const getRecentClientItems = async (
 export const getClientItemsByClientId = async (
   clientId: string
 ): Promise<ClientItem[]> => {
-  return (await axios.get(`clientItem/client/${clientId}`)).data;
+  return (await axios.get(`clientItem/getByClientId/${clientId}`)).data;
 };

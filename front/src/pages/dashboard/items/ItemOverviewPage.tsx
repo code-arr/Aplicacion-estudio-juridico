@@ -11,8 +11,12 @@ import {
   useCatalogStore,
 } from "@/store/useCatalogStore";
 import { Button } from "@components/ui/button";
+import { useState } from "react";
+import MeetingForm from "@components/meetings/MeetingForm";
 
 const ItemOverviewPage = () => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   const item = useClientItemStore(selectClientItemDetail);
   const clientDetail = useClientStore(selectClientDetail);
   const itemType = useCatalogStore(selectItemType(item?.itemTypeId ?? ""));
@@ -44,6 +48,11 @@ const ItemOverviewPage = () => {
 
   return (
     <div className="flex px-3 gap-x-6">
+      <MeetingForm
+        isDialogOpen={isDialogOpen}
+        setIsDialogOpen={setIsDialogOpen}
+        defaultParticipants={[{ name: "adasdsa", email: "afadsas" }]}
+      />
       <div className="flex flex-col w-3/4 gap-y-5">
         <InfoCard title="Resumen" titleSize="xl">
           <div className="flex">
@@ -56,7 +65,10 @@ const ItemOverviewPage = () => {
           <InfoCard title="Reuniones" className="w-[30%]">
             <p className="mb-1.5">Próxima:</p>
             <p>Última:</p>
-            <Button className="self-center h-8 mt-3 w-32">
+            <Button
+              onClick={() => setIsDialogOpen(true)}
+              className="self-center h-8 mt-3 w-32"
+            >
               Agendar reunión
             </Button>
           </InfoCard>

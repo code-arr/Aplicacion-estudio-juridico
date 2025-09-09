@@ -1,3 +1,6 @@
+import { useParams } from "react-router-dom";
+import type { Document } from "@/types/Document";
+import { useDocumentStore } from "@/store/useDocumentStore";
 import DocumentForm from "@components/documents/DocumentForm";
 import { Button } from "@components/ui/button";
 import {
@@ -16,9 +19,9 @@ import {
   SelectValue,
 } from "@components/ui/select";
 import { Ellipsis, FileIcon, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const documents = [
+/* const documents = [
   {
     id: "1",
     title: "Contrato de arrendamiento.pdf",
@@ -52,14 +55,48 @@ const documents = [
     visibility: "public",
     url: "#",
   },
-];
+]; */
 
 const ItemDocumentsPage = () => {
+  const { clientItemId } = useParams<{ clientItemId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("");
-  const [tagFilter, setTagFilter] = useState<string>("");
+  /*   const [tagFilter, setTagFilter] = useState<string>(""); */
   const [clientOrder, setClientOrder] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const documentsByClientItem = useDocumentStore(
+    (s) => s.documentsByClientItem
+  );
+  const fetchDocumentsByClientItemId = useDocumentStore(
+    (s) => s.fetchDocumentsByClientItemId
+  );
+
+  useEffect(() => {
+    if (!clientItemId) return;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        await fetchDocumentsByClientItemId(clientItemId);
+      } catch (e) {
+        setError("No se pudieron cargar los documentos");
+        console.log(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [clientItemId, fetchDocumentsByClientItemId]);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+  };
+
+  function openInViewer(docs: Document[], activeId?: string) {
+    window.viewer?.open?.({ docs, activeId: activeId ?? null });
+  }
 
   function formatSize(bytes: number): string {
     if (bytes === 0) return "0 Bytes";
@@ -78,11 +115,13 @@ const ItemDocumentsPage = () => {
     }).format(date);
   }
 
+  console.log(documentsByClientItem);
+
   return (
     <div>
       <DocumentForm
         isDialogOpen={isDialogOpen}
-        setIsDialogOpen={setIsDialogOpen}
+        onOpenChange={handleOpenChange}
       />
       <div className="flex flex-col gap-y-4">
         <h1 className="text-3xl font-semibold leading-tight">Documentos</h1>
@@ -107,7 +146,7 @@ const ItemDocumentsPage = () => {
                 <SelectItem value="docx">DOCX</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={tagFilter} onValueChange={setTagFilter}>
+            {/*             <Select value={tagFilter} onValueChange={setTagFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Etiqueta" />
               </SelectTrigger>
@@ -116,7 +155,7 @@ const ItemDocumentsPage = () => {
                 <SelectItem value="evidence">Evidencia</SelectItem>
                 <SelectItem value="demand">Demanda</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
             <Select value={clientOrder} onValueChange={setClientOrder}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Ordenar por..." />
@@ -140,35 +179,52 @@ const ItemDocumentsPage = () => {
           </div>
         </div>
         <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200 mt-2">
-          {documents.map((doc) => (
+          {documentsByClientItem.map((doc) => (
             <li key={doc.id} className="p-4">
               {/* fila */}
               <div className="flex items-center gap-4">
                 {/* ícono */}
                 <div className="shrink-0">
-                  {" "}
                   <FileIcon />
                 </div>
 
                 {/* contenido */}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-gray-900 mb-1">
-                    {doc.title}
-                  </p>
                   <p className=" text-[0.9rem] text-gray-500 grid items-center grid-cols-[18rem_10rem_15rem] gap-x-6">
-                    <span className="truncate">{doc.tags.join(" - ")}</span>
+                    <p className="text-base font-medium text-gray-900 capitalize mb-1">
+                      {doc.name}
+                    </p>
                     <span className="justify-self-center tabular-nums">
-                      {formatSize(doc.sizeBytes)}
+                      {formatSize(doc.size)}
                     </span>
                     <span className="justify-self-end tabular-nums">
-                      {formatDate(doc.uploadedAt)}
+                      {/* {doc.uploadedAt && formatDate(doc.uploadedAt)} */}
+                      12/06/2025
                     </span>
                   </p>
                 </div>
 
                 {/* acciones */}
                 <div className="flex items-center gap-2 gap-x-4">
-                  <button className="text-blue-700 cursor-pointer">Ver</button>
+                  <button
+                    onClick={() => {
+                      if ((doc.type || "").toLowerCase() === "pdf") {
+                        console.log("Entra al if");
+
+                        openInViewer([doc], doc.id); // abre si no existe, agrega si ya está abierto
+                      } else {
+                        // Otros tipos, por ahora, abrir/descargar directo
+                        window.open(
+                          doc.fileUrl,
+                          "_blank",
+                          "noopener,noreferrer"
+                        );
+                      }
+                    }}
+                    className="text-blue-700 cursor-pointer"
+                  >
+                    Ver
+                  </button>
                   <DropdownMenuRoot>
                     <DropdownMenuTrigger asChild>
                       <button
@@ -186,7 +242,18 @@ const ItemDocumentsPage = () => {
                       sideOffset={6}
                     >
                       <DropdownMenuItem
-                        onSelect={() => onViewDetails(item)}
+                        onSelect={() => {
+                          if ((doc.type || "").toLowerCase() === "pdf") {
+                            openInViewer([doc], doc.id); // abre si no existe, agrega si ya está abierto
+                          } else {
+                            // Otros tipos, por ahora, abrir/descargar directo
+                            window.open(
+                              doc.fileUrl,
+                              "_blank",
+                              "noopener,noreferrer"
+                            );
+                          }
+                        }}
                         shortcut="Enter"
                       >
                         Ver detalles
@@ -220,6 +287,7 @@ const ItemDocumentsPage = () => {
               </div>
             </li>
           ))}
+          {loading && <li className="p-4 text-gray-500">Cargando…</li>}
         </ul>
       </div>
     </div>

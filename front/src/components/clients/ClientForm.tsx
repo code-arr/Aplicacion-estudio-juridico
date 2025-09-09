@@ -71,6 +71,7 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
           </DialogDescription>
         </DialogHeader>
         <SegmentedToggle
+          className="max-w-md"
           type="single"
           value={clientType}
           onValueChange={(value) => value && setClientType(value)}

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { ClientItem } from "@/types/ClientItem";
 import { CLIENTITEM_STATUS_MAP } from "@/types/ClientItem";
-import { Card, CardContent } from "@components/ui/card";
 import { selectClientName, useClientStore } from "@/store/useClientStore";
 import {
   selectCategory,
@@ -9,6 +8,7 @@ import {
   selectSection,
   useCatalogStore,
 } from "@/store/useCatalogStore";
+import { Card, CardContent } from "@components/ui/card";
 import { Badge } from "@components/ui/badge";
 import {
   DropdownMenuRoot,
@@ -106,7 +106,10 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
           <div className="flex flex-col capitalize pt-0.5">
             <h1 className="text-lg font-semibold mb-1.5">{item.title}</h1>
             <p className="mb-0.5 text-gray-800">{"Cliente: " + clientName}</p>
-            <p className="text-gray-800">{`Cateogría: ${category?.name} → ${section?.name}`}</p>
+            <p className="text-gray-800">
+              {`Cateogría: ${category?.name}`}{" "}
+              {section ? ` → ${section?.name}` : null}
+            </p>
           </div>
         </div>
         <div className="flex flex-col w-[20%] items-end gap-5">
@@ -160,9 +163,10 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
           <div className="flex flex-col items-end gap-1">
             {StatusBadge(item.status)}
             <p className="text-sm text-gray-500">
-              {item.updatedAt
+              {/* {item.updatedAt
                 ? `Última actualización: ${item.updatedAt}`
-                : `Creado: ${item.createdAt}`}
+                : `Creado: ${item.createAt}`} */}
+              01/09/2025
             </p>
           </div>
         </div>

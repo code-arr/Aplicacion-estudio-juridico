@@ -13,7 +13,7 @@ import { Label } from "@components/ui/label";
 
 type AudienceFormProps = {
   isDialogOpen: boolean;
-  setIsDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  onOpenChange: (open: boolean) => void; // <— firma exacta que pide Dialog
 };
 
 type NewAudience = {
@@ -30,7 +30,7 @@ const initialItemState: NewAudience = {
   error: null,
 };
 
-const AudienceForm = ({ isDialogOpen, setIsDialogOpen }: AudienceFormProps) => {
+const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
   const [newAudience, setNewAudience] = useState<NewAudience>(initialItemState);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -108,7 +108,7 @@ const AudienceForm = ({ isDialogOpen, setIsDialogOpen }: AudienceFormProps) => {
     <Dialog
       open={isDialogOpen}
       onOpenChange={(open) => {
-        setIsDialogOpen(open);
+        onOpenChange(open);
         if (!open) setNewAudience(initialItemState);
       }}
     >

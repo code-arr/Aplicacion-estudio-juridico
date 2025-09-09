@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { NavLink, useParams } from "react-router-dom";
+import { NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import type { Category, ItemType, Section } from "@/types/Catalog";
 import type { ClientItem } from "@/types/ClientItem";
 import {
@@ -9,18 +9,23 @@ import {
   selectItemTypes,
 } from "@/store/useCatalogStore";
 import {
+  selectClientItems,
   selectClientItemsByClientId,
   useClientItemStore,
 } from "@/store/useClientItemStore";
 import { Card, CardHeader, CardTitle } from "@components/ui/card";
 import EmptyArray from "@components/shared/EmptyArray";
+import ItemCard from "@components/items/ItemCard";
 
 const ClientCatalogPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { categoryId } = useParams<{ categoryId: string }>();
   const categories = useCatalogStore(selectCategories);
   const sections = useCatalogStore(selectSections);
   const itemTypes = useCatalogStore(selectItemTypes);
-  const itemsByClient = useClientItemStore(selectClientItemsByClientId);
+  const itemsByClient = useClientItemStore(selectClientItemsByClientId); //Despues cambiar por selectClientItemsByClientId
+  console.log(itemsByClient);
 
   // Estado mínimo: solo lo que el usuario elige
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
@@ -36,39 +41,52 @@ const ClientCatalogPage = () => {
     [categories, categoryId]
   );
 
-  const categorySections = useMemo<Section[]>(
-    () => sections.filter((s) => String(s.categoryId) === categoryId),
-    [sections, categoryId]
-  );
+  const categorySections = useMemo<Section[] | null>(() => {
+    return sections.filter((s) => String(s.categoryId) === categoryId) ?? null;
+  }, [sections, categoryId]);
+
+  const categoryClientItems = useMemo<ClientItem[] | null>(() => {
+    return (
+      itemsByClient.filter((i) => String(i.categoryId) === categoryId) ?? null
+    );
+  }, [itemsByClient, categoryId]);
 
   const selectedSection = useMemo<Section | null>(
     () =>
-      categorySections.find((s) => String(s.id) === selectedSectionId) ?? null,
+      categorySections?.find((s) => String(s.id) === selectedSectionId) ?? null,
     [categorySections, selectedSectionId]
   );
 
-  const sectionItemTypes = useMemo<ItemType[]>(
+  const sectionItemTypes = useMemo<ItemType[] | null>(
     () =>
       selectedSection
         ? itemTypes.filter(
             (it) => String(it.sectionId) === String(selectedSection.id)
           )
-        : [],
+        : null,
     [itemTypes, selectedSection]
+  );
+
+  const sectionClientItems = useMemo<ClientItem[] | null>(
+    () =>
+      selectedSectionId
+        ? itemsByClient.filter((i) => i.sectionId === selectedSectionId)
+        : null,
+    [itemsByClient, selectedSectionId]
   );
 
   const selectedItemType = useMemo<ItemType | null>(
     () =>
-      sectionItemTypes.find((it) => String(it.id) === selectedItemTypeId) ??
+      sectionItemTypes?.find((it) => String(it.id) === selectedItemTypeId) ??
       null,
     [sectionItemTypes, selectedItemTypeId]
   );
 
-  const clientItemsByType = useMemo(
+  const clientItemsByType = useMemo<ClientItem[] | null>(
     () =>
       selectedItemTypeId
         ? itemsByClient.filter((i) => i.itemTypeId === selectedItemTypeId)
-        : [],
+        : null,
     [itemsByClient, selectedItemTypeId]
   );
 
@@ -80,6 +98,12 @@ const ClientCatalogPage = () => {
   const handleToggleItemType = useCallback((itemTypeId: string | null) => {
     setSelectedItemTypeId((prev) => (prev === itemTypeId ? null : itemTypeId));
   }, []);
+
+  const handleViewDetails = (item: ClientItem) => {
+    navigate(`/dashboard/item/${item.id}`, {
+      state: { prevRoute: location.pathname },
+    });
+  };
 
   //ANALIZAR
 
@@ -103,6 +127,9 @@ const ClientCatalogPage = () => {
       </div>
     );
   }
+  console.log("Secciones: " + typeof categorySections);
+  console.log("Tipos: " + sectionItemTypes);
+  console.log("Items: " + clientItemsByType);
 
   return (
     <div>
@@ -113,6 +140,25 @@ const ClientCatalogPage = () => {
           </CardTitle>
         </CardHeader>
       </Card>
+
+      {categoryClientItems && categoryClientItems.length > 0 ? (
+        <div className="grid grid-cols-1 pr-10 gap-4">
+          {categoryClientItems.map((item) => {
+            return (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onViewDetails={handleViewDetails}
+              />
+            );
+          })}
+        </div>
+      ) : categorySections?.length === 0 ? (
+        <EmptyArray
+          title="No hay ítems aún"
+          subtitle="Todavía no se cargaron ítems para esta categoría."
+        />
+      ) : null}
 
       {selectedSection ? (
         <Card
@@ -127,7 +173,7 @@ const ClientCatalogPage = () => {
             </CardTitle>
           </CardHeader>
         </Card>
-      ) : categorySections.length > 0 ? (
+      ) : categorySections ? (
         <div className="flex flex-wrap justify-center gap-6 px-4">
           {categorySections.map((section) => (
             <Card
@@ -145,58 +191,87 @@ const ClientCatalogPage = () => {
             </Card>
           ))}
         </div>
-      ) : (
+      ) : categoryClientItems?.length === 0 ? (
         <EmptyArray
           title="No hay secciones en esta categoría"
           subtitle="Probá con otra categoría o creá una nueva sección."
         />
-      )}
+      ) : null}
 
-      {selectedSection ? (
-        sectionItemTypes.length > 0 ? (
-          <div className="flex flex-wrap justify-center gap-5 px-4">
-            {sectionItemTypes.map((itemType) => (
-              <Card
-                key={itemType.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => handleToggleItemType(itemType.id)}
-                className="w-52 h-36 place-self-center place-content-center border-gray-200 shadow-sm cursor-pointer"
-              >
-                <CardHeader>
-                  <CardTitle className="capitalize text-center text-xl">
-                    {itemType.name}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <EmptyArray
-            title="Esta sección no tiene tipos"
-            subtitle="Agregá un tipo para empezar a cargar ítems."
-          />
-        )
+      {sectionClientItems && sectionClientItems.length > 0 ? (
+        <div className="grid grid-cols-1 pr-10 gap-4">
+          {sectionClientItems.map((item) => {
+            return (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onViewDetails={handleViewDetails}
+              />
+            );
+          })}
+        </div>
+      ) : sectionItemTypes?.length === 0 ? (
+        <EmptyArray
+          title="No hay ítems aún"
+          subtitle="Todavía no se cargaron ítems para esta sección."
+        />
+      ) : null}
+
+      {selectedSection &&
+      !selectedItemType &&
+      sectionClientItems?.length === 0 &&
+      sectionItemTypes ? (
+        <div className="flex flex-wrap justify-center gap-5 px-4">
+          {sectionItemTypes.map((itemType) => (
+            <Card
+              key={itemType.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleToggleItemType(itemType.id)}
+              className="w-52 h-36 place-self-center place-content-center border-gray-200 shadow-sm cursor-pointer"
+            >
+              <CardHeader>
+                <CardTitle className="capitalize text-center text-xl">
+                  {itemType.name}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      ) : sectionClientItems?.length === 0 && sectionItemTypes?.length === 0 ? (
+        <EmptyArray
+          title="Esta sección no tiene tipos"
+          subtitle="Agregá un tipo para empezar a cargar ítems."
+        />
       ) : null}
 
       {selectedItemType ? (
-        clientItemsByType.length > 0 ? (
-          <div className="flex flex-wrap justify-center gap-5 px-4">
-            {clientItemsByType.map((item) => (
-              <NavLink key={item.id} to={`/item/${item.id}`}>
-                <Card
-                  role="button"
-                  tabIndex={0}
-                  className="w-52 h-36 place-self-center place-content-center border-gray-200 shadow-sm cursor-pointer"
-                >
-                  <CardHeader>
-                    <CardTitle className="capitalize text-center text-xl">
-                      {item.title}
-                    </CardTitle>
-                  </CardHeader>
-                </Card>
-              </NavLink>
-            ))}
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => handleToggleItemType(null)}
+          className="w-2/4 my-5 mb-8 place-self-center border-gray-200 shadow-sm cursor-pointer"
+        >
+          <CardHeader>
+            <CardTitle className="capitalize text-center text-xl">
+              {selectedItemType.name}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      ) : null}
+
+      {selectedItemType ? (
+        clientItemsByType && clientItemsByType.length > 0 ? (
+          <div className="grid grid-cols-1 pr-10 gap-4">
+            {clientItemsByType.map((item) => {
+              return (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  onViewDetails={handleViewDetails}
+                />
+              );
+            })}
           </div>
         ) : (
           <EmptyArray

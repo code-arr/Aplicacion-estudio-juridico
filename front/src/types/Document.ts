@@ -1,5 +1,3 @@
-import type { ClientItem } from "./ClientItem";
-
 export type DocumentType =
   | "pdf"
   | "doc"
@@ -17,13 +15,18 @@ export interface Document {
   name: string;
   type: DocumentType;
   size: number;
-  uploadedAt: Date;
-  uploadedBy?: string;
+  fileUrl: string;
 
-  version: number;
+  uploadedAt?: Date;
+  createdAt?: Date;
 
   tags?: string[];
   status?: "draft" | "final" | "archived";
-
-  clientItem: ClientItem;
 }
+
+export type OpenDoc = {
+  id: string;
+  title: string;
+  url: string;
+  versionId?: string;
+};

@@ -49,6 +49,10 @@ const ItemAudiencesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+  };
+
   function formatDate(isoDate: string): string {
     const date = new Date(isoDate);
     return new Intl.DateTimeFormat("es-AR", {
@@ -62,7 +66,7 @@ const ItemAudiencesPage = () => {
     <div>
       <AudienceForm
         isDialogOpen={isDialogOpen}
-        setIsDialogOpen={setIsDialogOpen}
+        onOpenChange={handleOpenChange}
       />
       <div className="flex flex-col gap-y-4">
         <h1 className="text-3xl font-semibold leading-tight">Audiencias</h1>

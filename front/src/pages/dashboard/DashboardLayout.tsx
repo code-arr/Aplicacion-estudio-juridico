@@ -34,7 +34,7 @@ const DashboardLayout = () => {
   const lawyer = useLawyerStore((s) => s.lawyer);
 
   /*   const isRefreshingClients = useClientStore((s) => s.isRefreshing); */
-  const hydrateClients = useClientStore((s) => s.hydrate);
+  const hydrateClientsByLawyer = useClientStore((s) => s.hydrateByLawyer);
   const isLoadingClients = useClientStore(selectIsLoadingClients);
   const isHydratedClients = useClientStore(selectIsClientsHydrated);
 
@@ -51,8 +51,8 @@ const DashboardLayout = () => {
   // Primer montaje: respeta TTL (no bloquear si hay cache, sí bloquear si es primer fetch)
   useEffect(() => {
     hydrateCatalog(); // respeta TTL
-    if (lawyer) hydrateClients(lawyer.id); // respeta TTL
-  }, [hydrateCatalog, hydrateClients, lawyer]);
+    if (lawyer) hydrateClientsByLawyer(lawyer.id); // respeta TTL
+  }, [hydrateCatalog, hydrateClientsByLawyer, lawyer]);
 
   //Prefecth de clientItems, despues de renderizar la vista "Mis Clientes"
   useEffect(() => {
@@ -81,7 +81,7 @@ const DashboardLayout = () => {
       <div className="min-h-screen flex items-start w-full bg-gray-50">
         <AppSidebar lawyer={lawyer} onLogout={onLogout} />
         {/* Aca en seria mejor pasarle role={user.role} en lugar de lawyer={user} */}
-        <main className="flex-1 pb-1">
+        <main className="flex-1">
           <Outlet />
         </main>
         {/* 🔔 Modal de advertencia de inactividad */}

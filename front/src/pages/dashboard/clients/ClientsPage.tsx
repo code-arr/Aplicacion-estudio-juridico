@@ -7,7 +7,7 @@ import {
   useClientStore,
   selectIsClientsHydrated,
   selectIsLoadingClients,
-  selectClients,
+  selectClientsByLawyer,
   selectClientsError,
 } from "@/store/useClientStore";
 
@@ -39,11 +39,10 @@ const ClientsPage = () => {
   const [clientOrder, setClientOrder] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const clients = useClientStore(selectClients);
+  const clients = useClientStore(selectClientsByLawyer);
   const isClientsHydrated = useClientStore(selectIsClientsHydrated);
   const isClientsLoading = useClientStore(selectIsLoadingClients);
   const clientsError = useClientStore(selectClientsError);
-  console.log(clients[0]);
 
   // Función utilitaria
   const normalizeText = (text: string) =>
@@ -72,7 +71,6 @@ const ClientsPage = () => {
   }, [clients, searchTerm, statusFilter]);
 
   const handleViewDetails = (client: Client) => {
-    console.log("Ver detalles del cliente:", client.firstName);
     navigate(`${client.id}`);
   };
 
@@ -89,7 +87,7 @@ const ClientsPage = () => {
     return <EmptyArray title="No hay clientes para mostrar" />;
 
   return (
-    <div>
+    <div className="bg-gradient-to-t from-[#334155] via-[#3b4d66] to-[#60a5fa]/20 min-h-screen">
       {/* Dialog Create Client */}
       <ClientForm
         isDialogOpen={isDialogOpen}
@@ -197,9 +195,9 @@ const ClientsPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="activo">Activo</SelectItem>
-                <SelectItem value="en_revision">En Revisión</SelectItem>
-                <SelectItem value="inactivo">Inactivo</SelectItem>
+                <SelectItem value="active">Activo</SelectItem>
+                <SelectItem value="under_review">En Revisión</SelectItem>
+                <SelectItem value="inactive">Inactivo</SelectItem>
               </SelectContent>
             </Select>
             <Select value={clientOrder} onValueChange={setClientOrder}>
@@ -208,14 +206,12 @@ const ClientsPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="fecha_ascendente">
-                  Fecha Ascendente
+                  Fecha Actividad Asc.
                 </SelectItem>
                 <SelectItem value="fecha_descendente">
-                  Fecha Descendente
+                  Fecha Actividad Desc.
                 </SelectItem>
-                <SelectItem value="cantidad_cliente">
-                  Cantidad Clientes
-                </SelectItem>
+                <SelectItem value="cantidad_cliente">Cantidad Items</SelectItem>
               </SelectContent>
             </Select>
           </div>

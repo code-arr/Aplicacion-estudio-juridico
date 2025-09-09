@@ -23,6 +23,11 @@ function formatDuration(minutes: number | null | undefined): string {
 const ItemProcessPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+  };
+
   const processes = [
     {
       id: "proc_001",
@@ -78,7 +83,7 @@ const ItemProcessPage = () => {
     <div>
       <ProcessForm
         isDialogOpen={isDialogOpen}
-        setIsDialogOpen={setIsDialogOpen}
+        onOpenChange={handleOpenChange}
       />
       <div className="flex flex-col gap-y-4 pl-2 pt-2">
         <h1 className="text-3xl font-semibold leading-tight">Trámites</h1>
@@ -109,7 +114,10 @@ const ItemProcessPage = () => {
             <p>Duración</p>
           </div>
           {processes.map((p) => (
-            <div className="grid grid-cols-[1fr_2fr_3fr_1fr] pl-10 py-3">
+            <div
+              key={p.id}
+              className="grid grid-cols-[1fr_2fr_3fr_1fr] pl-10 py-3"
+            >
               <p>{p.date}</p>
               <p>{p.name}</p>
               <p>{p.description}</p>

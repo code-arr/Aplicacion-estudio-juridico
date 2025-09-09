@@ -7,6 +7,7 @@ const ttlMs = 86400000;
 
 interface ClientState {
   clients: Client[] | null;
+  clientsByLawyer: Client[] | null;
   clientDetail: Client | null;
 
   filters: { query: string; status?: string };
@@ -22,14 +23,19 @@ interface ClientState {
   lastFetched: number;
 
   setClients: (clients: Client[]) => void;
+  setClientsByLawyer: (clients: Client[]) => void;
   setClientDetail: (clientId: string) => void;
   resetClientDetail: () => void;
 
-  hydrate: (lawyerId: string, opts?: { force?: boolean }) => Promise<void>;
+  hydrateByLawyer: (
+    lawyerId: string,
+    opts?: { force?: boolean }
+  ) => Promise<void>;
 }
 
 export const useClientStore = create<ClientState>()((set, get) => ({
   clients: null,
+  clientsByLawyer: null,
   clientDetail: null,
   filters: { query: "", status: undefined },
   isLoading: false,
@@ -50,8 +56,19 @@ export const useClientStore = create<ClientState>()((set, get) => ({
       lastFetched: Date.now(),
     });
   },
+  setClientsByLawyer: (clients: Client[]) => {
+    set({
+      clientsByLawyer: clients,
+      isLoading: false,
+      isHydrated: true,
+      isRefreshing: false,
+      inFlight: false,
+      error: null,
+      lastFetched: Date.now(),
+    });
+  },
   setClientDetail: (clientId: string) => {
-    const clientDetail = get().clients?.find(
+    const clientDetail = get().clientsByLawyer?.find(
       (client) => client.id === clientId
     );
     set({ clientDetail });
@@ -61,7 +78,7 @@ export const useClientStore = create<ClientState>()((set, get) => ({
 
   resetClientDetail: () => set({ clientDetail: null }),
 
-  hydrate: async (lawyerId: string, opts?: { force?: boolean }) => {
+  hydrateByLawyer: async (lawyerId: string, opts?: { force?: boolean }) => {
     if (get().inFlight) return;
     const isFresh =
       get().lastFetched > 0 && Date.now() - get().lastFetched < ttlMs;
@@ -73,7 +90,7 @@ export const useClientStore = create<ClientState>()((set, get) => ({
 
     try {
       const data = await getClientsByLawyerId(lawyerId);
-      get().setClients(data);
+      get().setClientsByLawyer(data);
     } catch (error) {
       console.error(error);
       const message =
@@ -93,11 +110,12 @@ export const useClientStore = create<ClientState>()((set, get) => ({
   },
 }));
 
-export const selectClients = (s: ClientState) => s.clients ?? [];
+export const selectClientsByLawyer = (s: ClientState) =>
+  s.clientsByLawyer ?? [];
 export const selectClientDetail = (s: ClientState) => s.clientDetail;
 
 export const selectClientName = (clientId: string) => (s: ClientState) => {
-  const client = s.clients?.find((client) => client.id === clientId);
+  const client = s.clientsByLawyer?.find((client) => client.id === clientId);
 
   if (client?.type === "Fisica")
     return `${client.firstName}  ${client.lastName}`;
@@ -105,7 +123,7 @@ export const selectClientName = (clientId: string) => (s: ClientState) => {
 };
 
 export const selectFilteredClients = (s: ClientState) => {
-  const base = s.clients ?? [];
+  const base = s.clientsByLawyer ?? [];
   const { query, status } = s.filters;
   const q = query.trim().toLowerCase();
   return base

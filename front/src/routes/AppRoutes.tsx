@@ -4,6 +4,9 @@ import PrivateRoute from "@/routes/PrivateRoute";
 
 import { useAuthStore } from "@/store/useAuthStore";
 
+import ItemLayout from "@/layouts/ItemLayout";
+import ClientLayout from "@/layouts/ClientLayout";
+
 import DashboardLayout from "@/pages/dashboard/DashboardLayout";
 import LoginPage from "@/pages/auth/LoginPage";
 import NotFoundPage from "@/pages/not-found/NotFoundPage";
@@ -13,18 +16,19 @@ import ClientsPage from "@pages/dashboard/clients/ClientsPage";
 import ClientOverviewPage from "@/pages/dashboard/clients/ClientOverviewPage";
 import ClientCatalogPage from "@pages/dashboard/clients/ClientCatalogPage";
 
-import Statistics from "@pages/dashboard/lawyer/Statistics";
-import LawyerSettings from "@pages/dashboard/lawyer/LawyerSettings";
-import LoadingScreen from "@components/shared/LoadingScreen";
+import LawyerStatistics from "@pages/dashboard/lawyer/statistics/LawyerStatistics";
+import LawyerSettings from "@pages/dashboard/lawyer/settings/LawyerSettings";
+import LawyerEditProfile from "@pages/dashboard/lawyer/settings/LawyerEditProfile";
 
-import ClientLayout from "@/layouts/ClientLayout";
 import ItemOverviewPage from "@pages/dashboard/items/ItemOverviewPage";
 import ItemsPage from "@pages/dashboard/items/ItemsPage";
-import ItemLayout from "@/layouts/ItemLayout";
 import ItemDocumentsPage from "@pages/dashboard/items/ItemDocumentsPage";
 import ItemAudiencesPage from "@pages/dashboard/items/ItemAudiencesPage";
 import ItemMeetingsPage from "@pages/dashboard/items/ItemMeetingsPage";
 import ItemProcessPage from "@pages/dashboard/items/ItemProcessPage";
+import DocumentViewerPage from "@/pages/dashboard/documents/DocumentViewerPage";
+
+import LoadingScreen from "@components/shared/LoadingScreen";
 
 const AppRoutes = () => {
   const { isAdmin, isLawyer, isLoadingSession } = useAuthStore();
@@ -36,6 +40,16 @@ const AppRoutes = () => {
       {/* Rutas públicas */}
       <Route path="/" element={<LoginPage />} />
       <Route path="/unauthorized" element={<UnauthorizedAccess />} />
+
+      {/* Visor PDF top-level, protegido */}
+      <Route
+        path="/viewer"
+        element={
+          <PrivateRoute>
+            <DocumentViewerPage />
+          </PrivateRoute>
+        }
+      />
 
       {/* Rutas privadas */}
       <Route
@@ -66,8 +80,12 @@ const AppRoutes = () => {
               <Route path="process" element={<ItemProcessPage />} />
             </Route>
 
-            <Route path="statistics" element={<Statistics />} />
+            <Route path="statistics" element={<LawyerStatistics />} />
             <Route path="settings" element={<LawyerSettings />} />
+            <Route
+              path="settings/edit-profile"
+              element={<LawyerEditProfile />}
+            />
             <Route index element={<Navigate to="clients" replace />} />
           </>
         )}

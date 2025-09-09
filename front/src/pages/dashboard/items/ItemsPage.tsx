@@ -81,7 +81,7 @@ const ItemsPage = () => {
   }, [setFilters, searchTerm, statusFilter, orderBy]);
 
   return (
-    <div>
+    <div className=" bg-gradient-to-t from-[#334155] via-[#3b4d66] to-[#60a5fa]/20 min-h-screen">
       <ItemForm isDialogOpen={isDialogOpen} setIsDialogOpen={setIsDialogOpen} />
 
       {/* Header */}
@@ -131,22 +131,8 @@ const ItemsPage = () => {
                 <SelectItem value="recent">Actividad reciente</SelectItem>
                 <SelectItem value="creation">Fecha de creacion</SelectItem>
                 <SelectItem value="A_Z">Alfabetico</SelectItem>
-                {/* <SelectItem value="elements">Cantidad de elementos</SelectItem> */}
               </SelectContent>
             </Select>
-            {/* <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas las categorias</SelectItem>
-                {categories.map((cateogry) => (
-                  <SelectItem key={cateogry.id} value={cateogry.name}>
-                    {cateogry.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select> */}
             <Button
               onClick={() => setIsDialogOpen(true)}
               className="bg-[#0073e6] hover:opacity-90  cursor-pointer"

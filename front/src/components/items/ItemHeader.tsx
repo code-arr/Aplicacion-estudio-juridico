@@ -15,19 +15,46 @@ import {
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
+import DocumentForm from "@components/documents/DocumentForm";
+import AudienceForm from "@components/audiences/AudienceForm";
+import ProcessForm from "@components/processes/ProcessForm";
+
+type Tab = {
+  value: string;
+  label: string;
+};
 
 interface ItemHeaderProps {
   item: ClientItem;
-  onBack?: () => void;
+  prevRoute: string | null;
   timer?: string;
 }
 
-const ItemHeader = ({ item }: ItemHeaderProps) => {
+const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
   const { pathname } = useLocation();
   const { clientItemId } = useParams();
   const navigate = useNavigate();
-  /* const { clientItemId, "*": tab } = useParams(); */
-  /* const currentTab = tab ?? ""; // "" = index (Resumen) */
+  const [isDialogOpen, setIsDialogOpen] = useState({
+    documentForm: false,
+    audienceForm: false,
+    processForm: false,
+  });
+
+  const openOnly = (
+    key: "documentForm" | "audienceForm" | "processForm",
+    open: boolean
+  ) =>
+    setIsDialogOpen({
+      documentForm: key === "documentForm" && open,
+      audienceForm: key === "audienceForm" && open,
+      processForm: key === "processForm" && open,
+    });
+
+  const setDocumentOpen = (open: boolean) => openOnly("documentForm", open);
+  const setAudienceOpen = (open: boolean) => openOnly("audienceForm", open);
+  const setProcessOpen = (open: boolean) => openOnly("processForm", open);
+
   const basePath = `/dashboard/item/${clientItemId}`;
   const currentTab = pathname.startsWith(`${basePath}/`)
     ? pathname.slice(basePath.length + 1) // p.ej. "documents"
@@ -67,13 +94,24 @@ const ItemHeader = ({ item }: ItemHeaderProps) => {
     );
   };
 
-  const tabs = [
-    { value: "index", label: "Resumen" },
-    { value: "documents", label: "Documentos" },
-    { value: "audiences", label: "Audiencias" },
-    { value: "meetings", label: "Reuniones" },
-    { value: "process", label: "Trámites" }, // nombre de ruta debe coincidir con tu <Route path="process" />
-  ];
+  const buildTabs = (categoryName: string | null): Tab[] => {
+    const baseTabs: Tab[] = [
+      { value: "index", label: "Resumen" },
+      { value: "documents", label: "Documentos" },
+      { value: "meetings", label: "Reuniones" },
+      { value: "process", label: "Trámites" },
+    ];
+
+    if (categoryName === "Judicial") {
+      baseTabs.splice(2, 0, { value: "audiences", label: "Audiencias" });
+      // ↑ lo meto en la posición 2 (después de "Documentos")
+    }
+
+    return baseTabs;
+  };
+
+  // Ejemplo
+  const tabs = buildTabs(category?.name ?? null);
 
   const fullName =
     clientDetail?.firstName && clientDetail?.lastName
@@ -84,11 +122,32 @@ const ItemHeader = ({ item }: ItemHeaderProps) => {
 
   return (
     <div className="bg-white py-6 rounded-t-lg">
+      <DocumentForm
+        isDialogOpen={isDialogOpen.documentForm}
+        onOpenChange={setDocumentOpen}
+      />
+      {category?.name === "Judicial" && (
+        <AudienceForm
+          isDialogOpen={isDialogOpen.audienceForm}
+          onOpenChange={setAudienceOpen}
+        />
+      )}
+      <ProcessForm
+        isDialogOpen={isDialogOpen.processForm}
+        onOpenChange={setProcessOpen}
+      />
       <div className="flex flex-col">
         <div className="flex justify-between gap-x-4 px-8">
           <div className="flex flex-col pb-5 w-1/2 px-2">
             <div className="flex items-center pb-4 gap-x-2">
-              <button className="cursor-pointer" onClick={() => navigate(-1)}>
+              <button
+                className="cursor-pointer"
+                onClick={
+                  prevRoute === null
+                    ? () => navigate("/dashboard/clientItems")
+                    : () => navigate(prevRoute)
+                }
+              >
                 <ArrowLeft />
               </button>
               <p className="text-lg ">
@@ -117,13 +176,24 @@ const ItemHeader = ({ item }: ItemHeaderProps) => {
           </div>
 
           <div className="flex items-center gap-x-3 pb-6">
-            <Button className="bg-transparent text-gray-900 border text-lg font-normal">
+            <Button
+              onClick={() => setDocumentOpen(true)}
+              className="bg-transparent text-gray-900 border text-lg font-normal"
+            >
               Nuevo documento
             </Button>
-            <Button className="bg-transparent text-gray-900 border text-lg font-normal">
-              Nueva audiencia
-            </Button>
-            <Button className="bg-blue-900 text-lg font-normal">
+            {category?.name === "Judicial" && (
+              <Button
+                onClick={() => setAudienceOpen(true)}
+                className="bg-transparent text-gray-900 border text-lg font-normal"
+              >
+                Nueva audiencia
+              </Button>
+            )}
+            <Button
+              onClick={() => setProcessOpen(true)}
+              className="bg-blue-900 text-lg font-normal"
+            >
               Registrar tramite
             </Button>
           </div>

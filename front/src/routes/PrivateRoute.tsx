@@ -1,5 +1,6 @@
 import { useAuthStore } from "@/store/useAuthStore";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+
 import type { JSX } from "react";
 import LoadingScreen from "@components/shared/LoadingScreen";
 
@@ -9,6 +10,7 @@ type PrivateRouteProps = {
 };
 
 const PrivateRoute = ({ children, requiredRole }: PrivateRouteProps) => {
+  const location = useLocation();
   const { isLoggedIn, isLoadingSession, user } = useAuthStore();
 
   // Si todavía se está restaurando la sesión, mostramos pantalla de carga
@@ -16,7 +18,8 @@ const PrivateRoute = ({ children, requiredRole }: PrivateRouteProps) => {
 
   // Si no hay sesión activa, redirigimos al login
   if (!isLoggedIn) {
-    return <Navigate to="/" replace />;
+    /*     return <Navigate to="/" replace />; */
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   // Si hay una restricción de rol y el usuario no la cumple, redirigimos a Unauthorized

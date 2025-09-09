@@ -13,7 +13,7 @@ import { useRef, useState } from "react";
 
 type DocumentFormProps = {
   isDialogOpen: boolean;
-  setIsDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  onOpenChange: (open: boolean) => void; // <— firma exacta que pide Dialog
 };
 
 type NewDocument = {
@@ -26,7 +26,7 @@ const initialItemState: NewDocument = {
   file: null,
 };
 
-const DocumentForm = ({ isDialogOpen, setIsDialogOpen }: DocumentFormProps) => {
+const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
   const [newDocument, setNewDocument] = useState<NewDocument>(initialItemState);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,7 +48,7 @@ const DocumentForm = ({ isDialogOpen, setIsDialogOpen }: DocumentFormProps) => {
     <Dialog
       open={isDialogOpen}
       onOpenChange={(open) => {
-        setIsDialogOpen(open);
+        onOpenChange(open);
         if (!open) {
           setNewDocument(initialItemState);
         }

@@ -31,6 +31,6 @@ export interface ClientItem {
 
   documents: Document[];
 
-  createdAt: string; // ISO date string
+  createAt: string; // ISO date string
   updatedAt: string; // ISO date string
 }

@@ -13,7 +13,7 @@ import { useState } from "react";
 
 type ProcessFormProps = {
   isDialogOpen: boolean;
-  setIsDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  onOpenChange: (open: boolean) => void; // <— firma exacta que pide Dialog
 };
 
 type NewProcess = {
@@ -30,11 +30,17 @@ const initialItemState: NewProcess = {
   duration: null,
 };
 
-const ProcessForm = ({ isDialogOpen, setIsDialogOpen }: ProcessFormProps) => {
+const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
   const [newProcess, setNewProcess] = useState<NewProcess>(initialItemState);
 
   return (
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+    <Dialog
+      open={isDialogOpen}
+      onOpenChange={(open) => {
+        onOpenChange(open);
+        if (!open) setNewProcess(initialItemState);
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Nuevo Trámite</DialogTitle>

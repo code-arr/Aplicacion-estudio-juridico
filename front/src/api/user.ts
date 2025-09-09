@@ -32,6 +32,16 @@ export const getUserFromToken = async (token: string): Promise<User> => {
   }
 };
 
+export const getUserById = async (id: string): Promise<User> => {
+  try {
+    const response = await axios.get(`/user/getUserById/${id}`);
+    return response.data;
+  } catch (error) {
+    console.log("No se pudo restaurar la sesión:", error);
+    throw error;
+  }
+};
+
 export const sendEmailForResetPassword = async (
   email: string
 ): Promise<void> => {

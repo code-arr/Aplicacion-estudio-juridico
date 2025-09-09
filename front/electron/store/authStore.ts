@@ -1,5 +1,5 @@
-import store from "./electronStorage";
-import type { auth } from "../../shared/types/AuthData";
+import store from "./electronStorage.js";
+import type { auth } from "../../shared/types/AuthData.js";
 
 export const saveAuthData = (auth: auth) => {
   store.set("auth", auth);

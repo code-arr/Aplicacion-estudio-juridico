@@ -12,6 +12,7 @@ export const useLawyerStore = create<LawyerState>()((set) => ({
   lawyer: null,
   setLawyer: async (email: string) => {
     const lawyer = await getLawyerByEmail(email);
+
     set({ lawyer });
   },
   resetLawyer: () => set({ lawyer: null }),

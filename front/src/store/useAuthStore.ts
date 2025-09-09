@@ -2,7 +2,8 @@
 import { create } from "zustand";
 import type { User } from "@/types/User";
 import type { AuthState } from "@/types/AuthState";
-import { getUserFromToken } from "@/api/user";
+import { getUserById } from "@/api/user";
+import { useLawyerStore } from "@/store/useLawyerStore";
 
 export async function restoreSession() {
   console.log("Entra a restoreSession");
@@ -10,8 +11,9 @@ export async function restoreSession() {
   try {
     const authData = await window.electronAPI?.invoke("auth:get");
     if (authData && authData.token) {
-      const user = await getUserFromToken(authData.token);
+      const user = await getUserById(authData.id);
       if (user) {
+        useLawyerStore.getState().setLawyer(user.email);
         useAuthStore.getState().login(user, authData.token);
       }
     }
@@ -32,11 +34,13 @@ export const useAuthStore = create<AuthState>()((set) => ({
   showInactivityModal: false,
   login: async (user: User, token: string) => {
     console.log("Entra a login");
-    /* await window.electronAPI.invoke("auth:save", {
+    await window.electronAPI.invoke("auth:save", {
       token,
       id: user.id,
       role: user.role,
-    }); */
+    });
+    console.log(await window.electronAPI?.invoke("auth:get"));
+
     set(() => ({
       user,
       token,
@@ -48,7 +52,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
   logout: async () => {
     console.log("Entra a logout");
-    /* await window.electronAPI?.invoke("auth:clear"); */
+    await window.electronAPI?.invoke("auth:clear");
     set(() => ({
       user: null,
       token: null,

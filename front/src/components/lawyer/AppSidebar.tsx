@@ -16,6 +16,7 @@ import { Scale, User, Settings, ChartNoAxesCombined } from "lucide-react";
 import { StaticSidebar } from "../ui/staticSidebar";
 import type { Lawyer } from "@/types/Lawyer";
 import { useState } from "react";
+import LogoApp from "@/assets/logos/logo-i&a-2.png";
 
 interface AppSidebarProps {
   lawyer: Lawyer | null;
@@ -23,8 +24,6 @@ interface AppSidebarProps {
 }
 
 const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
-  console.log(lawyer);
-
   const { pathname, hash } = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -60,9 +59,13 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
 
   return (
     <StaticSidebar
-      className={`sticky top-0 h-screen transition-all duration-300 ease-in-out border-r border-[hsl(216,12%,15%)] overflow-hidden ${
+      className={`sticky top-0 h-screen transition-[max-width] duration-300 ease-in-out border-r border-[hsl(216,12%,15%)] overflow-hidden ${
         collapsed ? "max-w-[72px] items-center" : "max-w-[260px]"
       }`}
+      onTransitionEnd={() => {
+        // dispara un único “tick” global sin store
+        window.dispatchEvent(new CustomEvent("sidebar:transition-end"));
+      }}
     >
       <SidebarHeader className="py-6 justify-center items-center flex-row gap-0">
         <button
@@ -70,7 +73,8 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
           className="focus:outline-none transition-opacity hover:opacity-80 cursor-pointer"
         >
           <div className="law-gradient p-2 rounded-lg">
-            <Scale className="h-6 w-6 text-white" />
+            {/* <Scale className="h-6 w-6 text-white" /> */}
+            <img src={LogoApp} className="h-8 w-8 " alt="" />
           </div>
         </button>
 

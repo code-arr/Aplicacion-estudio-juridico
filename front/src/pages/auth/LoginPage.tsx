@@ -5,7 +5,7 @@ import { loginUser } from "@/api/user";
 import { Spinner } from "@radix-ui/themes";
 import type { LoginError } from "@/types/LoginError";
 import { mockUser } from "@/mocks/mockUser";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useLawyerStore } from "@/store/useLawyerStore";
 
 const LoginPage = () => {
@@ -19,16 +19,21 @@ const LoginPage = () => {
     status: false,
     message: "",
   });
+  const location = useLocation();
+  const from = (location.state as any)?.from?.pathname ?? "/dashboard";
 
   useEffect(() => {
     if (isLoggedIn && user) {
+      console.log("Entra al login");
+
       if (isLawyer) {
-        navigate("/dashboard", { replace: true });
+        navigate(from, { replace: true });
+        /* navigate("/dashboard", { replace: true }); */
       } else if (isAdmin) {
         navigate("/adminDashboard", { replace: true });
       }
     }
-  }, [isLoggedIn, user, navigate, isAdmin, isLawyer]);
+  }, [isLoggedIn, user, navigate, isAdmin, isLawyer, from]);
 
   const handleLogin = async (email: string, password: string) => {
     try {

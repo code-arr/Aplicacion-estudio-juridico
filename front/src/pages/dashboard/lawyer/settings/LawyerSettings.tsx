@@ -1,34 +1,59 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useLawyerStore } from "@/store/useLawyerStore";
+import { googleConnect } from "@/api/user";
 import { Avatar, AvatarFallback } from "@components/ui/avatar";
 import { Button } from "@components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/card";
 import { Switch } from "@components/ui/switch";
 import googleLogo from "@/assets/logos/google.png";
-import { useAuthStore } from "@/store/useAuthStore";
-import { googleConnect } from "@/api/user";
-import { useState } from "react";
 
 const Settings = () => {
+  const navigate = useNavigate();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
+  const lawyer = useLawyerStore((s) => s.lawyer);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+
+  useEffect(() => {
+    if (user?.googleEmail) setIsGoogleConnected(true);
+    console.log(isGoogleConnected);
+  }, [user?.googleEmail, isGoogleConnected]);
+
   const handleGoogleConnect = async () => {
     setIsLoading(true);
     if (token && user) await googleConnect(token, user.email);
     setIsLoading(false);
   };
 
+  const handleEditProfile = () => {
+    navigate("edit-profile");
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return "?"; // fallback si no hay nombre
+    return name
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+  };
+
   return (
-    <div className="px-40 py-3 pr-56">
+    <div className="px-40 py-3 pr-56 bg-gradient-to-t from-[#334155] via-[#3b4d66] to-[#60a5fa]/20 min-h-screen">
       <div className="mb-5">
         <h1 className="pb-1 text-3xl font-bold text-gray-900">
-          ⚙️ Configuración
+          {/*   ⚙️  */}Configuración
         </h1>
-        <p className="pl-2 text-[1.25rem] text-gray-600">
+        <p className="pl-0.5 text-[1.25rem] text-gray-600">
           Preferencias y ajustes personales
         </p>
       </div>
-      <Card className="px-3 py-2 border-2 border-gray-200 shadow-none">
+      <Card className="px-3 py-2 border-none shadow-none">
         <div className="text-[hsl(225,15%,15%)] ">
           <CardHeader className="flex-row justify-between pb-4">
             <CardTitle className="flex items-center gap-2 font-medium tracking-[0.01em] text-[hsl(225,15%,15%)]">
@@ -39,21 +64,33 @@ const Settings = () => {
             <Card className="flex flex-row items-center justify-between px-6 py-4 border-2 border-gray-200 shadow-none">
               <div className="flex items-center gap-5">
                 <Avatar className="h-16 w-16 mb-4">
-                  <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] text-xl">
-                    {"L"}
+                  <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] text-2xl">
+                    {getInitials(lawyer?.firstName)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col gap-2 text-base">
                   <div>
-                    <p className="text-lg font-semibold">Lucas Gomez</p>
-                    <p>lucasgarci@gmail.com</p>
+                    <p className="text-lg font-semibold">
+                      {lawyer?.lastName.includes(" ")
+                        ? lawyer?.firstName +
+                          " " +
+                          lawyer?.lastName.slice(
+                            0,
+                            lawyer?.lastName.indexOf(" ")
+                          )
+                        : lawyer?.firstName + " " + lawyer?.lastName}
+                    </p>
+                    <p>{user?.email}</p>
                   </div>
                   <div>
                     <p>Estado de la cuenta: Activo</p>
                   </div>
                 </div>
               </div>
-              <Button className="text-base font-normal cursor-pointer">
+              <Button
+                onClick={handleEditProfile}
+                className="text-base font-normal cursor-pointer"
+              >
                 Editar perfil
               </Button>
             </Card>
@@ -205,11 +242,10 @@ const Settings = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col w-fit border-2 border-gray-200 rounded-lg divide-y divide-gray-200">
-                  {/* Recordatorios de plazos */}
                   <button
                     onClick={handleGoogleConnect}
-                    disabled={isLoading}
-                    className="flex items-center justify-between p-3 py-2 gap-x-2 shadow-sm hover:shadow-md"
+                    disabled={isLoading || isGoogleConnected}
+                    className="flex items-center justify-between p-3 py-2 gap-x-2 shadow-sm hover:shadow-md cursor-pointer disabled:cursor-default disabled:shadow-sm"
                   >
                     <img
                       src={googleLogo}
@@ -217,7 +253,11 @@ const Settings = () => {
                       className="w-5 h-5"
                     />
                     <span className="font-medium text-gray-800">
-                      {isLoading ? "Conectando..." : "Conectar con Google"}
+                      {!isGoogleConnected
+                        ? isLoading
+                          ? "Conectando..."
+                          : "Conectar con Google"
+                        : "Conectado"}
                     </span>
                   </button>
                 </div>

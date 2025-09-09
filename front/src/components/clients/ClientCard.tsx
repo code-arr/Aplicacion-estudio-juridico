@@ -11,7 +11,7 @@ interface ClientCardProps {
 }
 
 const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
-  /*   const getStatusBadge = (status: Client["status"]) => {
+  const getStatusBadge = (status: Client["status"]) => {
     const statusConfig = {
       active: {
         label: "Activo",
@@ -33,7 +33,7 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
         {config.label}
       </Badge>
     );
-  }; */
+  };
 
   const getInitials = (name?: string) => {
     if (!name) return "?"; // fallback si no hay nombre
@@ -70,14 +70,14 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
               <p className="text-sm text-gray-600 mt-1">{client.rut}</p>
             </div>
           </div>
-          {/* {getStatusBadge(client.status)} */}
+          {getStatusBadge(client.status)}
         </div>
       </CardHeader>
 
       <CardContent className="pt-0">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-gray-500 mb-1">Última actualización</p>
+            <p className="text-xs text-gray-500 mb-1">Última actividad</p>
             <p className="text-sm text-gray-700 font-medium">
               {client.updatedAt}
             </p>
