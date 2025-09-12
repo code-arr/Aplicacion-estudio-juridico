@@ -76,4 +76,16 @@ export class AudiencieRepository {
       throw new InternalServerErrorException('Error fetching audiences');
     }
   }
+  async getByClientItemId(clientItemId: string): Promise<Audience[]> {
+    try {
+      return await this.audiencieRepository.find({
+        where: { clientItem: { id: clientItemId } },
+      });
+    } catch (error) {
+      console.error('Error fetching audiences by client item ID:', error);
+      throw new InternalServerErrorException(
+        'Error fetching audiences by client item ID',
+      );
+    }
+  }
 }

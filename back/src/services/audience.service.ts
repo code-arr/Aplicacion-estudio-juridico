@@ -29,4 +29,8 @@ export class AudienceService {
     async getAllAudiences(): Promise<Audience[]> {
         return this.audiencieRepository.getAllAudiences();
     }
+
+    async getByClientItemId(clientItemId: string): Promise<Audience[]> {
+        return this.audiencieRepository.getByClientItemId(clientItemId);
+    }
 }

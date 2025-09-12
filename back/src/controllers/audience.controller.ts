@@ -33,13 +33,18 @@ export class AudienceController {
       originalFileName,
       dbName,
       mimetype,
-      lawyerId // <-- Pasamos el mimetype al servicio/repositorio
+      lawyerId 
     );
   }
 
   @Get()
   async getAllAudiences(): Promise<Audience[]> {
     return this.audienceService.getAllAudiences();
+  }
+
+  @Get('getByClientItemId/:clientItemId')
+  async getByClientItemId(@Param('clientItemId') clientItemId: string): Promise<Audience[]> {
+    return this.audienceService.getByClientItemId(clientItemId);
   }
 
   //   @Get('getById/:id')
