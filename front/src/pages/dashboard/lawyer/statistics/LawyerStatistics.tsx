@@ -118,7 +118,7 @@ const demo = {
     { label: "Sem 14", hours: 11.2 },
     { label: "Sem 13", hours: 10.3 },
     { label: "Sem 12", hours: 9.8 },
-    { label: "Sem 11", hours: 9.1 },
+    /* { label: "Sem 11", hours: 9.1 }, */
     /*   { label: "Sem 10", hours: 11.2 }, */
   ] as WeekHours[],
   casesByStage: [
@@ -147,7 +147,6 @@ const LawyerStatistics = ({
   topClients = demo.topClients,
   className = "",
 }: LawyerStatisticsProps) => {
-  const maxStage = Math.max(1, ...casesByStage.map((s) => s.count));
   return (
     <div className="bg-gradient-to-t from-[#334155] via-[#3b4d66] to-[#60a5fa]/20 min-h-screen">
       <div className={`w-full p-4 lg:p-6 ${className}`}>
@@ -178,28 +177,33 @@ const LawyerStatistics = ({
         {/* 2 columnas */}
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Horas por semana */}
-          {/* Aca iria el grafico de barras dinamico que muestre; las semanas con sus respectivas horas trabajadas*/}
           <Card className="p-5">
             <h3 className="mb-3 text-lg font-semibold text-slate-900">
               Horas por semana
             </h3>
-            <ul className="divide-y divide-slate-100">
-              {hoursByWeek.map((w) => (
-                <li
-                  key={w.label}
-                  className="flex items-center justify-between py-2 text-sm"
-                >
-                  <span className="text-slate-700">{w.label}</span>
-                  <span className="font-medium text-slate-900">
-                    {`${formatNumber(w.hours)}hs`}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="overflow-x-auto">
+              <table className="min-w-[480px] w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-500">
+                    <th className="pt-1 pb-3 font-normal">Semana</th>
+                    <th className="pt-1 pb-3 font-normal text-right">Horas</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {hoursByWeek.map((w) => (
+                    <tr key={w.label}>
+                      <td className="py-2 text-slate-800">{w.label}</td>
+                      <td className="py-2 text-right font-medium text-slate-900">
+                        {`${formatNumber(w.hours)}hs`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Card>
 
           {/* Top clientes */}
-          {/* Aca iria el grafico de barras dinamico que muestre; los 5 clientes con mas horas en el periodo seleccionado*/}
           <Card className="p-5">
             <h3 className="mb-3 text-lg font-semibold text-slate-900">
               Top clientes (horas mes)
@@ -208,8 +212,8 @@ const LawyerStatistics = ({
               <table className="min-w-[480px] w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 text-slate-500">
-                    <th className="py-2 font-normal">Cliente</th>
-                    <th className="py-2 font-normal text-right">Horas</th>
+                    <th className="pt-1 pb-3 font-normal">Cliente</th>
+                    <th className="pt-1 pb-3 font-normal text-right">Horas</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -227,46 +231,9 @@ const LawyerStatistics = ({
           </Card>
         </div>
 
-        {/* 2 columnas */}
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {/* Tiempo por cliente */}
+        {/* Tiempo por cliente */}
+        <div className="mt-4 grid grid-cols-1 gap-4 ">
           <ClientStatsCard />
-
-          {/* Tiempo por item */}
-          <Card className="p-5">
-            <div className="flex items-center gap-x-2 mb-3 py-1 px-2 border border-slate-200 rounded-lg shadow-xs cursor-pointer">
-              <FolderClosed className="w-5 h-5 text-blue-500" />
-              <h3 className="text-lg font-semibold text-slate-900">Item</h3>
-              {/* Aca iria como si fuese una searchbar para buscar un clientItem y ver sus estadisticas */}
-            </div>
-            <p className="text-sm text-slate-500 mb-3">
-              Elementos trabajados el día: hoy
-            </p>
-            <div className="space-y-3 divide-y divide-slate-100">
-              {casesByStage.map((s) => (
-                <div
-                  key={s.stage}
-                  className="grid grid-cols-[1fr_auto] items-center gap-3 text-sm"
-                >
-                  <div>
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="text-slate-700">{s.stage}</span>
-                      <span className="font-medium text-slate-900">
-                        {`${formatNumber(s.count)}hs`}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div>
-              {/* Aca iria el grafico de lineas dinamico que muestre; las horas trabajadas por dia a 7 dias; las horas trabajadas por semana a 
-              7 semanas; las horas trabajadas por mes a 7 meses*/}
-            </div>
-            <div>
-              {/* Aca irian los datos, Total hs x día, Total hs x semana, Total hs x mes, Promedio hs semanal, promedio hs mensual*/}
-            </div>
-          </Card>
         </div>
       </div>
     </div>

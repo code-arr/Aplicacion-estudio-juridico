@@ -3,7 +3,7 @@ import { config as loadEnv } from "dotenv";
 import * as path from "path";
 import fs from "fs";
 import "./ipc/authHandlers.js";
-import "./ipc/timeBufferHandlers.js";
+import { registerTimeBufferHandlers } from "./ipc/timeBufferHandlers.js";
 import { fileURLToPath } from "url";
 
 /* // ⬇️ Pegá acá el bloque de logs de diagnóstico
@@ -52,7 +52,7 @@ loadEnv({ path: path.resolve(__dirname, "../../.env") });
 
 console.log("DEV_URL:", process.env.VITE_DEV_SERVER_URL);
 
-/** ==================== NUEVO: estado de la ventana del visor ==================== */
+/** ==================== NUEVO: estado de la ventana del visor de documentos ==================== */
 let viewerWindow: BrowserWindow | null = null;
 
 function createViewerWindow() {
@@ -74,12 +74,14 @@ function createViewerWindow() {
 
   // Carga la app con la ruta del visor
   if (process.env.VITE_DEV_SERVER_URL) {
-    viewerWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}#/viewer`);
+    viewerWindow.loadURL(
+      `${process.env.VITE_DEV_SERVER_URL}#/viewer/documents`
+    );
     viewerWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     viewerWindow.loadFile(
       path.join(__dirname, "../dist/index.html"),
-      { hash: "/viewer" } // ← carga directamente en #/view
+      { hash: "/viewer/documents" } // ← carga directamente en #/view/documents
     );
   }
 
@@ -91,10 +93,47 @@ function createViewerWindow() {
 }
 /** ============================================================================== */
 
-/**
- * Crea la ventana principal de la aplicación.
- */
+/** ==================== NUEVO: estado de la ventana del visor de audiencias ==================== */
+let audienceViewerWindow: BrowserWindow | null = null;
 
+function createAudienceViewerWindow() {
+  if (audienceViewerWindow && !audienceViewerWindow.isDestroyed()) {
+    return audienceViewerWindow;
+  }
+
+  audienceViewerWindow = new BrowserWindow({
+    width: 1600,
+    height: 1000,
+    icon: path.join(__dirname, "assets", "logo-iya.ico"),
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+    title: "Audiencias (visor)",
+  });
+
+  // DEV vs PROD
+  if (process.env.VITE_DEV_SERVER_URL) {
+    audienceViewerWindow.loadURL(
+      `${process.env.VITE_DEV_SERVER_URL}#/viewer/audiences`
+    );
+    audienceViewerWindow.webContents.openDevTools({ mode: "detach" });
+  } else {
+    audienceViewerWindow.loadFile(path.join(__dirname, "../dist/index.html"), {
+      hash: "/viewer/audiences",
+    });
+  }
+
+  audienceViewerWindow.on("closed", () => {
+    audienceViewerWindow = null;
+  });
+
+  return audienceViewerWindow;
+}
+/** ============================================================================== */
+
+/** ==================== Crea la ventana principal de la aplicación. ==================== */
 function getIconPath() {
   if (app.isPackaged) {
     // en build, electron busca en resources
@@ -154,6 +193,8 @@ function createWindow() {
 
 // Evento cuando la app está lista
 app.whenReady().then(() => {
+  registerTimeBufferHandlers(); // 🔔 acá se registran realmente
+
   createWindow();
 
   // En macOS, reabre una ventana si no hay ninguna activa
@@ -237,3 +278,47 @@ ipcMain.on("viewer:close", () => {
   }
 });
 /** ====================================================================== */
+
+// ===== IPC: AUDIENCES VIEWER =====
+
+// abrir (garantiza/crea ventana, enfoca y manda payload)
+ipcMain.handle(
+  "viewer:audience:open",
+  async (_event, payload: { audiences: any[]; activeId?: string | null }) => {
+    const win = createAudienceViewerWindow();
+    if (win.isMinimized()) win.restore();
+    win.show();
+
+    const send = () => win.webContents.send("viewer:audience:addDocs", payload);
+    if (win.webContents.isLoading()) {
+      win.webContents.once("did-finish-load", send);
+    } else {
+      send();
+    }
+    return true;
+  }
+);
+
+// enviar docs a una ventana ya abierta (o crear si no existe)
+ipcMain.on(
+  "viewer:audience:addDocs",
+  (_event, payload: { audiences: any[]; activeId?: string | null }) => {
+    const win = createAudienceViewerWindow();
+    if (win.isMinimized()) win.restore();
+    win.focus();
+
+    const send = () => win.webContents.send("viewer:audience:addDocs", payload);
+    if (win.webContents.isLoading()) {
+      win.webContents.once("did-finish-load", send);
+    } else {
+      send();
+    }
+  }
+);
+
+// cerrar la ventana de audiencias
+ipcMain.on("viewer:audience:close", () => {
+  if (audienceViewerWindow && !audienceViewerWindow.isDestroyed()) {
+    audienceViewerWindow.close();
+  }
+});

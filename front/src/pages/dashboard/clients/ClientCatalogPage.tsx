@@ -13,9 +13,9 @@ import {
   selectClientItemsByClientId,
   useClientItemStore,
 } from "@/store/useClientItemStore";
-import { Card, CardHeader, CardTitle } from "@components/ui/card";
-import EmptyArray from "@components/shared/EmptyArray";
-import ItemCard from "@components/items/ItemCard";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import EmptyArray from "@/components/shared/EmptyArray";
+import ItemCard from "@/components/items/ItemCard";
 
 const ClientCatalogPage = () => {
   const location = useLocation();
@@ -25,7 +25,6 @@ const ClientCatalogPage = () => {
   const sections = useCatalogStore(selectSections);
   const itemTypes = useCatalogStore(selectItemTypes);
   const itemsByClient = useClientItemStore(selectClientItemsByClientId); //Despues cambiar por selectClientItemsByClientId
-  console.log(itemsByClient);
 
   // Estado mínimo: solo lo que el usuario elige
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
@@ -98,6 +97,8 @@ const ClientCatalogPage = () => {
   const handleToggleItemType = useCallback((itemTypeId: string | null) => {
     setSelectedItemTypeId((prev) => (prev === itemTypeId ? null : itemTypeId));
   }, []);
+
+  console.log(location.pathname);
 
   const handleViewDetails = (item: ClientItem) => {
     navigate(`/dashboard/item/${item.id}`, {

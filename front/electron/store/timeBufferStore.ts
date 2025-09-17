@@ -1,35 +1,55 @@
 // electron/store/timeBufferStore.ts
 import store from "./electronStorage.js";
 
-export type HeartbeatEntry = {
-  docId: string;
-  versionId?: string;
-  deltaSec: number;
-  clientTs: string;
-};
+export type TrackableType =
+  | "Lawyer"
+  | "Client"
+  | "ClientItem"
+  | "Document"
+  | "Audience"
+  | "Meeting"
+  | "Process";
+export type PauseReason = "idle" | "switch" | "close" | "manual";
 
-const KEY = "timeBuffer.pending";
+export type TimerEvent =
+  | {
+      kind: "start";
+      trackableType: TrackableType;
+      trackableId: string;
+      lawyerId?: string;
+      source?: "auto" | "manual";
+      clientTs: string;
+    }
+  | {
+      kind: "pause";
+      trackableType: TrackableType;
+      trackableId: string;
+      reason: PauseReason;
+      clientTs: string;
+    };
 
-function readAll(): HeartbeatEntry[] {
+const KEY = "timeBuffer.pending.events";
+
+function readAll(): TimerEvent[] {
   const v = store.get(KEY);
-  return Array.isArray(v) ? (v as HeartbeatEntry[]) : [];
+  return Array.isArray(v) ? (v as TimerEvent[]) : [];
 }
-function writeAll(entries: HeartbeatEntry[]) {
-  store.set(KEY, entries);
+function writeAll(events: TimerEvent[]) {
+  store.set(KEY, events);
 }
 
 export const timeBufferStore = {
-  append(entry: HeartbeatEntry) {
-    writeAll([...readAll(), entry]);
+  append(ev: TimerEvent) {
+    writeAll([...readAll(), ev]);
   },
-  appendMany(entries: HeartbeatEntry[]) {
-    writeAll([...readAll(), ...entries]);
+  appendMany(events: TimerEvent[]) {
+    writeAll([...readAll(), ...events]);
   },
-  getPending(): HeartbeatEntry[] {
+  getPending(): TimerEvent[] {
     return readAll();
   },
-  setPending(entries: HeartbeatEntry[]) {
-    writeAll(entries);
+  setPending(events: TimerEvent[]) {
+    writeAll(events);
   },
   clear() {
     writeAll([]);

@@ -6,19 +6,20 @@ import {
   useClientItemStore,
   selectClientItems,
 } from "@/store/useClientItemStore";
-import ItemForm from "@components/items/ItemForm";
-import ItemCard from "@components/items/ItemCard";
-import { SidebarTrigger } from "@components/ui/sidebar";
-import { Input } from "@components/ui/input";
+import ItemForm from "@/components/items/ItemForm";
+import ItemCard from "@/components/items/ItemCard";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@components/ui/select";
-import { Button } from "@components/ui/button";
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 type SortKey = "recent" | "creation" | "A_Z";
 
@@ -33,7 +34,7 @@ const ORDER_CMP: Record<SortKey, (a: ClientItem, b: ClientItem) => number> = {
     cmp(safeDate(b.updatedAt) - safeDate(a.updatedAt)) ||
     cmpStr(a.title, b.title),
   creation: (a, b) =>
-    cmp(safeDate(b.createdAt) - safeDate(a.createdAt)) ||
+    cmp(safeDate(b.createAt) - safeDate(a.createAt)) ||
     cmpStr(a.title, b.title),
   A_Z: (a, b) => cmpStr(a.title, b.title),
   /* elements: (a, b) =>
@@ -50,7 +51,7 @@ const ItemsPage = () => {
   const [orderBy, setOrderBy] = useState<string>("");
   /*  const categories = useCatalogStore(selectCategories); */
   const clientItems = useClientItemStore(selectClientItems);
-  console.log(clientItems);
+  const [loading, setLoading] = useState(true);
 
   /*   const filteredClientItems = useClientItemStore(selectClientItemsByFilters); */
   const filters = useClientItemStore((s) => s.filters);
@@ -79,6 +80,11 @@ const ItemsPage = () => {
       order: orderBy,
     });
   }, [setFilters, searchTerm, statusFilter, orderBy]);
+
+  useEffect(() => {
+    setLoading(true);
+    if (filteredClientItems.length > 0) setLoading(false);
+  }, [filteredClientItems]);
 
   return (
     <div className=" bg-gradient-to-t from-[#334155] via-[#3b4d66] to-[#60a5fa]/20 min-h-screen">
@@ -144,17 +150,25 @@ const ItemsPage = () => {
         </div>
 
         {/* ClientItem Cards Grid */}
-        <div className="grid grid-cols-1 pr-10 gap-4">
-          {filteredClientItems.map((item) => {
-            return (
-              <ItemCard
-                key={item.id}
-                item={item}
-                onViewDetails={handleViewDetails}
-              />
-            );
-          })}
-        </div>
+        {loading ? (
+          <LoadingSpinner />
+        ) : (
+          <div className="grid grid-cols-1 pr-10 gap-4">
+            {
+              filteredClientItems
+                .map((item) => {
+                  return (
+                    <ItemCard
+                      key={item.id}
+                      item={item}
+                      onViewDetails={handleViewDetails}
+                    />
+                  );
+                })
+                .slice(0, 8) /* Limitar a 8 items por ahora */
+            }
+          </div>
+        )}
       </div>
     </div>
   );

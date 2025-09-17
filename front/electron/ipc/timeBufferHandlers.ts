@@ -1,13 +1,10 @@
 // electron/ipc/timeBufferHandlers.ts
 import { ipcMain } from "electron";
-import {
-  timeBufferStore,
-  type HeartbeatEntry,
-} from "../store/timeBufferStore.js";
+import { timeBufferStore, type TimerEvent } from "../store/timeBufferStore.js";
 
 export function registerTimeBufferHandlers() {
-  ipcMain.handle("timeBuffer:append", (_e, entry: HeartbeatEntry) => {
-    timeBufferStore.append(entry);
+  ipcMain.handle("timeBuffer:append", (_e, ev: TimerEvent) => {
+    timeBufferStore.append(ev);
     return timeBufferStore.count();
   });
 
@@ -15,8 +12,8 @@ export function registerTimeBufferHandlers() {
     return timeBufferStore.getPending();
   });
 
-  ipcMain.handle("timeBuffer:setPending", (_e, entries: HeartbeatEntry[]) => {
-    timeBufferStore.setPending(entries);
+  ipcMain.handle("timeBuffer:setPending", (_e, events: TimerEvent[]) => {
+    timeBufferStore.setPending(events);
     return timeBufferStore.count();
   });
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import type { Client } from "@/types/Client";
 import { UserCircle2, ChevronDown } from "lucide-react";
 import {
   LineChart,
@@ -9,6 +10,13 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { useClientStore } from "@/store/useClientStore";
+import {
+  Select,
+  SelectContent,
+  SelectTrigger,
+  SelectItem,
+} from "@/components/ui/select";
 
 // ====== Tipos ======
 type CategoryRow = { label: string; hours: number };
@@ -109,14 +117,30 @@ const demoSeries = {
 
 // ====== Componente ======
 export default function ClientStatsCard({
-  clientName = "Cliente",
   categories = demoCategories,
   series = demoSeries,
   fixedStats, // <— NUEVO
 }: ClientStatsCardProps) {
+  const [selectedClient, setSelectedClient] = useState<Client | null>();
   const [range, setRange] = useState<RangeKey>("days");
-  const data = series[range];
   const [resizeKey, setResizeKey] = useState(0);
+  const data = series[range];
+
+  const clients = useClientStore((s) => s.clientsByLawyer);
+
+  const defaultClient = useMemo(() => {
+    if (!clients || clients.length === 0) return;
+    else return clients[0];
+  }, [clients]);
+
+  const handleSelectedClient = (clientId: string) => {
+    const c = clients?.find((c) => c.id === clientId) ?? null;
+    setSelectedClient(c);
+  };
+
+  useEffect(() => {
+    if (defaultClient) setSelectedClient(defaultClient);
+  }, [defaultClient]);
 
   useEffect(() => {
     const handler = () => setResizeKey((k) => k + 1);
@@ -167,91 +191,113 @@ export default function ClientStatsCard({
   return (
     <div className="rounded-2xl border border-black/10 bg-white shadow-sm p-5">
       {/* Header con “searchbar” clickable (dummy) */}
-      <div className="flex items-center gap-2 mb-3 py-1 px-2 border border-slate-200 rounded-lg shadow-xs cursor-pointer">
-        <UserCircle2 className="w-5 h-5 text-slate-600" />
-        <span className="text-lg font-semibold text-slate-900">
-          {clientName}
-        </span>
-        <ChevronDown className="ml-auto w-4 h-4 text-slate-500" />
-      </div>
-
-      <p className="text-sm text-slate-500 mb-3">
-        Elementos trabajados el día: hoy
-      </p>
-
-      {/* Lista por categorías (hoy) */}
-      <div className="space-y-3 divide-y divide-slate-100">
-        {categories.map((c) => (
-          <div
-            key={c.label}
-            className="grid grid-cols-[1fr_auto] items-center gap-3 text-sm pt-2 first:pt-0"
-          >
-            <span className="text-slate-700">{c.label}</span>
-            <span className="font-medium text-slate-900">
-              {fmtH(c.hours, 1)}
+      <Select value={selectedClient?.id} onValueChange={handleSelectedClient}>
+        {/* <div className="flex items-center gap-2 mb-3 py-1 px-2 border border-slate-200 rounded-lg shadow-xs cursor-pointer"> */}
+        <SelectTrigger className="flex items-center gap-2 mb-2 py-1 px-2 border border-slate-200 rounded-lg shadow-xs cursor-pointer">
+          <div className="flex items-center gap-2">
+            <UserCircle2 className="w-5 h-5 text-blue-700" />
+            <span className="text-lg font-semibold text-slate-900">
+              {selectedClient
+                ? selectedClient.type === "Fisica"
+                  ? `${selectedClient.firstName}  ${selectedClient?.lastName}`
+                  : selectedClient.companyName
+                : "Seleccionar cliente"}
             </span>
           </div>
-        ))}
-      </div>
+          {/* <ChevronDown className="ml-auto w-4 h-4 text-slate-500" /> */}
+        </SelectTrigger>
+        {/* </div> */}
+        <SelectContent>
+          {clients?.map((c) => (
+            <SelectItem value={c.id}>
+              {c.type === "Fisica"
+                ? `${c.firstName}  ${c.lastName}`
+                : c.companyName}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      {/* Tabs + Gráfico */}
-      <div className="mt-6">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <Tab active={range === "days"} onClick={() => setRange("days")}>
-            Días
-          </Tab>
-          <Tab active={range === "weeks"} onClick={() => setRange("weeks")}>
-            Semanas
-          </Tab>
-          <Tab active={range === "months"} onClick={() => setRange("months")}>
-            Meses
-          </Tab>
+      <div className="grid grid-cols-[40%_auto] gap-x-6 items-center">
+        {/* Lista por categorías (hoy) */}
+        <div>
+          <p className="text-sm text-slate-500 mb-3">
+            Elementos trabajados el día: hoy
+          </p>
+          <div className="space-y-3 divide-y divide-slate-100">
+            {categories.map((c) => (
+              <div
+                key={c.label}
+                className="grid grid-cols-[1fr_auto] items-center gap-3 text-sm pt-2 first:pt-0"
+              >
+                <span className="text-slate-700">{c.label}</span>
+                <span className="font-medium text-slate-900">
+                  {fmtH(c.hours, 1)}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div
-          className="h-48 w-full rounded-lg border border-slate-100 bg-slate-50/40 p-2"
-          style={{ isolation: "isolate", contain: "layout paint" }} // opcional pero recomendado
-        >
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            debounce={150}
-            key={resizeKey}
+        {/* Tabs + Gráfico */}
+        <div className="mt-6">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <Tab active={range === "days"} onClick={() => setRange("days")}>
+              Días
+            </Tab>
+            <Tab active={range === "weeks"} onClick={() => setRange("weeks")}>
+              Semanas
+            </Tab>
+            <Tab active={range === "months"} onClick={() => setRange("months")}>
+              Meses
+            </Tab>
+          </div>
+
+          <div
+            className="h-56 w-full rounded-lg border border-slate-100 bg-slate-50/40 p-2"
+            style={{ isolation: "isolate", contain: "layout paint" }} // opcional pero recomendado
           >
-            <LineChart data={data} margin={chartMargin}>
-              <CartesianGrid stroke="#e5e7eb" strokeDasharray="4 4" />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 12, fill: "#475569" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                width={40}
-                tick={{ fontSize: 12, fill: "#475569" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                formatter={(v: number) => fmtH(v as number)}
-                labelStyle={{ color: "#0f172a" }}
-                contentStyle={{
-                  borderRadius: 10,
-                  border: "1px solid #e2e8f0",
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="hours"
-                stroke="#1e40af"
-                strokeWidth={2}
-                dot={{ r: 3, strokeWidth: 1 }}
-                activeDot={{ r: 5 }}
-                fillOpacity={0.15}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              debounce={150}
+              key={resizeKey}
+            >
+              <LineChart data={data} margin={chartMargin}>
+                <CartesianGrid stroke="#e5e7eb" strokeDasharray="4 4" />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 12, fill: "#475569" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  width={40}
+                  tick={{ fontSize: 12, fill: "#475569" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  formatter={(v: number) => fmtH(v as number)}
+                  labelStyle={{ color: "#0f172a" }}
+                  contentStyle={{
+                    borderRadius: 10,
+                    border: "1px solid #e2e8f0",
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="hours"
+                  stroke="#1e40af"
+                  strokeWidth={2}
+                  dot={{ r: 3, strokeWidth: 1 }}
+                  activeDot={{ r: 5 }}
+                  fillOpacity={0.15}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 

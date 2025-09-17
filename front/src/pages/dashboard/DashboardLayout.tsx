@@ -17,12 +17,11 @@ import {
   selectIsClientItemsPrefetched,
 } from "@/store/useClientItemStore";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import AppSidebar from "@components/lawyer/AppSidebar";
-import InactivityModal from "@components/shared/InactivityModal";
-import LoadingScreen from "@components/shared/LoadingScreen";
+import AppSidebar from "@/components/lawyer/AppSidebar";
+import InactivityModal from "@/components/shared/InactivityModal";
+import LoadingScreen from "@/components/shared/LoadingScreen";
 import { useTokenExpirationWatcher } from "@/hooks/useTokenExpirationWatcher";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
-import { mockLawyer } from "@/mocks/mockLawyer";
 
 const DashboardLayout = () => {
   // ⏰ Hooks se activan apenas entra al dashboard

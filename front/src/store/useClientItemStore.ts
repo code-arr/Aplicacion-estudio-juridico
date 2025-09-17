@@ -6,14 +6,17 @@ import {
   getRecentClientItems,
   getClientItemsByLawyerId,
 } from "@/api/clientItem";
+import { sameIds, topNRecent } from "@/utils/clientItems";
 
 const EMPTY_CLIENT_ITEMS = Object.freeze([]);
 const ttlMs = 900000;
 
 interface ClientItemState {
   clientItems: ClientItem[] | null;
-  clientItemDetail: ClientItem | null;
+  recentClientItems: ClientItem[] | null;
   clientItemsByClientId: ClientItem[] | null;
+  recentClientItemsByClientId: ClientItem[] | null;
+  clientItemDetail: ClientItem | null;
 
   filters: { query: string; status?: string; order?: string };
   setFilters: (p: Partial<ClientItemState["filters"]>) => void;
@@ -32,9 +35,12 @@ interface ClientItemState {
   lastFetched: number;
 
   setClientItems: (clientItems: ClientItem[]) => void;
-  setClientItemDetail: (clientItemId: string) => void;
-  resetClientItemDetail: () => void;
   setClientItemsByClientId: (clientItems: ClientItem[]) => void;
+  setClientItemDetail: (clientItemId: string) => void;
+
+  resetClientItems: () => void;
+  resetClientItemsByClientId: () => void;
+  resetClientItemDetail: () => void;
 
   fetchClientItems: () => Promise<void>;
   fetchClientItemsByLawyerId: (lawyerId: string) => Promise<void>;
@@ -51,8 +57,10 @@ interface ClientItemState {
 
 export const useClientItemStore = create<ClientItemState>((set, get) => ({
   clientItems: null,
-  clientItemDetail: null,
+  recentClientItems: null,
   clientItemsByClientId: null,
+  recentClientItemsByClientId: null,
+  clientItemDetail: null,
   filters: { query: "", status: undefined, order: undefined },
   isLoading: false,
   isHydrated: false,
@@ -77,17 +85,41 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
       lastFetched: Date.now(),
     }),
 
+  setClientItemsByClientId: (items) =>
+    set((s) => {
+      const nextFull = items ?? [];
+      const prevFull = s.clientItemsByClientId ?? [];
+      const prevRecent = s.recentClientItemsByClientId ?? [];
+
+      const nextRecent = topNRecent(nextFull, 3);
+      console.log("nextRecent", nextRecent);
+
+      // armamos un patch mínimo para no disparar renders al cohete
+      const patch: Partial<ClientItemState> = {};
+
+      if (!sameIds(prevFull, nextFull)) {
+        patch.clientItemsByClientId = nextFull;
+      }
+      if (!sameIds(prevRecent, nextRecent)) {
+        patch.recentClientItemsByClientId = nextRecent;
+      }
+      s.error = null;
+      // si nada cambió, devolvemos el estado tal cual
+      return Object.keys(patch).length ? patch : s;
+    }),
+
   setClientItemDetail: (clientItemId: string) => {
     const clientItemDetail = get().clientItems?.find(
       (item) => item.id === clientItemId
     );
     set({ clientItemDetail });
   },
+  resetClientItems: () => set({ clientItems: null }),
+
+  resetClientItemsByClientId: () =>
+    set({ clientItemsByClientId: null, recentClientItemsByClientId: null }),
 
   resetClientItemDetail: () => set({ clientItemDetail: null }),
-
-  setClientItemsByClientId: (items) =>
-    set({ clientItemsByClientId: items, error: null }),
 
   setFilters: (p) => set((s) => ({ filters: { ...s.filters, ...p } })),
 
@@ -261,6 +293,8 @@ export const selectClientItemDetail = (s: ClientItemState) =>
   s.clientItemDetail;
 export const selectClientItemsByClientId = (s: ClientItemState) =>
   s.clientItemsByClientId ?? EMPTY_CLIENT_ITEMS;
+export const selectRecentClientItemsByClientId = (s: ClientItemState) =>
+  s.recentClientItemsByClientId ?? EMPTY_CLIENT_ITEMS;
 
 export const selectClientItemsByFiltersAndClient = (s: ClientItemState) => {
   const base = s.clientItemsByClientId ?? [];

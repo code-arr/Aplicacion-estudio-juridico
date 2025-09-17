@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import type { OpenDoc } from "@/types/Document";
-import { usePdfSessionStore } from "./usePdfSession";
 
 interface PdfManagerState {
   openDocs: OpenDoc[];
@@ -15,7 +14,7 @@ export const usePdfManagerStore = create<PdfManagerState>()((set, get) => ({
   openDocs: [],
   activeDocId: null,
 
-  open: (doc: OpenDoc) => {
+  open: (doc) => {
     const { activeDocId, openDocs } = get();
 
     // Si ya está activo, no hagas nada (evitás renders y llamadas al store de sesión)
@@ -29,24 +28,17 @@ export const usePdfManagerStore = create<PdfManagerState>()((set, get) => ({
         ? { ...s, activeDocId: doc.id }
         : { openDocs: [...s.openDocs, doc], activeDocId: doc.id }
     );
-
-    // Orquesta exclusividad + flush/pausa/reanudar en el store de sesión
-    // (pasa versionId si tu OpenDoc lo trae)
-    usePdfSessionStore.getState().setActiveDoc(doc.id);
   },
-  close: async (id: string) => {
+  close: (id: string) => {
     const wasActive = get().activeDocId === id;
-    if (wasActive) {
-      await usePdfSessionStore.getState().flushRemainder(id);
-    }
 
     set((s) => {
       const idx = s.openDocs.findIndex((d) => d.id === id);
       if (idx === -1) return s; // nada que cerrar
 
       const next = s.openDocs.filter((d) => d.id !== id);
-
       let newActiveId = s.activeDocId;
+
       if (wasActive) {
         // vecino izquierdo si existe, sino el primero de la lista nueva
         const neighborIndex = Math.max(0, idx - 1);
@@ -55,11 +47,6 @@ export const usePdfManagerStore = create<PdfManagerState>()((set, get) => ({
 
       return { openDocs: next, activeDocId: newActiveId };
     });
-
-    if (wasActive) {
-      const newId = get().activeDocId; // ya actualizado
-      usePdfSessionStore.getState().setActiveDoc(newId ?? null);
-    }
   },
   setActiveDocId: (id: string | null) => {
     const { activeDocId, openDocs } = get();
@@ -76,8 +63,5 @@ export const usePdfManagerStore = create<PdfManagerState>()((set, get) => ({
 
     // 4) Un solo set: cambiamos el activo (puede ser null)
     set({ activeDocId: id });
-
-    // 5) Orquestamos con el store de sesión (pausa/flush del anterior y resume del nuevo)
-    usePdfSessionStore.getState().setActiveDoc(id);
   },
 }));

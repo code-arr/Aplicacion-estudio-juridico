@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import { TimerEvent } from "./store/timeBufferStore.js";
 
 /**
  * Expone funciones seguras al frontend a través de window.electronAPI
@@ -30,31 +31,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   seleccionarArchivo: () => ipcRenderer.invoke("abrir-dialogo"),
 
   // --- NUEVO: API local para el buffer de tiempo ---
+  // ✅ API de buffer de eventos de timer
   timeBuffer: {
-    append: (entry: {
-      docId: string;
-      versionId?: string;
-      deltaSec: number;
-      clientTs: string;
-    }): Promise<number> => ipcRenderer.invoke("timeBuffer:append", entry),
+    append: (ev: TimerEvent): Promise<number> =>
+      ipcRenderer.invoke("timeBuffer:append", ev),
 
-    getPending: (): Promise<
-      Array<{
-        docId: string;
-        versionId?: string;
-        deltaSec: number;
-        clientTs: string;
-      }>
-    > => ipcRenderer.invoke("timeBuffer:getPending"),
+    getPending: (): Promise<TimerEvent[]> =>
+      ipcRenderer.invoke("timeBuffer:getPending"),
 
-    setPending: (
-      entries: Array<{
-        docId: string;
-        versionId?: string;
-        deltaSec: number;
-        clientTs: string;
-      }>
-    ): Promise<number> => ipcRenderer.invoke("timeBuffer:setPending", entries),
+    setPending: (events: TimerEvent[]): Promise<number> =>
+      ipcRenderer.invoke("timeBuffer:setPending", events),
 
     clear: (): Promise<number> => ipcRenderer.invoke("timeBuffer:clear"),
 
@@ -97,3 +83,35 @@ contextBridge.exposeInMainWorld("viewer", {
   },
 });
 /** =============================================================== */
+
+// ===== Buffer/Subscriber para AUDIENCES =====
+let _audViewerSubscriber: ((p: any) => void) | null = null;
+let _pendingAudViewerPayloads: any[] = [];
+
+// escuchar SIEMPRE el canal de audiencias:
+ipcRenderer.on("viewer:audience:addDocs", (_e, data) => {
+  if (_audViewerSubscriber) _audViewerSubscriber(data);
+  else _pendingAudViewerPayloads.push(data);
+});
+
+// ===== API del visor de AUDIENCIAS =====
+contextBridge.exposeInMainWorld("audienceViewer", {
+  open: (payload: { audiences: any[]; activeId?: string | null }) =>
+    ipcRenderer.invoke("viewer:audience:open", payload),
+
+  addDocs: (payload: { audiences: any[]; activeId?: string | null }) =>
+    ipcRenderer.send("viewer:audience:addDocs", payload),
+
+  close: () => ipcRenderer.send("viewer:audience:close"),
+
+  onAddDocs: (cb: any) => {
+    _audViewerSubscriber = cb;
+    if (_pendingAudViewerPayloads.length) {
+      for (const p of _pendingAudViewerPayloads) cb(p);
+      _pendingAudViewerPayloads = [];
+    }
+    return () => {
+      _audViewerSubscriber = null;
+    };
+  },
+});

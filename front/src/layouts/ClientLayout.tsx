@@ -1,13 +1,13 @@
-import { Outlet, useParams, useNavigate } from "react-router-dom";
+import { Outlet, useParams, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { selectClientDetail, useClientStore } from "@/store/useClientStore";
 import ClientHeader from "@/components/clients/ClientHeader"; // tu componente con props
-import LoadingSpinner from "@components/shared/LoadingSpinner";
-import ErrorScreen from "@components/shared/ErrorScreen";
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
+import ErrorScreen from "@/components/shared/ErrorScreen";
 
 const ClientLayout = () => {
   const { clientId } = useParams();
-  const navigate = useNavigate();
+  const location = useLocation();
 
   const setClientDetail = useClientStore((s) => s.setClientDetail);
   const clientDetail = useClientStore(selectClientDetail);
@@ -29,7 +29,7 @@ const ClientLayout = () => {
     <div className="min-h-screen bg-gray-50">
       <ClientHeader
         client={clientDetail}
-        onBack={() => navigate(-1)}
+        prevRoute={location.state?.prevRoute ? location.state.prevRoute : null}
         timer="00:00" // más adelante podrías sacarlo de un hook
       />
       <main className="p-6">

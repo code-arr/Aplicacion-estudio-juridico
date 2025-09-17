@@ -1,23 +1,23 @@
 import { useParams } from "react-router-dom";
 import type { Document } from "@/types/Document";
 import { useDocumentStore } from "@/store/useDocumentStore";
-import DocumentForm from "@components/documents/DocumentForm";
-import { Button } from "@components/ui/button";
+import DocumentForm from "@/components/documents/DocumentForm";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuRoot,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@components/ui/dropdownMenu";
-import { Input } from "@components/ui/input";
+} from "@/components/ui/dropdownMenu";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@components/ui/select";
+} from "@/components/ui/select";
 import { Ellipsis, FileIcon, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -209,8 +209,6 @@ const ItemDocumentsPage = () => {
                   <button
                     onClick={() => {
                       if ((doc.type || "").toLowerCase() === "pdf") {
-                        console.log("Entra al if");
-
                         openInViewer([doc], doc.id); // abre si no existe, agrega si ya está abierto
                       } else {
                         // Otros tipos, por ahora, abrir/descargar directo

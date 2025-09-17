@@ -1,6 +1,6 @@
 import type { ClientItem } from "@/types/ClientItem";
 import { CLIENTITEM_STATUS_MAP } from "@/types/ClientItem";
-import { Badge } from "@components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import {
   selectCategory,
   selectItemType,
@@ -11,14 +11,14 @@ import { selectClientDetail, useClientStore } from "@/store/useClientStore";
 import {
   SegmentedToggle,
   SegmentedToggleItem,
-} from "@components/ui/segmentedtoggle";
+} from "@/components/ui/segmentedtoggle";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Button } from "@components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
-import DocumentForm from "@components/documents/DocumentForm";
-import AudienceForm from "@components/audiences/AudienceForm";
-import ProcessForm from "@components/processes/ProcessForm";
+import DocumentForm from "@/components/documents/DocumentForm";
+import AudienceForm from "@/components/audiences/AudienceForm";
+import ProcessForm from "@/components/processes/ProcessForm";
 
 type Tab = {
   value: string;
@@ -206,7 +206,9 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
               value={currentTab}
               onValueChange={(next) => {
                 if (next == null) return;
-                navigate(next === "index" ? basePath : `${basePath}/${next}`);
+                navigate(next === "index" ? basePath : `${basePath}/${next}`, {
+                  state: { prevRoute },
+                });
               }}
               aria-label="Secciones del ítem"
             >

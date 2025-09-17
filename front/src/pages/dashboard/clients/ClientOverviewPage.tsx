@@ -1,23 +1,30 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { type Client, CLIENT_STATUS_MAP } from "@/types/Client";
+import type { ClientItem } from "@/types/ClientItem";
 import { selectCategories, useCatalogStore } from "@/store/useCatalogStore";
 import { selectClientDetail, useClientStore } from "@/store/useClientStore";
-import { useClientItemStore } from "@/store/useClientItemStore";
-import ItemForm from "@components/items/ItemForm";
-import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/card";
-import { Button } from "@components/ui/button";
-import { Badge } from "@components/ui/badge";
-import { Input } from "@components/ui/input";
-import { formatTimeFromSeconds } from "@/utils/timeUtils";
-import { FileText, Plus, Search, SquarePlus } from "lucide-react";
-import LoadingSpinner from "@components/shared/LoadingSpinner";
-import ErrorScreen from "@components/shared/ErrorScreen";
-import { type Client, CLIENT_STATUS_MAP } from "@/types/Client";
+import {
+  useClientItemStore,
+  selectRecentClientItemsByClientId,
+} from "@/store/useClientItemStore";
+import ItemForm from "@/components/items/ItemForm";
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
+import ErrorScreen from "@/components/shared/ErrorScreen";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { formatTimeFromSeconds } from "@/utils/dateTime";
 import googleLogo from "@/assets/logos/google.png";
+import { FileText, Plus, Search, SquarePlus } from "lucide-react";
+import ItemCard from "@/components/items/ItemCard";
+import { ItemsSearchBar } from "@/components/items/ItemSearchBar";
 
 const ClientOverviewPage = () => {
   /*   const { id } = useParams(); */
   const navigate = useNavigate();
+  const location = useLocation();
   /*   const setClientDetail = useClientStore((s) => s.setClientDetail); */
   const clientDetail = useClientStore(selectClientDetail);
   const categories = useCatalogStore(selectCategories);
@@ -25,14 +32,28 @@ const ClientOverviewPage = () => {
     (s) => s.fetchClientItemsByClientId
   );
   const clientItemsByClientId = useClientItemStore(
-    (s) => s.clientItems //Despues cambiar por s.clientItemsByClientId
+    (s) => s.clientItemsByClientId //Despues cambiar por s.clientItemsByClientId
   );
+  const recentClientItemsByClientId = useClientItemStore(
+    selectRecentClientItemsByClientId
+  );
+
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleOpenCategory = (categoryId: string) => {
-    navigate(`category/${categoryId}`);
+    navigate(`category/${categoryId}`, {
+      state: { prevRoute: location.pathname },
+    });
+  };
+
+  console.log(location.pathname);
+
+  const handleViewDetails = (item: ClientItem) => {
+    navigate(`/dashboard/item/${item.id}`, {
+      state: { prevRoute: location.pathname },
+    });
   };
 
   useEffect(() => {
@@ -109,7 +130,8 @@ const ClientOverviewPage = () => {
       <div className="space-y-6">
         {/* CONTENEDOR GENERAL */}
         <div className="bg-white border border-gray-200 rounded-md shadow px-6 max-w-8xl mx-auto">
-          {/* SECCIÓN DE INFORMACIÓN Y NOTAS CON LÍNEA VERTICAL */}
+          {/* SECCIÓN DE INFORMACIÓN Y ACCIONES CON LÍNEA VERTICAL */}
+
           <div className="flex flex-col md:flex-row md:items-stretch gap-6  ">
             {/* INFORMACIÓN DEL CLIENTE */}
             <div className="md:w-1/2 md:pr-6 md:border-r md:border-gray-200">
@@ -163,38 +185,59 @@ const ClientOverviewPage = () => {
             </div>
 
             {/* Google */}
-            <div className="md:w-1/2">
-              <div className="py-4">
-                <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
-                  Gmail
-                </h3>
-                <Button
-                  variant="outline"
-                  className="font-semibold border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)] cursor-pointer"
-                >
-                  <img src={googleLogo} className="w-5 h-5" alt="Logo Google" />
-                  Enviar mail
-                </Button>
-              </div>
-              <div className="py-3">
-                <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
-                  Proxima Reunión
-                </h3>
-                <Button
-                  variant="outline"
-                  className="flex flex-col h-fit px-4 gap-y-0.5 font-semibold border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)] cursor-pointer"
-                >
-                  <div className="flex items-center gap-x-2">
+            <div className="flex justify-between md:w-1/2">
+              <div>
+                <div className="py-4">
+                  <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
+                    Gmail
+                  </h3>
+                  <Button
+                    variant="outline"
+                    className="font-semibold border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)] cursor-pointer"
+                  >
                     <img
                       src={googleLogo}
-                      className="w-4 h-4"
+                      className="w-5 h-5"
                       alt="Logo Google"
                     />
-                    <p>Meet</p>
-                  </div>
-                  <div>
-                    <p className="font-medium">jueves, 28 ago. 10:30</p>
-                  </div>
+                    Enviar mail
+                  </Button>
+                </div>
+                <div className="py-3">
+                  <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
+                    Proxima Reunión
+                  </h3>
+                  <Button
+                    variant="outline"
+                    className="flex flex-col h-fit px-4 gap-y-0.5 font-semibold border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)] cursor-pointer"
+                  >
+                    <div className="flex items-center gap-x-2">
+                      <img
+                        src={googleLogo}
+                        className="w-4 h-4"
+                        alt="Logo Google"
+                      />
+                      <p>Meet</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">jueves, 28 ago. 10:30</p>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+              <div className="self-center flex flex-col items-end gap-y-10">
+                <Button
+                  variant="outline"
+                  className="w-full py-5 font-semibold border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)] cursor-pointer"
+                >
+                  Editar cliente
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full py-5 font-semibold border-red-500  bg-red-500 hover:bg-red-300 text-white cursor-pointer"
+                >
+                  Eliminar cliente
                 </Button>
               </div>
             </div>
@@ -208,15 +251,25 @@ const ClientOverviewPage = () => {
               <FileText className="h-5 w-5" />
               Contenido del Cliente
             </CardTitle>
-            <div className="flex w-2/5 gap-5">
+            <div className="flex w-1/2 gap-5">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <ItemsSearchBar
+                  items={clientItemsByClientId} // tu lista completa del cliente
+                  limit={4}
+                  onSelect={(item) => {
+                    // navegar al detalle o completar el input
+                    navigate(`/dashboard/item/${item.id}`, {
+                      state: { prevRoute: location.pathname },
+                    });
+                  }}
+                />
+                {/* <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Buscar por item..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
-                />
+                /> */}
               </div>
               <Button
                 onClick={() => setIsDialogOpen(true)}
@@ -227,18 +280,16 @@ const ClientOverviewPage = () => {
               </Button>
             </div>
           </CardHeader>
+
           {/* Formulario de ítems */}
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 divide-y divide-gray-200">
             {categories.length === 0 ? (
               <div className="text-center py-6  ">
                 <h3 className="text-lg font-medium text-[hsl(225,15%,15%)] mb-2">
                   No hay categorias aún
                 </h3>
                 <p className="text-gray-600">Agrega tu primer categoria</p>
-                <Button
-                  className="law-gradient hover:opacity-90 mt-5"
-                  onClick={() => console.log("")}
-                >
+                <Button className="law-gradient hover:opacity-90 mt-5">
                   <Plus className="h-4 w-4 mr-2" />
                   Agregar Categoria
                 </Button>
@@ -256,6 +307,22 @@ const ClientOverviewPage = () => {
                 ))}
               </div>
             )}
+            <div className="pt-2">
+              <h3 className="font-semibold text-[1.1rem] text-[hsl(225,15%,15%)] mb-3">
+                Items Recientes
+              </h3>
+              <div className="grid grid-cols-1 pr-10 gap-4">
+                {recentClientItemsByClientId?.map((item) => {
+                  return (
+                    <ItemCard
+                      key={item.id}
+                      item={item}
+                      onViewDetails={handleViewDetails}
+                    />
+                  );
+                })}
+              </div>
+            </div>
           </CardContent>
         </Card>
 

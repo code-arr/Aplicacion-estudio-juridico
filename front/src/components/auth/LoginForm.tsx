@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import type { LoginError } from "@/types/LoginError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,9 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogContent,
-} from "@components/ui/dialog";
-import { Scale } from "lucide-react";
-import type { LoginError } from "@/types/LoginError";
+} from "@/components/ui/dialog";
+import Logo from "@/assets/logos/logo-i&a-2.png";
 
 type LoginFormProps = {
   onLogin: (email: string, password: string) => void;
@@ -116,7 +116,7 @@ const LoginForm = ({
           <div className="text-center">
             <div className="flex justify-center mb-4">
               <div className="law-gradient p-3 rounded-full bg-gradient-to-br from-blue-600 to-blue-700">
-                <Scale className="h-8 w-8  text-white" />
+                <img src={Logo} className="h-8 w-8  text-white" />
               </div>
             </div>
             <h1 className="text-3xl font-bold text-gray-900">

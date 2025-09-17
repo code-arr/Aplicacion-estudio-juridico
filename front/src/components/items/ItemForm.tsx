@@ -1,4 +1,7 @@
-import { Button } from "@components/ui/button";
+import React, { useState } from "react";
+import type { ItemType, Section } from "@/types/Catalog";
+import { useCatalogStore } from "@/store/useCatalogStore";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -6,19 +9,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@components/ui/dialog";
-import { Input } from "@components/ui/input";
-import { Label } from "@components/ui/label";
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@components/ui/select";
-import { useCatalogStore } from "@/store/useCatalogStore";
-import type { ItemType, Section } from "@/types/Catalog";
-import React, { useState } from "react";
+} from "@/components/ui/select";
 
 type ItemFormProps = {
   isDialogOpen: boolean;
@@ -82,7 +82,7 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
           <div className="grid gap-2">
             <Select
               value={newItem.category}
-              onValueChange={(value) =>
+              onValueChange={(value: string) =>
                 setNewItem((prev) => ({
                   ...prev,
                   category: value,
@@ -110,14 +110,14 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
           <div className="grid gap-2">
             <Select
               value={newItem.section}
-              onValueChange={(value) =>
+              onValueChange={(value: string) =>
                 setNewItem((prev) => ({
                   ...prev,
                   section: value,
                   itemType: "",
                 }))
               }
-              disabled={!newItem.category}
+              disabled={!newItem.category || categorySections.length === 0}
             >
               <SelectTrigger
                 className={`capitalize ${
@@ -142,13 +142,13 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
           <div className="grid gap-2">
             <Select
               value={newItem.itemType}
-              onValueChange={(value) =>
+              onValueChange={(value: string) =>
                 setNewItem((prev) => ({
                   ...prev,
                   itemType: value,
                 }))
               }
-              disabled={!newItem.section}
+              disabled={!newItem.section || sectionItemTypes.length === 0}
             >
               <SelectTrigger
                 className={`capitalize ${
@@ -176,7 +176,7 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
               required
               id="title"
               value={newItem.title}
-              onChange={(e) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setNewItem({
                   ...newItem,
                   title: e.target.value,
@@ -191,7 +191,7 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
               required
               id="description"
               value={newItem.description}
-              onChange={(e) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setNewItem({
                   ...newItem,
                   description: e.target.value,

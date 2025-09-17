@@ -1,4 +1,4 @@
-import InfoCard from "@components/ui/infoCard";
+import InfoCard from "@/components/ui/infoCard";
 import {
   selectClientItemDetail,
   useClientItemStore,
@@ -10,9 +10,9 @@ import {
   selectSection,
   useCatalogStore,
 } from "@/store/useCatalogStore";
-import { Button } from "@components/ui/button";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import MeetingForm from "@components/meetings/MeetingForm";
+import MeetingForm from "@/components/meetings/MeetingForm";
 
 const ItemOverviewPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -54,7 +54,7 @@ const ItemOverviewPage = () => {
         defaultParticipants={[{ name: "adasdsa", email: "afadsas" }]}
       />
       <div className="flex flex-col w-3/4 gap-y-5">
-        <InfoCard title="Resumen" titleSize="xl">
+        <InfoCard title="Descripción" titleSize="xl">
           <div className="flex">
             <p>{item?.description}</p>
           </div>

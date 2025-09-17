@@ -17,6 +17,8 @@ type PdfTopBarProps = {
   onZoomIn?: () => void;
   onZoomOut?: () => void;
   onZoomReset?: () => void;
+
+  readOnly?: boolean; // por si mañana agregás "Editar", "Anotar", etc.
 };
 
 export default function PdfTopBar({

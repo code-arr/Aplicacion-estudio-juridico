@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import PdfTopBar from "@/components/pdf/PdfTopBar";
-import PdfViewerTabs from "@/components/pdf/PdfViewerTabs";
+import type { Document as AppDocument } from "@/types/Document";
 import { usePdfManagerStore } from "@/store/usePdfManagerStore";
 import { useDocumentStore } from "@/store/useDocumentStore";
-import type { Document as AppDocument } from "@/types/Document";
+import PdfTopBar from "@/components/pdf/PdfTopBar";
+import PdfViewerTabs from "@/components/pdf/PdfViewerTabs";
 
 type FitMode = "actual" | "fitWidth" | "fitPage";
 

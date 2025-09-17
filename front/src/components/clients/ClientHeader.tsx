@@ -1,25 +1,40 @@
-import { Avatar, AvatarFallback } from "@components/ui/avatar";
-import { Button } from "@components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface ClientHeaderProps {
   client: {
+    id: string;
     firstName?: string;
     lastName?: string;
     rut?: string;
   };
-  onBack?: () => void;
+  prevRoute: string | null;
   timer?: string;
 }
 
 const ClientHeader = ({
   client,
-  onBack,
+  prevRoute,
   timer = "00:00",
 }: ClientHeaderProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  console.log(location.hash);
+  console.log(location.pathname);
+  console.log(location.state);
+
   const initials = `${client.firstName?.charAt(0) ?? ""}${
     client.lastName?.charAt(0) ?? ""
   }`.toUpperCase();
+
+  const handleBack = () => {
+    if (prevRoute === null && location.pathname.includes("category"))
+      navigate(`/dashboard/clients/${client.id}`);
+    else if (prevRoute === null) navigate("/dashboard/clients");
+    else navigate(prevRoute);
+  };
 
   return (
     <div className="bg-[hsl(210,100%,45%)] law-gradient text-white p-6 shadow-md">
@@ -27,7 +42,7 @@ const ClientHeader = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={onBack}
+          onClick={handleBack}
           className=" text-white hover:bg-white/10 p-2"
         >
           <ArrowLeft className="h-6 w-6" />

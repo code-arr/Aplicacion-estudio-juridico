@@ -25,14 +25,14 @@
 
     "baseUrl": "./src",
     "paths": {
-      "@assets/*": ["assets/*"],
-      "@components/*": ["components/*"],
-      "@pages/*": ["pages/*"],
-      "@types/*": ["types/*"],
-      "@store/*": ["store/*"],
-      "@api/*": ["api/*"],
-      "@utils/*": ["utils/*"],
-      "@hooks/*": ["hooks/*"],
+      "@/assets/*": ["assets/*"],
+      "@/components/*": ["components/*"],
+      "@/pages/*": ["pages/*"],
+      "@/types/*": ["types/*"],
+      "@/store/*": ["store/*"],
+      "@/api/*": ["api/*"],
+      "@/utils/*": ["utils/*"],
+      "@/hooks/*": ["hooks/*"],
       "@/*": ["*"]
       /*     "@*": ["*"] */ //REVISAR DESPUES!!
     }

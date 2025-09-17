@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import type { HeartbeatEntry } from "../electron/store/timeBufferStore";
+import type { TimerEvent } from "@/types/Timer";
 
 /**
  * Agregamos definiciones para que TypeScript sepa
@@ -19,29 +19,10 @@ declare global {
       invoke: (channel: string, data?: any) => Promise<any>;
       seleccionarArchivo: () => Promise<string | null>;
       timeBuffer: {
-        append: (entry: {
-          docId: string;
-          versionId?: string;
-          deltaSec: number;
-          clientTs: string;
-        }) => Promise<number>;
-        getPending: () => Promise<
-          Array<{
-            docId: string;
-            versionId?: string;
-            deltaSec: number;
-            clientTs: string;
-          }>
-        >;
-        setPending: (
-          entries: Array<{
-            docId: string;
-            versionId?: string;
-            deltaSec: number;
-            clientTs: string;
-          }>
-        ) => Promise<number>;
-        clear: () => Promise<number>;
+        append: (entry: TimerEvent) => Promise<number | void>;
+        getPending: () => Promise<TimerEvent[]>;
+        setPending: (entries: TimerEvent[]) => Promise<number | void>;
+        clear: () => Promise<number | void>;
         count: () => Promise<number>;
       };
     };
@@ -54,6 +35,20 @@ declare global {
       close: () => void;
       onAddDocs: (
         cb: (payload: { docs: any[]; activeId?: string | null }) => void
+      ) => () => void;
+    };
+    audienceViewer?: {
+      open: (payload: {
+        audiences: any[];
+        activeId?: string | null;
+      }) => Promise<boolean>;
+      addDocs: (payload: {
+        audiences: any[];
+        activeId?: string | null;
+      }) => void;
+      close: () => void;
+      onAddDocs: (
+        cb: (payload: { audiences: any[]; activeId?: string | null }) => void
       ) => () => void;
     };
   }

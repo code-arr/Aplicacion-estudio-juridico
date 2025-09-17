@@ -11,24 +11,25 @@ import DashboardLayout from "@/pages/dashboard/DashboardLayout";
 import LoginPage from "@/pages/auth/LoginPage";
 import NotFoundPage from "@/pages/not-found/NotFoundPage";
 import UnauthorizedAccess from "@/pages/auth/UnauthorizedAccess";
-import AdminDashboard from "@pages/dashboard/admin/AdminDashboard";
-import ClientsPage from "@pages/dashboard/clients/ClientsPage";
+import AdminDashboard from "@/pages/dashboard/admin/AdminDashboard";
+import ClientsPage from "@/pages/dashboard/clients/ClientsPage";
 import ClientOverviewPage from "@/pages/dashboard/clients/ClientOverviewPage";
-import ClientCatalogPage from "@pages/dashboard/clients/ClientCatalogPage";
+import ClientCatalogPage from "@/pages/dashboard/clients/ClientCatalogPage";
 
-import LawyerStatistics from "@pages/dashboard/lawyer/statistics/LawyerStatistics";
-import LawyerSettings from "@pages/dashboard/lawyer/settings/LawyerSettings";
-import LawyerEditProfile from "@pages/dashboard/lawyer/settings/LawyerEditProfile";
+import LawyerStatistics from "@/pages/dashboard/lawyer/statistics/LawyerStatistics";
+import LawyerSettings from "@/pages/dashboard/lawyer/settings/LawyerSettings";
+import LawyerEditProfile from "@/pages/dashboard/lawyer/settings/LawyerEditProfile";
 
-import ItemOverviewPage from "@pages/dashboard/items/ItemOverviewPage";
-import ItemsPage from "@pages/dashboard/items/ItemsPage";
-import ItemDocumentsPage from "@pages/dashboard/items/ItemDocumentsPage";
-import ItemAudiencesPage from "@pages/dashboard/items/ItemAudiencesPage";
-import ItemMeetingsPage from "@pages/dashboard/items/ItemMeetingsPage";
-import ItemProcessPage from "@pages/dashboard/items/ItemProcessPage";
+import ItemOverviewPage from "@/pages/dashboard/items/ItemOverviewPage";
+import ItemsPage from "@/pages/dashboard/items/ItemsPage";
+import ItemDocumentsPage from "@/pages/dashboard/items/ItemDocumentsPage";
+import ItemAudiencesPage from "@/pages/dashboard/items/ItemAudiencesPage";
+import ItemMeetingsPage from "@/pages/dashboard/items/ItemMeetingsPage";
+import ItemProcessPage from "@/pages/dashboard/items/ItemProcessPage";
 import DocumentViewerPage from "@/pages/dashboard/documents/DocumentViewerPage";
+import AudienceViewerPage from "@/pages/dashboard/audiences/AudienceViewerPage";
 
-import LoadingScreen from "@components/shared/LoadingScreen";
+import LoadingScreen from "@/components/shared/LoadingScreen";
 
 const AppRoutes = () => {
   const { isAdmin, isLawyer, isLoadingSession } = useAuthStore();
@@ -43,10 +44,18 @@ const AppRoutes = () => {
 
       {/* Visor PDF top-level, protegido */}
       <Route
-        path="/viewer"
+        path="/viewer/documents"
         element={
           <PrivateRoute>
             <DocumentViewerPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/viewer/audiences"
+        element={
+          <PrivateRoute>
+            <AudienceViewerPage />
           </PrivateRoute>
         }
       />

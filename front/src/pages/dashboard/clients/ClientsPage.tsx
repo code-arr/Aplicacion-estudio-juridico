@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import type { Client } from "@/types/Client";
@@ -10,8 +10,9 @@ import {
   selectClientsByLawyer,
   selectClientsError,
 } from "@/store/useClientStore";
+import { useClientItemStore } from "@/store/useClientItemStore";
 
-import ClientCard from "@components/clients/ClientCard";
+import ClientCard from "@/components/clients/ClientCard";
 import ClientForm from "@/components/clients/ClientForm";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -25,12 +26,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
+import EmptyArray from "@/components/shared/EmptyArray";
+import ErrorScreen from "@/components/shared/ErrorScreen";
+
 import { Search, Plus } from "lucide-react";
 
 import { mockClients } from "@/mocks/mockClients";
-import LoadingSpinner from "@components/shared/LoadingSpinner";
-import EmptyArray from "@components/shared/EmptyArray";
-import ErrorScreen from "@components/shared/ErrorScreen";
 
 const ClientsPage = () => {
   const navigate = useNavigate();
@@ -43,6 +45,10 @@ const ClientsPage = () => {
   const isClientsHydrated = useClientStore(selectIsClientsHydrated);
   const isClientsLoading = useClientStore(selectIsLoadingClients);
   const clientsError = useClientStore(selectClientsError);
+
+  const resetClientItemsByClientId = useClientItemStore(
+    (s) => s.resetClientItemsByClientId
+  );
 
   // Función utilitaria
   const normalizeText = (text: string) =>
@@ -77,6 +83,10 @@ const ClientsPage = () => {
   const getStatusCount = (status: Client["status"]) => {
     return clients.filter((client) => client.status === status).length;
   };
+
+  useEffect(() => {
+    resetClientItemsByClientId();
+  }, [resetClientItemsByClientId]);
 
   if (isClientsLoading) return <LoadingSpinner />;
 

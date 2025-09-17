@@ -2,6 +2,8 @@ import type { OpenDoc } from "@/types/Document";
 import { usePdfManagerStore } from "@/store/usePdfManagerStore";
 import PdfTabBar from "./PdfTabBar";
 import PdfPane from "./PdfPane";
+import { useEffect } from "react";
+import { useTimerStore } from "@/store/useTimerStore";
 
 type FitMode = "actual" | "fitWidth" | "fitPage";
 
@@ -10,7 +12,23 @@ type PdfViewerTabsProps = {
   zoom: number;
 };
 
+function useAutoTrackActiveDocument() {
+  const activeDocId = usePdfManagerStore((s) => s.activeDocId);
+  const switchTo = useTimerStore((s) => s.switchTo);
+  const pause = useTimerStore((s) => s.pause);
+
+  useEffect(() => {
+    if (activeDocId) {
+      switchTo({ type: "Document", id: activeDocId }).catch(console.error);
+    } else {
+      // No hay doc activo => cerramos el timer si estuviera corriendo
+      pause("close").catch(() => {});
+    }
+  }, [activeDocId, switchTo, pause]);
+}
+
 const PdfViewerTabs = ({ fitMode, zoom }: PdfViewerTabsProps) => {
+  useAutoTrackActiveDocument();
   const { openDocs, activeDocId, setActiveDocId, close } = usePdfManagerStore();
 
   if (!openDocs.length) {
