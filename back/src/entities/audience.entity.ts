@@ -32,6 +32,15 @@ export class Audience {
   @Column({ type: 'timestamp', nullable: true })
   updateAt: Date;
 
+  @Column({ type: 'int', nullable: true })
+  size: number;
+
+  @Column({type : 'int', nullable: true})
+  pages : number;
+
+  @Column({type : "timestamp", nullable: true})
+  date: Date;
+
   @BeforeInsert()
   setCreateAt() {
     this.createAt = moment().tz('America/Santiago').toDate();

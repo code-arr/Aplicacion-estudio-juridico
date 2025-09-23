@@ -63,6 +63,15 @@ export class Client {
   @Column({ type: 'int', default: 0 })
   activeTime: number;
 
+  @Column({type : 'varchar', nullable: true})
+  companyName : string;
+
+  @Column({type : 'varchar', nullable: true})
+  legalRepresentative : string;
+
+  @Column({type : 'varchar', nullable: true})
+  motherId : string;
+
   // La columna ya no necesita el "default" ya que lo asignas en el código
   @Column({ type: 'timestamp' })
   createAt: Date;

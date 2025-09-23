@@ -35,7 +35,7 @@ export class MeetingService {
         // Crea el registro en la base de datos con el ID del evento de Google
 
         const newMeeting = await this.meetingRepository.createMeeting(
-          { ...meetingData, date: meetingDate },
+          { ...meetingData, startAt: meetingDate },
           clientItemId,
         );
 
@@ -45,15 +45,15 @@ export class MeetingService {
           meetingDate,
           name,
         );
-        const url = googleEvent.htmlLink;
-        if (!url) {
+        const link = googleEvent.htmlLink;
+        if (!link) {
           throw new InternalServerErrorException(
             'No se pudo obtener la URL del evento de Google.',
           );
         }
         const meeting = await this.meetingRepository.updateMeeting(
           newMeeting.id,
-          { url },
+          { link },
         );
 
         if (!meeting) {
@@ -85,7 +85,7 @@ export class MeetingService {
       try {
         const meetingDate = new Date(date);
         return this.meetingRepository.createMeeting(
-          { ...meetingData, date: meetingDate },
+          { ...meetingData, startAt: meetingDate },
           clientItemId,
         );
       } catch (error) {

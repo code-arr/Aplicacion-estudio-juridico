@@ -1,5 +1,12 @@
 import { IsUUID } from 'class-validator';
-import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  BeforeInsert,
+  BeforeUpdate,
+  Column,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { ClientItem } from './clientItem.entity';
 import { Client } from './client.entity';
@@ -15,27 +22,38 @@ export class Meeting {
   name: string;
 
   @Column({ type: 'int', nullable: true })
-  duration: number; // Duración de la reunión (ej. 1 hora, 30 minutos, etc.)
+  durationSec: number; // Duración de la reunión (ej. 1 hora, 30 minutos, etc.)
 
-  @Column({ type: 'timestamp' })
-  date: Date; // Fecha y hora de la reunión
+  @Column({ type: 'text', nullable: true })
+  notes: string;
+
+  @Column({ type: 'timestamp' , nullable: true })
+  startAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  endAt: Date;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  url: string;
+  link: string;
 
   @Column({
     type: 'enum',
     enum: ['google-meet', 'in-person'],
     default: 'google-meet',
   })
-  meetingType: 'google-meet' | 'in-person';
+  type: 'google-meet' | 'in-person';
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  participants: [{ name: string; email: string }]; // Lista de participantes (nombre y correo electrónico)
+
+  @Column({ type: 'varchar', nullable: true })
+  location: string; // Ubicación física si es una reunión en persona
   @Column({
     type: 'enum',
     enum: ['scheduled', 'completed'],
     default: 'scheduled',
   })
-  status: 'scheduled' | 'completed';
+  status: 'scheduled' | 'completed' | 'canceled';
 
   @Column({ type: 'text', nullable: true })
   description: string;

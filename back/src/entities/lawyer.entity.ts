@@ -18,13 +18,13 @@ import { ClientItem } from './clientItem.entity';
 import * as moment from 'moment-timezone';
 import { Event } from './events.entity';
 
-export enum typeOffLawyer {
+export enum lawyerType {
   CRIMINAL = 'criminal',
   CIVIL = 'civil',
   FAMILIAR = 'familiar',
 }
 
-export enum SeniorityLevel {
+export enum seniorityLevel {
   JUNIOR = 'junior',
   MID = 'mid',
   SENIOR = 'senior',
@@ -43,7 +43,7 @@ export class Lawyer {
   lastName: string;
 
   @Column({ type: 'varchar', length: 100, unique: true })
-  adress: string;
+  address: string;
 
   @Column({ type: 'varchar', length: 15, unique: true })
   phone: string;
@@ -53,17 +53,17 @@ export class Lawyer {
 
   @Column({
     type: 'enum',
-    enum: typeOffLawyer,
+    enum: lawyerType,
     nullable: true,
   })
-  type: typeOffLawyer;
+  type: lawyerType;
 
   @Column({
     type: 'enum',
-    enum: SeniorityLevel,
+    enum: seniorityLevel,
     nullable: true,
   })
-  seniorityLevel: SeniorityLevel;
+  seniorityLevel: seniorityLevel;
 
   @Column({ type: 'int', default: 0 })
   workedHours: number;

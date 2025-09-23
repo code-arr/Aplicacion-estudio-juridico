@@ -35,8 +35,6 @@ export class User {
   @Column({ type: 'varchar', length: 300, default: '' })
   googleRefreshToken: string;
 
-  @Column({ type: 'varchar', length: 100, default: '' })
-  mailerKey: string;
 
   @Column({
     type: 'enum',

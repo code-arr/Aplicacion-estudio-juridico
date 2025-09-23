@@ -16,10 +16,10 @@ export class Process {
   description: string | null;
 
   @Column({ type: 'decimal', precision: 5, scale: 2 })
-  duration: number; // Duración del trabajo en horas
+  durationSec: number; // Duración del trabajo en segundos
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  date: Date;
+  dateTime: Date;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createAt: Date;
