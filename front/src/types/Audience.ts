@@ -6,8 +6,8 @@ export interface Audience {
   pages?: number;
   date?: string;
 
-  uploadedAt?: Date;
-  createdAt?: Date;
+  updateAt?: Date;
+  createAt?: Date;
 
   tags?: string[];
   status?: "draft" | "final" | "archived";

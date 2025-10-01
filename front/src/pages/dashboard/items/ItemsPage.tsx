@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ClientItem } from "@/types/ClientItem";
 import { selectCategories, useCatalogStore } from "@/store/useCatalogStore";
@@ -20,6 +20,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useFocusContext } from "@/hooks/useFocusContext";
 
 type SortKey = "recent" | "creation" | "A_Z";
 
@@ -43,27 +45,29 @@ const ORDER_CMP: Record<SortKey, (a: ClientItem, b: ClientItem) => number> = {
 };
 
 const ItemsPage = () => {
+  useFocusContext(null);
+
   const navigate = useNavigate();
+  const PAGE_STEP = 10;
+  const [pageSize, setPageSize] = useState(PAGE_STEP);
+  const [showAll, setShowAll] = useState(false);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  /*   const [categoryFilter, setCategoryFilter] = useState<string>("todos"); */
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [orderBy, setOrderBy] = useState<string>("");
-  /*  const categories = useCatalogStore(selectCategories); */
-  const clientItems = useClientItemStore(selectClientItems);
+  /*   const [categoryFilter, setCategoryFilter] = useState<string>("todos"); */
   const [loading, setLoading] = useState(true);
 
+  /*  const categories = useCatalogStore(selectCategories); */
+  const clientItems = useClientItemStore(selectClientItems);
   /*   const filteredClientItems = useClientItemStore(selectClientItemsByFilters); */
   const filters = useClientItemStore((s) => s.filters);
   const setFilters = useClientItemStore((s) => s.setFilters);
 
-  const handleViewDetails = (item: ClientItem) => {
-    navigate(`/dashboard/item/${item.id}`);
-  };
-
   const filteredClientItems = useMemo((): ClientItem[] => {
     const base = clientItems ?? [];
-    const { query, status, order } = filters ?? {};
+    const { query = "", status, order } = filters ?? {};
     const q = query.trim().toLowerCase();
     const filtered = base
       .filter((item: ClientItem) => !status || item.status === status)
@@ -73,18 +77,40 @@ const ItemsPage = () => {
     return filtered.sort(ORDER_CMP[key]);
   }, [clientItems, filters]);
 
+  const total = filteredClientItems.length;
+  const visibleItems = useMemo(
+    () =>
+      showAll ? filteredClientItems : filteredClientItems.slice(0, pageSize),
+    [filteredClientItems, showAll, pageSize]
+  );
+
+  const handleViewDetails = useCallback(
+    (item: ClientItem) => {
+      navigate(`/dashboard/item/${item.id}`);
+    },
+    [navigate]
+  );
+
+  const debouncedQuery = useDebouncedValue(searchTerm, 250);
   useEffect(() => {
     setFilters({
-      query: searchTerm,
+      query: debouncedQuery,
       status: statusFilter === "todos" ? undefined : statusFilter,
-      order: orderBy,
+      // dejá order undefined si querés mantener el placeholder;
+      // en tu derivado seguí usando el fallback a "recent"
+      order: orderBy || undefined,
     });
-  }, [setFilters, searchTerm, statusFilter, orderBy]);
+  }, [debouncedQuery, statusFilter, orderBy, setFilters]);
 
   useEffect(() => {
     setLoading(true);
-    if (filteredClientItems.length > 0) setLoading(false);
+    if (filteredClientItems.length >= 0) setLoading(false);
   }, [filteredClientItems]);
+
+  useEffect(() => {
+    setPageSize(PAGE_STEP);
+    setShowAll(false);
+  }, [filters.query, filters.status, filters.order]);
 
   return (
     <div className=" bg-gradient-to-t from-[#334155] via-[#3b4d66] to-[#60a5fa]/20 min-h-screen">
@@ -149,26 +175,45 @@ const ItemsPage = () => {
           </div>
         </div>
 
+        <p className="text-sm text-gray-500 mb-2">
+          {visibleItems.length} de {total} resultados
+        </p>
         {/* ClientItem Cards Grid */}
         {loading ? (
           <LoadingSpinner />
         ) : (
           <div className="grid grid-cols-1 pr-10 gap-4">
-            {
-              filteredClientItems
-                .map((item) => {
-                  return (
-                    <ItemCard
-                      key={item.id}
-                      item={item}
-                      onViewDetails={handleViewDetails}
-                    />
-                  );
-                })
-                .slice(0, 8) /* Limitar a 8 items por ahora */
-            }
+            {visibleItems.map((item) => {
+              return (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  onViewDetails={handleViewDetails}
+                />
+              );
+            })}
           </div>
         )}
+        {!loading && total === 0 && (
+          <p className="text-sm text-gray-900">
+            No hay ítems que coincidan con tu búsqueda.
+          </p>
+        )}
+        <div className="flex items-center justify-center py-3 gap-2">
+          {!showAll && visibleItems.length < total && (
+            <Button
+              variant="outline"
+              onClick={() => setPageSize((s) => s + PAGE_STEP)}
+            >
+              Ver más
+            </Button>
+          )}
+          {total > PAGE_STEP && (
+            <Button variant="ghost" onClick={() => setShowAll((v) => !v)}>
+              {showAll ? "Mostrar menos" : "Ver todos"}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

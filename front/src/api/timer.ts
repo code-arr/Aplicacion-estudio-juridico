@@ -1,6 +1,7 @@
 import axios from "./axios";
-import type { PauseReason, StartOpts } from "@/store/useTimerStore";
-import type { Trackable, TimeEntry } from "@/types/Timer";
+import type { StartOpts } from "@/store/useTimerStore";
+import type { Trackable, PauseReason } from "../../shared/types/TimerBase";
+import type { TimeEntry } from "@/types/Timer";
 
 export const startTimer = async (trackable: Trackable, opts?: StartOpts) => {
   const body = {

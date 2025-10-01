@@ -17,8 +17,8 @@ export interface Document {
   size: number;
   fileUrl: string;
 
-  uploadedAt?: Date;
-  createdAt?: Date;
+  updateAt?: Date;
+  createAt?: Date;
 
   tags?: string[];
   status?: "draft" | "final" | "archived";

@@ -5,6 +5,7 @@ import { usePdfManagerStore } from "@/store/usePdfManagerStore";
 import { useDocumentStore } from "@/store/useDocumentStore";
 import PdfTopBar from "@/components/pdf/PdfTopBar";
 import PdfViewerTabs from "@/components/pdf/PdfViewerTabs";
+import { useAppPresenceTimer } from "@/hooks/useAppPresenceTimer";
 
 type FitMode = "actual" | "fitWidth" | "fitPage";
 
@@ -24,6 +25,8 @@ function useDocIdsFromQuery() {
 }
 
 const DocumentViewerPage = () => {
+  useAppPresenceTimer(); // 👈 mantiene corriendo el global y marca actividad cuando el visor está visible
+
   const [fitMode, setFitMode] = useState<FitMode>("fitPage"); // tamaño original
   const [zoom, setZoom] = useState(1); // 1 = 100%
   const { ids, active } = useDocIdsFromQuery();

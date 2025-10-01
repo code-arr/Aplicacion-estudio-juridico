@@ -2,8 +2,9 @@ import React, { useMemo, useState } from "react";
 import type { Lawyer } from "@/types/Lawyer";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Input } from "@components/ui/input";
-import { Label } from "@components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useFocusContext } from "@/hooks/useFocusContext";
 
 // === Utilidades cortas (sin libs) ===
 const formatPhone = (v: string) =>
@@ -27,6 +28,8 @@ export type LawyerEditProfileProps = {
 export default function LawyerEditProfile({
   onSubmit,
 }: LawyerEditProfileProps) {
+  useFocusContext(null);
+
   const lawyer = useLawyerStore((s) => s.lawyer);
   const lawyerUser = useAuthStore((s) => s.user);
   const [form, setForm] = useState({

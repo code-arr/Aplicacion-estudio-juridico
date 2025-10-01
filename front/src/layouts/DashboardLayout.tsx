@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import {
@@ -16,21 +16,73 @@ import {
   useClientItemStore,
   selectIsClientItemsPrefetched,
 } from "@/store/useClientItemStore";
+import { useTimerStore } from "@/store/timer/useTimerStore";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/lawyer/AppSidebar";
+import WorkTimeBadge from "@/components/timer/WorkTimeBadge";
 import InactivityModal from "@/components/shared/InactivityModal";
 import LoadingScreen from "@/components/shared/LoadingScreen";
 import { useTokenExpirationWatcher } from "@/hooks/useTokenExpirationWatcher";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
+import { useAppPresenceTimer } from "@/hooks/useAppPresenceTimer";
+import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
+import { useIdleWatch } from "@/hooks/useIdleWatch";
+import { useMidnightReset } from "@/hooks/useMidnightReset";
+import { useTimeSyncInit } from "@/hooks/useTimeSyncInit";
 
 const DashboardLayout = () => {
+  // estado de usuario/rol/abogado
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === "admin";
+  const lawyer = useLawyerStore((s) => s.lawyer);
+
+  // habilitamos timers SOLO cuando hay lawyer y no es admin
+  const timersEnabled = !!lawyer && !isAdmin;
+
   // ⏰ Hooks se activan apenas entra al dashboard
   useTokenExpirationWatcher(); // Hook que detecta si el token definitivo del back ya expiro o es invalido y cierra sesion
   useInactivityLogout(); // Hook que detecta la inactividad del usuario para cerrar sesion
 
-  const logOut = useAuthStore((s) => s.logout);
+  // Hooks globales (siempre llamados, pero con enabled)
+  useActivityHeartbeat({ enabled: timersEnabled });
+  useIdleWatch(timersEnabled);
+  useMidnightReset({ enabled: timersEnabled });
+  useAppPresenceTimer(timersEnabled);
+  useTimeSyncInit(timersEnabled);
 
-  const lawyer = useLawyerStore((s) => s.lawyer);
+  // 🔁 Cada cambio de ruta: si quedó sin contexto, encendé LawyerApp sin esperar interacción
+  /*   useEffect(() => {
+    if (!timersEnabled) return;
+    
+    let cancelled = false;
+    const id = requestAnimationFrame(() => {
+      if (cancelled) return;
+      const s = useTimerStore.getState();
+      if (!s.active && document.visibilityState === "visible") {
+        s.start({ type: "LawyerApp", id: lawyer!.id }, "auto"); // 👈 source "auto"
+        }
+        });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(id);
+      };
+  }, [location.key, timersEnabled, lawyer?.id]); */
+
+  useEffect(() => {
+    if (!timersEnabled) return;
+    if (document.visibilityState !== "visible") return;
+
+    const s = useTimerStore.getState();
+    if (!s.active) {
+      if (s.status !== "running") {
+        s.workStart();
+        console.log("Se prende el global desde DashboardLayout");
+      } // 🔥 prende global
+      s.start({ type: "LawyerApp", id: lawyer!.id }, "auto");
+    }
+  }, [timersEnabled, lawyer?.id]);
+
+  const logOut = useAuthStore((s) => s.logout);
 
   /*   const isRefreshingClients = useClientStore((s) => s.isRefreshing); */
   const hydrateClientsByLawyer = useClientStore((s) => s.hydrateByLawyer);
@@ -71,7 +123,8 @@ const DashboardLayout = () => {
 
   if (
     (!isHydratedCatalog && isLoadingCatalog) ||
-    (!isHydratedClients && isLoadingClients)
+    (!isHydratedClients && isLoadingClients) ||
+    (!isAdmin && !lawyer?.id)
   )
     return <LoadingScreen />;
 
@@ -85,6 +138,7 @@ const DashboardLayout = () => {
         </main>
         {/* 🔔 Modal de advertencia de inactividad */}
         <InactivityModal />
+        {timersEnabled && <WorkTimeBadge />}
       </div>
     </SidebarProvider>
   );

@@ -3,7 +3,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { isTokenExpired, getTokenTimeLeft } from "@/utils/token";
 
 export const useTokenExpirationWatcher = () => {
-  console.log("Entra en useTokenExpirationWatcher");
+  /* console.log("Entra en useTokenExpirationWatcher"); */
 
   const { token, reset } = useAuthStore();
 

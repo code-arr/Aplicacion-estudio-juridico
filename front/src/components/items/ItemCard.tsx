@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import type { ClientItem } from "@/types/ClientItem";
 import { CLIENTITEM_STATUS_MAP } from "@/types/ClientItem";
 import { selectClientName, useClientStore } from "@/store/useClientStore";
@@ -8,15 +8,15 @@ import {
   selectSection,
   useCatalogStore,
 } from "@/store/useCatalogStore";
-import { Card, CardContent } from "@components/ui/card";
-import { Badge } from "@components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenuRoot,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-} from "@components/ui/dropdownMenu";
+} from "@/components/ui/dropdownMenu";
 import {
   Scale,
   Landmark,
@@ -175,4 +175,4 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
   );
 };
 
-export default ItemCard;
+export default memo(ItemCard);

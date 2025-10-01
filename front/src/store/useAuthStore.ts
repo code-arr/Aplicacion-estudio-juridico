@@ -33,13 +33,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
   isLawyer: false,
   showInactivityModal: false,
   login: async (user: User, token: string) => {
-    console.log("Entra a login");
     await window.electronAPI.invoke("auth:save", {
       token,
       id: user.id,
       role: user.role,
     });
-    console.log(await window.electronAPI?.invoke("auth:get"));
 
     set(() => ({
       user,
@@ -51,7 +49,6 @@ export const useAuthStore = create<AuthState>()((set) => ({
     }));
   },
   logout: async () => {
-    console.log("Entra a logout");
     await window.electronAPI?.invoke("auth:clear");
     set(() => ({
       user: null,
@@ -63,8 +60,6 @@ export const useAuthStore = create<AuthState>()((set) => ({
     }));
   },
   reset: async () => {
-    console.log("Entra a reset");
-
     await window.electronAPI?.invoke("auth:clear");
     set(() => ({
       user: null,

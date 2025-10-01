@@ -3,25 +3,31 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import { googleConnect } from "@/api/user";
-import { Avatar, AvatarFallback } from "@components/ui/avatar";
-import { Button } from "@components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/card";
-import { Switch } from "@components/ui/switch";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import googleLogo from "@/assets/logos/google.png";
+import ChangePasswordDialog from "@/components/lawyer/ChangePasswordDialog";
+import { useFocusContext } from "@/hooks/useFocusContext";
 
 const Settings = () => {
+  useFocusContext(null);
+
   const navigate = useNavigate();
+
+  const [pwdOpen, setPwdOpen] = useState(false);
+  /*   const [pwdStep, setPwdStep] = useState<"verify" | "set">("verify"); */
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const lawyer = useLawyerStore((s) => s.lawyer);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
-
   useEffect(() => {
     if (user?.googleEmail) setIsGoogleConnected(true);
-    console.log(isGoogleConnected);
-  }, [user?.googleEmail, isGoogleConnected]);
+  }, [user?.googleEmail]);
 
   const handleGoogleConnect = async () => {
     setIsLoading(true);
@@ -61,42 +67,70 @@ const Settings = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Card className="flex flex-row items-center justify-between px-6 py-4 border-2 border-gray-200 shadow-none">
-              <div className="flex items-center gap-5">
-                <Avatar className="h-16 w-16 mb-4">
+            <Card className="flex flex-row items-start justify-between px-6 py-4 border-2 border-gray-200 shadow-none">
+              {/* Avatar + info */}
+              <div className="flex items-start gap-5">
+                <Avatar className="h-16 w-16 mt-1">
                   <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] text-2xl">
                     {getInitials(lawyer?.firstName)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col gap-2 text-base">
+
+                <div className="flex flex-col gap-3 text-base">
+                  {/* Nombre y correo */}
                   <div>
                     <p className="text-lg font-semibold">
-                      {lawyer?.lastName.includes(" ")
-                        ? lawyer?.firstName +
-                          " " +
-                          lawyer?.lastName.slice(
-                            0,
-                            lawyer?.lastName.indexOf(" ")
-                          )
-                        : lawyer?.firstName + " " + lawyer?.lastName}
+                      {lawyer?.firstName} {lawyer?.lastName}
                     </p>
                     <p>{user?.email}</p>
                   </div>
-                  <div>
-                    <p>Estado de la cuenta: Activo</p>
+
+                  {/* Estado */}
+                  <p>Estado de la cuenta: Activo</p>
+
+                  {/* Datos adicionales */}
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm text-gray-700">
+                    <p>
+                      <span className="font-medium">Teléfono: </span>
+                      {lawyer?.phone}
+                    </p>
+                    <p>
+                      <span className="font-medium">RUT: </span> {lawyer?.rut}
+                    </p>
+                    <p className="">
+                      <span className="font-medium">Dirección: </span>
+                      {lawyer?.adress}
+                    </p>
+                    <p>
+                      <span className="font-medium">Tipo: </span>
+                      {lawyer?.lawyerType
+                        ? lawyer?.lawyerType
+                        : "No especificado"}
+                    </p>
+                    <p>
+                      <span className="font-medium">Seniority: </span>
+                      {lawyer?.seniorityLevel}
+                    </p>
+                    <p>
+                      <span className="font-medium">Gmail: </span>
+                      {user?.googleEmail ? user.googleEmail : "No conectado"}
+                    </p>
                   </div>
                 </div>
               </div>
+
+              {/* Botón editar */}
               <Button
                 onClick={handleEditProfile}
-                className="text-base font-normal cursor-pointer"
+                className="text-base font-normal cursor-pointer h-fit"
               >
                 Editar perfil
               </Button>
             </Card>
           </CardContent>
         </div>
-        <div>
+
+        {/* <div>
           <CardHeader className="flex-row justify-between pb-4 pt-1">
             <CardTitle className="flex items-center gap-2 font-medium tracking-[0.01em] text-[hsl(225,15%,15%)]">
               Notificaciones
@@ -104,7 +138,7 @@ const Settings = () => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col border-2 border-gray-200 rounded-lg divide-y divide-gray-200 py-1">
-              {/* Recordatorios de plazos */}
+              {/* Recordatorios de plazos 
               <div className="flex items-center justify-between p-3">
                 <div>
                   <p className="font-medium text-[hsl(225,15%,15%)]">
@@ -118,12 +152,11 @@ const Settings = () => {
                   className="bg-slate-200"
                   checked={true}
                   onCheckedChange={(val) => {
-                    /* toggle en store */
-                  }}
+                    /* toggle en store }
                 />
               </div>
 
-              {/* Nuevas tareas asignadas */}
+              {/* Nuevas tareas asignadas 
               <div className="flex items-center justify-between p-3">
                 <div>
                   <p className="font-medium text-[hsl(225,15%,15%)]">
@@ -137,12 +170,12 @@ const Settings = () => {
                   className="bg-slate-200"
                   checked={false}
                   onCheckedChange={(val) => {
-                    /* toggle en store */
-                  }}
+                    /* toggle en store 
+                  }
                 />
               </div>
 
-              {/* Avisos de audiencias */}
+              {/* Avisos de audiencias
               <div className="flex items-center justify-between p-3">
                 <div>
                   <p className="font-medium text-[hsl(225,15%,15%)]">
@@ -156,13 +189,13 @@ const Settings = () => {
                   className="bg-slate-200"
                   checked={true}
                   onCheckedChange={(val) => {
-                    /* toggle en store */
-                  }}
+                    /* toggle en store 
+                  }
                 />
               </div>
             </div>
           </CardContent>
-        </div>
+        </div> */}
         <div className="flex">
           <div>
             <CardHeader className="flex-row justify-between pb-4 pt-1">
@@ -175,9 +208,12 @@ const Settings = () => {
                 {/* Cambiar contraseña */}
                 <div className="flex items-center justify-between px-3 py-2">
                   <div>
-                    <p className="font-normal text-[hsl(210,100%,40%)] hover:underline cursor-pointer">
+                    <button
+                      onClick={() => setPwdOpen(true)}
+                      className="font-normal text-[hsl(210,100%,40%)] hover:underline cursor-pointer"
+                    >
                       Cambiar contraseña
-                    </p>
+                    </button>
                   </div>
                 </div>
 
@@ -231,6 +267,14 @@ const Settings = () => {
                       Valor por hora: $150.000 CLP
                     </p>
                   </div>
+                  <div className="flex-col items-center justify-between p-3">
+                    <p className="font-medium text-[hsl(225,15%,15%)]">
+                      Registro automático
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Medí el tiempo mientras trabajás.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </div>
@@ -266,6 +310,12 @@ const Settings = () => {
           </div>
         </div>
       </Card>
+      <ChangePasswordDialog
+        pwdOpen={pwdOpen}
+        setPwdOpen={setPwdOpen}
+        /* pwdStep={pwdStep}
+        setPwdStep={setPwdStep} */
+      />
     </div>
   );
 };

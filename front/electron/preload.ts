@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { TimerEvent } from "./store/timeBufferStore.js";
+import type { TimeEntry } from "../src/types/Timer";
 
 /**
  * Expone funciones seguras al frontend a través de window.electronAPI
@@ -10,6 +10,37 @@ import { TimerEvent } from "./store/timeBufferStore.js";
  * - Pedir algo y recibir una respuesta (invoke)
  * - Usar el buffer local de tiempo (timeBuffer.*) SIN tocar la red desde Electron
  */
+
+// ⬇️ NUEVO: API de presencia del SO
+contextBridge.exposeInMainWorld("presence", {
+  subscribe: (
+    cb: (
+      ev:
+        | "app:suspend"
+        | "app:resume"
+        | "app:lock"
+        | "app:unlock"
+        | "app:shutdown"
+        | "app:minimized-all" // ⬅️ agregados
+        | "app:restored-any" // ⬅️ agregados
+    ) => void
+  ) => {
+    const channel = "presence:event";
+    const handler = (_: any, ev: any) => cb(ev);
+    ipcRenderer.on(channel, handler);
+    return () => ipcRenderer.off(channel, handler);
+  },
+});
+
+contextBridge.exposeInMainWorld("timerGlobal", {
+  getSnapshot: () => ipcRenderer.invoke("globalTimer:getSnapshot"),
+  setSnapshot: (snap: {
+    dayKey: string;
+    accumSecToday: number;
+    runningSince?: number | null;
+  }) => ipcRenderer.invoke("globalTimer:setSnapshot", snap),
+  clearSnapshot: () => ipcRenderer.invoke("globalTimer:clearSnapshot"),
+});
 
 contextBridge.exposeInMainWorld("electronAPI", {
   // Enviar datos desde React al proceso principal (main)
@@ -30,21 +61,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Abre diálogo para seleccionar un archivo
   seleccionarArchivo: () => ipcRenderer.invoke("abrir-dialogo"),
 
-  // --- NUEVO: API local para el buffer de tiempo ---
-  // ✅ API de buffer de eventos de timer
-  timeBuffer: {
-    append: (ev: TimerEvent): Promise<number> =>
-      ipcRenderer.invoke("timeBuffer:append", ev),
+  // ⬇️ NUEVO: API para cola de TimeEntry
+  timeQueue: {
+    appendEntry: (entry: TimeEntry): Promise<number> =>
+      ipcRenderer.invoke("timeQueue:appendEntry", entry),
 
-    getPending: (): Promise<TimerEvent[]> =>
-      ipcRenderer.invoke("timeBuffer:getPending"),
+    getPending: (): Promise<TimeEntry[]> =>
+      ipcRenderer.invoke("timeQueue:getPending"),
 
-    setPending: (events: TimerEvent[]): Promise<number> =>
-      ipcRenderer.invoke("timeBuffer:setPending", events),
+    setPending: (entries: TimeEntry[]): Promise<number> =>
+      ipcRenderer.invoke("timeQueue:setPending", entries),
 
-    clear: (): Promise<number> => ipcRenderer.invoke("timeBuffer:clear"),
+    clear: (): Promise<number> => ipcRenderer.invoke("timeQueue:clear"),
 
-    count: (): Promise<number> => ipcRenderer.invoke("timeBuffer:count"),
+    count: (): Promise<number> => ipcRenderer.invoke("timeQueue:count"),
   },
 });
 

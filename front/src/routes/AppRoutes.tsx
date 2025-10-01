@@ -4,10 +4,10 @@ import PrivateRoute from "@/routes/PrivateRoute";
 
 import { useAuthStore } from "@/store/useAuthStore";
 
+import DashboardLayout from "@/layouts/DashboardLayout";
 import ItemLayout from "@/layouts/ItemLayout";
 import ClientLayout from "@/layouts/ClientLayout";
 
-import DashboardLayout from "@/pages/dashboard/DashboardLayout";
 import LoginPage from "@/pages/auth/LoginPage";
 import NotFoundPage from "@/pages/not-found/NotFoundPage";
 import UnauthorizedAccess from "@/pages/auth/UnauthorizedAccess";

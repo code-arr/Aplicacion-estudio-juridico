@@ -1,15 +1,15 @@
 import { resetPassword } from "@/api/user";
-import { Button } from "@components/ui/button";
-import { Callout } from "@components/ui/callout";
+import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@components/ui/card";
-import { Input } from "@components/ui/input";
-import { Label } from "@components/ui/label";
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Scale } from "lucide-react";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";

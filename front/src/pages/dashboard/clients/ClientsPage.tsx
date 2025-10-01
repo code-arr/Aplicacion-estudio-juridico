@@ -33,9 +33,18 @@ import ErrorScreen from "@/components/shared/ErrorScreen";
 import { Search, Plus } from "lucide-react";
 
 import { mockClients } from "@/mocks/mockClients";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useFocusContext } from "@/hooks/useFocusContext";
 
 const ClientsPage = () => {
+  useFocusContext(null);
+
   const navigate = useNavigate();
+
+  const PAGE_STEP = 12;
+  const [pageSize, setPageSize] = useState(PAGE_STEP);
+  const [showAll, setShowAll] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [clientOrder, setClientOrder] = useState<string>("");
@@ -57,11 +66,19 @@ const ClientsPage = () => {
       .replace(/\p{Diacritic}/gu, "")
       .toLowerCase();
 
+  const handleViewDetails = (client: Client) => {
+    navigate(`${client.id}`);
+  };
+
+  const getStatusCount = (status: Client["status"]) => {
+    return clients.filter((client) => client.status === status).length;
+  };
+
+  const debouncedQuery = useDebouncedValue(searchTerm, 250);
   const filteredClients = useMemo(() => {
-    const term = normalizeText(searchTerm.trim());
+    const term = normalizeText(debouncedQuery.trim());
 
     return clients.filter((client) => {
-      // Unís los campos que quieras buscar
       const clientName = normalizeText(
         `${client.firstName ?? ""} ${client.lastName ?? ""} ${
           client.companyName ?? ""
@@ -74,15 +91,18 @@ const ClientsPage = () => {
 
       return matchesSearch && matchesStatus;
     });
-  }, [clients, searchTerm, statusFilter]);
+  }, [clients, debouncedQuery, statusFilter]);
 
-  const handleViewDetails = (client: Client) => {
-    navigate(`${client.id}`);
-  };
+  const total = filteredClients.length;
+  const visibleClients = useMemo(
+    () => (showAll ? filteredClients : filteredClients.slice(0, pageSize)),
+    [filteredClients, showAll, pageSize]
+  );
 
-  const getStatusCount = (status: Client["status"]) => {
-    return clients.filter((client) => client.status === status).length;
-  };
+  useEffect(() => {
+    setPageSize(PAGE_STEP);
+    setShowAll(false);
+  }, [searchTerm, statusFilter, clientOrder]);
 
   useEffect(() => {
     resetClientItemsByClientId();
@@ -219,7 +239,7 @@ const ClientsPage = () => {
                   Fecha Actividad Asc.
                 </SelectItem>
                 <SelectItem value="fecha_descendente">
-                  Fecha Actividad Desc.
+                  Fecha Actividad Des.
                 </SelectItem>
                 <SelectItem value="cantidad_cliente">Cantidad Items</SelectItem>
               </SelectContent>
@@ -229,13 +249,28 @@ const ClientsPage = () => {
 
         {/* Client Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClients.map((client) => (
+          {visibleClients.map((client) => (
             <ClientCard
               key={client.id}
               client={client}
               onViewDetails={handleViewDetails}
             />
           ))}
+        </div>
+        <div className="flex items-center justify-center py-3 gap-2">
+          {!showAll && visibleClients.length < total && (
+            <Button
+              variant="outline"
+              onClick={() => setPageSize((s) => s + PAGE_STEP)}
+            >
+              Ver más
+            </Button>
+          )}
+          {total > PAGE_STEP && (
+            <Button variant="ghost" onClick={() => setShowAll((v) => !v)}>
+              {showAll ? "Mostrar menos" : "Ver todos"}
+            </Button>
+          )}
         </div>
 
         {/* Client Array Empty */}
@@ -253,7 +288,7 @@ const ClientsPage = () => {
           </div>
         )}
 
-        {mockClients.length === 0 && (
+        {/* {filteredClients.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               <Search className="h-12 w-12 mx-auto" />
@@ -272,7 +307,7 @@ const ClientsPage = () => {
               Agregar Primer Cliente
             </Button>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

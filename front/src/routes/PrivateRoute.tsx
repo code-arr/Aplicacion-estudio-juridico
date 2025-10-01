@@ -1,8 +1,7 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import { Navigate, useLocation } from "react-router-dom";
-
 import type { JSX } from "react";
-import LoadingScreen from "@components/shared/LoadingScreen";
+import LoadingScreen from "@/components/shared/LoadingScreen";
 
 type PrivateRouteProps = {
   children: JSX.Element;

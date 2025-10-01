@@ -4,9 +4,12 @@ import { selectClientDetail, useClientStore } from "@/store/useClientStore";
 import ClientHeader from "@/components/clients/ClientHeader"; // tu componente con props
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorScreen from "@/components/shared/ErrorScreen";
+import { useFocusContext } from "@/hooks/useFocusContext";
 
 const ClientLayout = () => {
   const { clientId } = useParams();
+  useFocusContext(clientId ? { type: "Client", id: clientId } : null);
+
   const location = useLocation();
 
   const setClientDetail = useClientStore((s) => s.setClientDetail);

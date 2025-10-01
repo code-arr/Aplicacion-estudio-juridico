@@ -5,7 +5,7 @@ const INACTIVITY_LIMIT = 60 * 60 * 1000;
 const WARNING_DURATION = 60 * 1000;
 
 export const useInactivityLogout = () => {
-  console.log("Entra en useInactivityLogout");
+  /* console.log("Entra en useInactivityLogout"); */
 
   const { reset, setShowInactivityModal } = useAuthStore();
 

@@ -7,7 +7,8 @@ import {
 /* import { Card } from "@components/ui/card"; */
 import Avatar from "@/assets/usuario.png";
 import { FolderClosed } from "lucide-react";
-import ClientStatsCard from "./ClientStatsCard";
+import ClientStatsCard from "@/components/clients/ClientStatsCard";
+import { useFocusContext } from "@/hooks/useFocusContext";
 
 // =============================
 // Types
@@ -147,6 +148,7 @@ const LawyerStatistics = ({
   topClients = demo.topClients,
   className = "",
 }: LawyerStatisticsProps) => {
+  useFocusContext(null);
   return (
     <div className="bg-gradient-to-t from-[#334155] via-[#3b4d66] to-[#60a5fa]/20 min-h-screen">
       <div className={`w-full p-4 lg:p-6 ${className}`}>

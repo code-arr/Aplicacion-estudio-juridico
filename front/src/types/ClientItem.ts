@@ -29,8 +29,6 @@ export interface ClientItem {
   description?: string;
   status: ClientItemStatus;
 
-  documents: Document[];
-
   createAt: string; // ISO date string
   updatedAt: string; // ISO date string
 }

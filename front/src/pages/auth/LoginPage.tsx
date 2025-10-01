@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import LoginForm from "@components/auth/LoginForm";
+import LoginForm from "@/components/auth/LoginForm";
 import { useAuthStore } from "@/store/useAuthStore";
 import { loginUser } from "@/api/user";
-import { Spinner } from "@radix-ui/themes";
 import type { LoginError } from "@/types/LoginError";
-import { mockUser } from "@/mocks/mockUser";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLawyerStore } from "@/store/useLawyerStore";
 
@@ -24,8 +22,6 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (isLoggedIn && user) {
-      console.log("Entra al login");
-
       if (isLawyer) {
         navigate(from, { replace: true });
         /* navigate("/dashboard", { replace: true }); */

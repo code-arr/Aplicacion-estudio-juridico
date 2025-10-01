@@ -6,12 +6,16 @@ export interface Lawyer {
   id: string;
   firstName: string;
   lastName: string;
-  address: string;
+  adress: string;
   phone: string;
   rut: string;
-  lawyerType: string; //Despues se podria cambiar por un enum
+  type: string; //Despues se podria cambiar por un enum
   seniorityLevel: string;
-  hoursWorked: number;
+  workedHours: number;
+
+  createAt: string;
+  updateAt: string;
+
   user?: User;
   clients?: Client[];
 }

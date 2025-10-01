@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import AppRoutes from "./AppRoutes";
 import { Theme } from "@radix-ui/themes";
 import { restoreSession, useAuthStore } from "@/store/useAuthStore";
-import LoadingScreen from "@components/shared/LoadingScreen";
+import LoadingScreen from "@/components/shared/LoadingScreen";
 import { useEffect } from "react";
 
 const RootRouter = () => {

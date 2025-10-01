@@ -3,6 +3,7 @@ import { getClients, getClientsByLawyerId } from "@/api/client";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import { create } from "zustand";
 
+const EMPTY_CLIENTS = Object.freeze([]);
 const ttlMs = 86400000;
 
 interface ClientState {
@@ -111,7 +112,7 @@ export const useClientStore = create<ClientState>()((set, get) => ({
 }));
 
 export const selectClientsByLawyer = (s: ClientState) =>
-  s.clientsByLawyer ?? [];
+  s.clientsByLawyer ?? EMPTY_CLIENTS;
 export const selectClientDetail = (s: ClientState) => s.clientDetail;
 
 export const selectClientName = (clientId: string) => (s: ClientState) => {
@@ -123,7 +124,7 @@ export const selectClientName = (clientId: string) => (s: ClientState) => {
 };
 
 export const selectFilteredClients = (s: ClientState) => {
-  const base = s.clientsByLawyer ?? [];
+  const base = s.clientsByLawyer ?? EMPTY_CLIENTS;
   const { query, status } = s.filters;
   const q = query.trim().toLowerCase();
   return base

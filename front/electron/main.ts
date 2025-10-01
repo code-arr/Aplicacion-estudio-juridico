@@ -3,47 +3,13 @@ import { config as loadEnv } from "dotenv";
 import * as path from "path";
 import fs from "fs";
 import "./ipc/authHandlers.js";
-import { registerTimeBufferHandlers } from "./ipc/timeBufferHandlers.js";
 import { fileURLToPath } from "url";
-
-/* // ⬇️ Pegá acá el bloque de logs de diagnóstico
-app.on("browser-window-created", (_e, win) => {
-  const id = win.id;
-  console.log(`[WIN] created id=${id}`);
-
-  win.on("ready-to-show", () => {
-    console.log(
-      `[WIN] ready id=${id} title="${win.getTitle()}" url=${win.webContents.getURL()}`
-    );
-  });
-
-  win.on("closed", () => {
-    console.log(`[WIN] closed id=${id}`);
-  });
-
-  win.webContents.on("did-navigate", (_ev, url) => {
-    console.log(`[WIN] navigate id=${id} -> ${url}`);
-  });
-});
-
-app.on("web-contents-created", (_e, contents) => {
-  console.log(`[WC] created type=${contents.getType()}`);
-
-  contents.on("did-create-window", (_e, childWin) => {
-    console.log(`[POPUP] did-create-window -> id=${childWin.url}`);
-  });
-});
-
-setInterval(() => {
-  const list = BrowserWindow.getAllWindows().map((w) => ({
-    id: w.id,
-    title: w.getTitle(),
-    visible: w.isVisible(),
-    url: w.webContents.getURL(),
-  }));
-  console.log(`[WIN] alive:`, list);
-}, 3000);
-// ⬆️ Hasta acá */
+import { registerTimeQueueHandlers } from "./ipc/timeQueueHandlers.js";
+import {
+  registerPresenceIpc,
+  registerWindowVisibility,
+} from "./presenceBridge.js";
+import { registerGlobalTimerHandlers } from "./ipc/globalTimerHandlers.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +17,8 @@ const __dirname = path.dirname(__filename);
 loadEnv({ path: path.resolve(__dirname, "../../.env") });
 
 console.log("DEV_URL:", process.env.VITE_DEV_SERVER_URL);
+
+// =============================================
 
 /** ==================== NUEVO: estado de la ventana del visor de documentos ==================== */
 let viewerWindow: BrowserWindow | null = null;
@@ -71,6 +39,8 @@ function createViewerWindow() {
     },
     title: "Visor de documentos",
   });
+
+  registerWindowVisibility(viewerWindow); // ⬅️ AGREGA ESTO
 
   // Carga la app con la ruta del visor
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -112,6 +82,8 @@ function createAudienceViewerWindow() {
     },
     title: "Audiencias (visor)",
   });
+
+  registerWindowVisibility(audienceViewerWindow); // ⬅️ AGREGA ESTO
 
   // DEV vs PROD
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -176,6 +148,11 @@ function createWindow() {
     win.show();
   });
 
+  registerTimeQueueHandlers();
+  registerGlobalTimerHandlers();
+  registerPresenceIpc();
+  registerWindowVisibility(win); // ⬅️ NUEVO
+
   // Si estamos en desarrollo, cargamos el servidor de Vite
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(`${process.env.VITE_DEV_SERVER_URL}`);
@@ -193,8 +170,6 @@ function createWindow() {
 
 // Evento cuando la app está lista
 app.whenReady().then(() => {
-  registerTimeBufferHandlers(); // 🔔 acá se registran realmente
-
   createWindow();
 
   // En macOS, reabre una ventana si no hay ninguna activa

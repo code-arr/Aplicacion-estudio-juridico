@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, useParams } from "react-router-dom";
+
 import {
   selectClientItemDetail,
   useClientItemStore,
@@ -8,15 +9,20 @@ import { useClientStore } from "@/store/useClientStore";
 import ItemHeader from "@/components/items/ItemHeader";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorScreen from "@/components/shared/ErrorScreen";
+import { useFocusContext } from "@/hooks/useFocusContext";
 
 const ItemLayout = () => {
   const { clientItemId } = useParams();
+  useFocusContext(
+    clientItemId ? { type: "ClientItem", id: clientItemId } : null
+  );
+
   const location = useLocation();
+  const [loading, setLoading] = useState(true);
 
   const setItemDetail = useClientItemStore((s) => s.setClientItemDetail);
   const setClientDetail = useClientStore((s) => s.setClientDetail);
   const itemDetail = useClientItemStore(selectClientItemDetail);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);

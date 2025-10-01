@@ -10,6 +10,34 @@ export {};
 
 declare global {
   interface Window {
+    // ⬇️ NUEVO
+    presence?: {
+      subscribe: (
+        cb: (
+          ev:
+            | "app:suspend"
+            | "app:resume"
+            | "app:lock"
+            | "app:unlock"
+            | "app:shutdown"
+            | "app:minimized-all" // ⬅️ agregados
+            | "app:restored-any" // ⬅️ agregados
+        ) => void
+      ) => () => void;
+    };
+    timerGlobal: {
+      getSnapshot: () => Promise<{
+        dayKey: string;
+        accumSecToday: number;
+        runningSince?: number | null;
+      } | null>;
+      setSnapshot: (snap: {
+        dayKey: string;
+        accumSecToday: number;
+        runningSince?: number | null;
+      }) => Promise<boolean>;
+      clearSnapshot: () => Promise<boolean>;
+    };
     electronAPI: {
       send: (channel: string, data?: any) => void;
       on: (
@@ -18,11 +46,12 @@ declare global {
       ) => void;
       invoke: (channel: string, data?: any) => Promise<any>;
       seleccionarArchivo: () => Promise<string | null>;
-      timeBuffer: {
-        append: (entry: TimerEvent) => Promise<number | void>;
-        getPending: () => Promise<TimerEvent[]>;
-        setPending: (entries: TimerEvent[]) => Promise<number | void>;
-        clear: () => Promise<number | void>;
+      // ⬇️ NUEVO
+      timeQueue: {
+        appendEntry: (entry: TimeEntry) => Promise<number>;
+        getPending: () => Promise<TimeEntry[]>;
+        setPending: (entries: TimeEntry[]) => Promise<number>;
+        clear: () => Promise<number>;
         count: () => Promise<number>;
       };
     };

@@ -3,8 +3,6 @@ import { useEffect, useRef } from "react";
 import PdfCanvas from "./PdfCanvas";
 /* import AnnotationOverlay from "./AnnotationOverlay"; */
 import type { OpenDoc } from "@/types/Document";
-import { useTimerStore } from "@/store/useTimerStore";
-import TimeBadge from "@/components/timer/TimeBadge";
 
 type PdfPaneProps = {
   doc: OpenDoc; // <- ahora recibe el doc completo
@@ -12,16 +10,19 @@ type PdfPaneProps = {
   zoom: number; // 1 = 100%
 };
 
-function useDocumentActivityListeners() {
+/* function useDocumentActivityListeners() {
   const markActivity = useTimerStore((s) => s.markActivity);
   const pause = useTimerStore((s) => s.pause);
+  const workStart = useTimerStore((s) => s.workStart);
 
   useEffect(() => {
-    const onActivity = () => markActivity();
-    const onVisibility = () =>
-      document.hidden ? pause("idle") : markActivity();
+    const onActivity = () => {
+      workStart(); // 🔁 reanuda el GLOBAL inmediatamente
+      markActivity(); // 🔁 reanuda el CONTEXTO si venía de idle
+    };
+    const onVisibility = () => (document.hidden ? pause("idle") : onActivity());
     const onBlur = () => pause("idle");
-    const onFocus = () => markActivity();
+    const onFocus = () => onActivity();
 
     const events = [
       "mousemove",
@@ -42,14 +43,13 @@ function useDocumentActivityListeners() {
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("focus", onFocus);
-      pause("close").catch(() => {});
     };
-  }, [markActivity, pause]);
-}
+  }, [markActivity, pause, workStart]);
+} */
 
 const PdfPane = ({ doc, fitMode, zoom }: PdfPaneProps) => {
   // Escucha mouse/teclas/scroll/visibilidad
-  useDocumentActivityListeners();
+  /* useDocumentActivityListeners(); */
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -69,7 +69,7 @@ const PdfPane = ({ doc, fitMode, zoom }: PdfPaneProps) => {
         {/* Pasamos ambas fuentes de ser posible; PdfCanvas elige una */}
         <PdfCanvas url={doc.url} fitMode={fitMode} scale={zoom} />
         {/* <AnnotationOverlay docId={doc.id} /> */}
-        <TimeBadge /> {/* badge informativo arriba a la derecha */}
+        {/* <TimeBadge /> */} {/* badge informativo arriba a la derecha */}
       </div>
     </div>
   );
