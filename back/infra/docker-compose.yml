@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  libresign:
+    build:
+      context: ./libresign
+    container_name: libresign_app
+    ports:
+      - "4000:8080"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  nextcloud:
+    image: nextcloud:27
+    container_name: nextcloud_app
+    ports:
+      - "8080:80"
+    volumes:
+      - nextcloud_data:/var/www/html
+    restart: unless-stopped
+
+volumes:
+  nextcloud_data:
