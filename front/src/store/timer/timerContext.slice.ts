@@ -8,10 +8,12 @@ import {
 } from "@/types/Timer";
 import { clock } from "@/services/clock";
 import { v4 as uuid } from "uuid";
+import type { TimerGlobalSlice } from "./timerGlobal.slice";
+import type { TimerSyncSlice } from "./timerSync.slice";
 
 export type TimerContextState = {
   active: Trackable | null;
-  status: TimerStatus;
+  contextStatus: TimerStatus;
 
   startedAtUTC?: string; // para backend
   startedMonotonic?: number; // performance.now()
@@ -35,24 +37,39 @@ type Deps = {
   getLawyerAppTrackable: () => Trackable; // fallback
 };
 
+type RootState = TimerGlobalSlice & TimerContextSlice & TimerSyncSlice;
+
 export const createTimerContextSlice =
-  (deps: Deps): StateCreator<TimerContextSlice, [], [], TimerContextSlice> =>
+  (deps: Deps): StateCreator<RootState, [], [], TimerContextSlice> =>
   (set, get) => ({
     active: null,
-    status: "stopped",
+    contextStatus: "stopped",
     startedAtUTC: undefined,
     startedMonotonic: undefined,
     lastActivityAt: Date.now(),
     lastPauseReason: undefined,
 
     start: (trackable, _source) => {
+      if (!get().enabled) return;
+
+      const { active, contextStatus } = get();
+
+      // ⬅️ NUEVO: idempotencia — si ya estoy corriendo EXACTAMENTE este trackable, no hagas nada
+      if (
+        active &&
+        contextStatus === "running" &&
+        active.type === trackable.type &&
+        active.id === trackable.id
+      ) {
+        return;
+      }
+
       console.log("[TIMER] start", { trackable, _source });
-      const { active, status } = get();
 
       // Si hay otro distinto corriendo, pausá por "switch"
       if (
         active &&
-        status === "running" &&
+        contextStatus === "running" &&
         (active.id !== trackable.id || active.type !== trackable.type)
       ) {
         get().pause("switch");
@@ -63,7 +80,7 @@ export const createTimerContextSlice =
 
       set({
         active: trackable,
-        status: "running",
+        contextStatus: "running",
         startedAtUTC: clock.toUTCISOString(nowSys),
         startedMonotonic: nowMono,
         lastActivityAt: nowSys,
@@ -72,13 +89,15 @@ export const createTimerContextSlice =
     },
 
     pause: (reason, effectiveEndMs) => {
-      console.log("[TIMER] pause()", { reason, effectiveEndMs });
-      const { active, status, startedAtUTC } = get();
+      if (!get().enabled) return;
 
-      if (!active || status !== "running" || !startedAtUTC) {
+      console.log("[TIMER] pause()", { reason, effectiveEndMs });
+      const { active, contextStatus, startedAtUTC } = get();
+
+      if (!active || contextStatus !== "running" || !startedAtUTC) {
         // Nada que pausar
         set({
-          status: reason === "close" ? "stopped" : "paused",
+          contextStatus: reason === "close" ? "stopped" : "paused",
           lastPauseReason: reason,
         });
         return;
@@ -96,7 +115,7 @@ export const createTimerContextSlice =
 
       // Actualizar estado local
       set({
-        status: reason === "close" ? "stopped" : "paused",
+        contextStatus: reason === "close" ? "stopped" : "paused",
         startedAtUTC: undefined,
         startedMonotonic: undefined,
         lastPauseReason: reason,
@@ -127,14 +146,16 @@ export const createTimerContextSlice =
     },
 
     switchTo: (trackableOrNull) => {
-      const { active, status } = get();
+      if (!get().enabled) return;
+
+      const { active, contextStatus } = get();
 
       const target = trackableOrNull ?? deps.getLawyerAppTrackable();
 
       // 👇 si el destino es igual al actual, no hagas nada
       if (
         active &&
-        status === "running" &&
+        contextStatus === "running" &&
         active.type === target.type &&
         active.id === target.id
       ) {
@@ -142,7 +163,7 @@ export const createTimerContextSlice =
       }
 
       // Pausar lo que esté corriendo
-      if (active && status === "running") {
+      if (active && contextStatus === "running") {
         get().pause("switch");
       }
 
@@ -151,6 +172,8 @@ export const createTimerContextSlice =
     },
 
     markActivity: () => {
+      if (!get().enabled) return;
+
       set({ lastActivityAt: clock.nowSystem() });
     },
   });

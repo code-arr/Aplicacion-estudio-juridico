@@ -57,8 +57,10 @@ export const selectWorkElapsedSec = (s: TimerStore): number => {
   }
   return base;
 };
+
 export const selectIsContextRunning = (s: TimerStore) =>
-  s.status === "running" && !!s.active && !!s.startedAtUTC;
+  s.contextStatus === "running" && !!s.active && !!s.startedAtUTC;
+
 export const selectActiveContext = (s: TimerStore) => s.active;
 
 // === Inicialización de persistencia y sync ===

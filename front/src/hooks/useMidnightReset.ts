@@ -27,7 +27,7 @@ export function useMidnightReset(opts?: {
 
         // 2) cortar contexto
         const activeBefore = s.active ? { ...s.active } : null;
-        if (s.active && s.status === "running") {
+        if (s.active && s.contextStatus === "running") {
           s.pause("close");
         }
 

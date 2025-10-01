@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import {
@@ -29,9 +29,9 @@ import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 import { useIdleWatch } from "@/hooks/useIdleWatch";
 import { useMidnightReset } from "@/hooks/useMidnightReset";
 import { useTimeSyncInit } from "@/hooks/useTimeSyncInit";
+import { useEnsureTimerPrimed } from "@/hooks/useEnsureTimerPrimed";
 
 const DashboardLayout = () => {
-  // estado de usuario/rol/abogado
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === "admin";
   const lawyer = useLawyerStore((s) => s.lawyer);
@@ -39,36 +39,26 @@ const DashboardLayout = () => {
   // habilitamos timers SOLO cuando hay lawyer y no es admin
   const timersEnabled = !!lawyer && !isAdmin;
 
+  useEffect(() => {
+    useTimerStore.getState().setEnabled(timersEnabled);
+    return () => useTimerStore.getState().setEnabled(false);
+  }, [timersEnabled]);
+
   // ⏰ Hooks se activan apenas entra al dashboard
+
   useTokenExpirationWatcher(); // Hook que detecta si el token definitivo del back ya expiro o es invalido y cierra sesion
   useInactivityLogout(); // Hook que detecta la inactividad del usuario para cerrar sesion
 
   // Hooks globales (siempre llamados, pero con enabled)
+  useEnsureTimerPrimed(timersEnabled);
+
   useActivityHeartbeat({ enabled: timersEnabled });
   useIdleWatch(timersEnabled);
   useMidnightReset({ enabled: timersEnabled });
   useAppPresenceTimer(timersEnabled);
   useTimeSyncInit(timersEnabled);
 
-  // 🔁 Cada cambio de ruta: si quedó sin contexto, encendé LawyerApp sin esperar interacción
   /*   useEffect(() => {
-    if (!timersEnabled) return;
-    
-    let cancelled = false;
-    const id = requestAnimationFrame(() => {
-      if (cancelled) return;
-      const s = useTimerStore.getState();
-      if (!s.active && document.visibilityState === "visible") {
-        s.start({ type: "LawyerApp", id: lawyer!.id }, "auto"); // 👈 source "auto"
-        }
-        });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(id);
-      };
-  }, [location.key, timersEnabled, lawyer?.id]); */
-
-  useEffect(() => {
     if (!timersEnabled) return;
     if (document.visibilityState !== "visible") return;
 
@@ -80,7 +70,7 @@ const DashboardLayout = () => {
       } // 🔥 prende global
       s.start({ type: "LawyerApp", id: lawyer!.id }, "auto");
     }
-  }, [timersEnabled, lawyer?.id]);
+  }, [timersEnabled, lawyer?.id]); */
 
   const logOut = useAuthStore((s) => s.logout);
 
@@ -117,10 +107,6 @@ const DashboardLayout = () => {
     lawyer,
   ]);
 
-  const onLogout = () => {
-    logOut();
-  };
-
   if (
     (!isHydratedCatalog && isLoadingCatalog) ||
     (!isHydratedClients && isLoadingClients) ||
@@ -131,7 +117,7 @@ const DashboardLayout = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex items-start w-full bg-gray-50">
-        <AppSidebar lawyer={lawyer} onLogout={onLogout} />
+        <AppSidebar lawyer={lawyer} onLogout={logOut} />
         {/* Aca en seria mejor pasarle role={user.role} en lugar de lawyer={user} */}
         <main className="flex-1">
           <Outlet />

@@ -1,4 +1,66 @@
-import { useEffect, useState } from "react";
+// src/components/timer/WorkTimeBadge.tsx
+import { useEffect, useRef, useState } from "react";
+import { useTimerStore } from "@/store/timer/useTimerStore";
+
+export default function WorkTimeBadge({ className }: { className?: string }) {
+  const status = useTimerStore((s) => s.status); // GLOBAL
+  const runningSince = useTimerStore((s) => s.runningSince);
+  const accumSecToday = useTimerStore((s) => s.accumSecToday);
+
+  const [now, setNow] = useState(() => Date.now());
+  const lastSecondRef = useRef<number>(Math.floor(now / 1000));
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const loop = (t: number) => {
+      // Solo refrescá si cambió el "segundo" visible
+      const sec = Math.floor(Date.now() / 1000);
+      if (sec !== lastSecondRef.current) {
+        lastSecondRef.current = sec;
+        setNow(Date.now());
+      }
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, []);
+
+  const liveSec =
+    status === "running" && runningSince
+      ? Math.max(0, Math.floor((now - runningSince) / 1000))
+      : 0;
+
+  const totalSec = accumSecToday + liveSec;
+  const hh = String(Math.floor(totalSec / 3600)).padStart(2, "0");
+  const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
+  const ss = String(totalSec % 60).padStart(2, "0");
+
+  return (
+    <div
+      className={className}
+      style={{
+        position: "fixed",
+        right: 12,
+        bottom: 12,
+        padding: "6px 10px",
+        borderRadius: 8,
+        background: "rgba(0,0,0,0.7)",
+        color: "white",
+        fontSize: 12,
+        zIndex: 50,
+        userSelect: "none",
+      }}
+      title="Tiempo global de la jornada"
+    >
+      {hh}:{mm}:{ss}
+    </div>
+  );
+}
+
+/* import { useEffect, useState } from "react";
 import { useTimerStore } from "@/store/timer/useTimerStore";
 
 export default function WorkTimeBadge({ className }: { className?: string }) {
@@ -12,7 +74,27 @@ export default function WorkTimeBadge({ className }: { className?: string }) {
     return () => clearInterval(id);
   }, []);
 
-  // ⚠️ calcular en segundos, no mezclar ms con s
+  useEffect(() => {
+    const id = setInterval(() => {
+      const nowDbg = Date.now();
+      const s = useTimerStore.getState();
+      const liveSecDbg =
+        s.status === "running" && s.runningSince
+          ? Math.max(0, Math.floor((nowDbg - s.runningSince) / 1000))
+          : 0;
+      // 🔎 Log muy claro
+      console.log("[BADGE TICK]", {
+        nowDbg,
+        runningSince: s.runningSince,
+        status: s.status,
+        accumSecToday: s.accumSecToday,
+        liveSecDbg,
+        totalDbg: s.accumSecToday + liveSecDbg,
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const liveSec =
     status === "running" && runningSince
       ? Math.max(0, Math.floor((now - runningSince) / 1000))
@@ -47,4 +129,4 @@ export default function WorkTimeBadge({ className }: { className?: string }) {
       {hh}:{mm}:{ss}
     </div>
   );
-}
+} */

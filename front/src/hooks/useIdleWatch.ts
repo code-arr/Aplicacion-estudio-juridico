@@ -20,7 +20,7 @@ export function useIdleWatch(enabled: boolean = true) {
         // Pausa global
         s.workPause("idle", endMs);
         // Pausa contexto (solo si está corriendo)
-        if (s.active && s.status === "running") {
+        if (s.active && s.contextStatus === "running") {
           s.pause("idle", endMs);
         }
       }
