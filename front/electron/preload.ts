@@ -1,3 +1,4 @@
+// electron/preload.ts
 import { contextBridge, ipcRenderer } from "electron";
 import type { TimeEntry } from "../src/types/Timer";
 
@@ -32,7 +33,52 @@ contextBridge.exposeInMainWorld("presence", {
   },
 });
 
-contextBridge.exposeInMainWorld("timerGlobal", {
+contextBridge.exposeInMainWorld("timer", {
+  enable: (p: { lawyerId: string; appVersion?: string }) =>
+    ipcRenderer.invoke("timer:enable", p),
+  disable: () => ipcRenderer.invoke("timer:disable"),
+
+  start: (t: { type: string; id: string }) =>
+    ipcRenderer.invoke("timer:start", t),
+
+  // ⬇️ importante: ahora admite endMs y lo manda como objeto
+  pause: (arg: any) => {
+    const payload =
+      typeof arg === "string"
+        ? { reason: arg } // compat: "idle" | "switch" | ...
+        : arg; // { reason, effectiveEndMs? }
+    return ipcRenderer.invoke("timer:pause", payload);
+  },
+  /* pause: (
+    reason: "idle" | "switch" | "close" | "logout" | "suspend",
+    effectiveEndMs?: number
+  ) => ipcRenderer.invoke("timer:pause", { reason, effectiveEndMs }), */
+
+  switchTo: (t: { type: string; id: string } | null) =>
+    ipcRenderer.invoke("timer:switchTo", t),
+
+  workStart: () => ipcRenderer.invoke("timer:workStart"),
+  workPause: (effectiveEndMs?: number) =>
+    ipcRenderer.invoke("timer:workPause", effectiveEndMs),
+  markActivity: () => ipcRenderer.send("timer:activity"),
+
+  subscribe: async (cb: (partialMirror: any) => void) => {
+    const listener = (_: any, mirror: any) => cb(mirror);
+    ipcRenderer.on("timer:state", listener);
+    const first = await ipcRenderer.invoke("timer:getMirror");
+    cb(first);
+    return () => ipcRenderer.removeListener("timer:state", listener);
+  },
+});
+
+contextBridge.exposeInMainWorld("sync", {
+  flushNow: () => ipcRenderer.invoke("sync:flushNow"),
+  getStatus: () => ipcRenderer.invoke("sync:getStatus"),
+  authSetToken: (t: string | null) => ipcRenderer.send("auth:setToken", t),
+  onlineHint: () => ipcRenderer.send("net:online"),
+});
+
+/* contextBridge.exposeInMainWorld("timerGlobal", {
   getSnapshot: () => ipcRenderer.invoke("globalTimer:getSnapshot"),
   setSnapshot: (snap: {
     dayKey: string;
@@ -40,7 +86,7 @@ contextBridge.exposeInMainWorld("timerGlobal", {
     runningSince?: number | null;
   }) => ipcRenderer.invoke("globalTimer:setSnapshot", snap),
   clearSnapshot: () => ipcRenderer.invoke("globalTimer:clearSnapshot"),
-});
+}); */
 
 contextBridge.exposeInMainWorld("electronAPI", {
   // Enviar datos desde React al proceso principal (main)

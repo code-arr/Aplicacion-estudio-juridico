@@ -1,23 +1,22 @@
+// src/hooks/useActivityHeartbeat.ts
 import { useEffect, useRef } from "react";
-import { useTimerStore } from "@/store/timer/useTimerStore";
+import { useTimerUIStore } from "@/store/useTimerUIStore";
 
 function throttle<T extends (...args: any[]) => void>(fn: T, ms: number): T {
-  let last = 0;
-  let pending: any[] | null = null;
+  let last = 0,
+    t: any;
   return ((...args: any[]) => {
     const now = Date.now();
-    if (now - last >= ms) {
+    const remain = ms - (now - last);
+    if (remain <= 0) {
       last = now;
       fn(...args);
     } else {
-      pending = args;
-      setTimeout(() => {
-        if (pending) {
-          last = Date.now();
-          fn(...pending);
-          pending = null;
-        }
-      }, ms - (now - last));
+      clearTimeout(t);
+      t = setTimeout(() => {
+        last = Date.now();
+        fn(...args);
+      }, remain);
     }
   }) as T;
 }
@@ -28,38 +27,40 @@ export function useActivityHeartbeat(opts?: {
 }) {
   const throttleMs = opts?.throttleMs ?? 500;
   const enabled = opts?.enabled ?? true;
+
+  const get = useTimerUIStore; // mirror del engine
   const handlerRef = useRef<() => void>(undefined);
 
   useEffect(() => {
-    if (!enabled) return; // ⬅️ clave
+    if (!enabled) return;
 
     handlerRef.current = throttle(() => {
-      const s = useTimerStore.getState();
-      s.markActivity();
-      if (s.status !== "running") {
-        // si el global está pausado, reanudar
-        console.log("Se prende el global desde useActivityHeartbeat");
+      // 1) avisamos actividad SIEMPRE
+      window.timer?.markActivity?.();
 
-        s.workStart();
-        // si había contexto pausado por idle y sigue activo, reanudar
-        if (s.active && !s.startedAtUTC) {
-          s.start(s.active, "auto");
-        }
+      // 2) auto-start global si está detenido (sin depender de un contexto)
+      const s = get.getState();
+      if (s.status !== "running") {
+        window.timer?.workStart?.(); // 👈 arranca el global en el primer input
+      }
+
+      // 3) si hay contexto activo pero no corriendo, reanudarlo
+      if (s.active && s.contextStatus !== "running") {
+        window.timer?.start?.(s.active);
       }
     }, throttleMs);
 
     const onAct = () => handlerRef.current?.();
+    const passive = { passive: true } as const;
 
-    const optsPassive = { passive: true as const };
-    window.addEventListener("mousemove", onAct, optsPassive);
-    window.addEventListener("mousedown", onAct, optsPassive);
-    window.addEventListener("wheel", onAct, optsPassive);
-    window.addEventListener("touchstart", onAct, optsPassive);
-    window.addEventListener("touchmove", onAct, optsPassive);
+    window.addEventListener("mousemove", onAct, passive);
+    window.addEventListener("mousedown", onAct, passive);
+    window.addEventListener("wheel", onAct, passive);
+    window.addEventListener("touchstart", onAct, passive);
+    window.addEventListener("touchmove", onAct, passive);
     window.addEventListener("keydown", onAct);
     window.addEventListener("scroll", onAct, { passive: true, capture: true });
 
-    // cleanup
     return () => {
       window.removeEventListener("mousemove", onAct);
       window.removeEventListener("mousedown", onAct);
@@ -69,5 +70,5 @@ export function useActivityHeartbeat(opts?: {
       window.removeEventListener("keydown", onAct);
       window.removeEventListener("scroll", onAct, true);
     };
-  }, [throttleMs, enabled]);
+  }, [enabled, throttleMs]);
 }

@@ -1,3 +1,4 @@
+// src/routes/AppRoutes.tsx
 import { Route, Routes, Navigate } from "react-router-dom";
 
 import PrivateRoute from "@/routes/PrivateRoute";

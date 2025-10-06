@@ -148,7 +148,8 @@ const LawyerStatistics = ({
   topClients = demo.topClients,
   className = "",
 }: LawyerStatisticsProps) => {
-  useFocusContext(null);
+  useFocusContext({ type: "LawyerApp", id: "main" });
+
   return (
     <div className="bg-gradient-to-t from-[#334155] via-[#3b4d66] to-[#60a5fa]/20 min-h-screen">
       <div className={`w-full p-4 lg:p-6 ${className}`}>

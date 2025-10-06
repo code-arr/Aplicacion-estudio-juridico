@@ -1,12 +1,20 @@
-// puntos clave del componente (solo lo necesario)
+// src/pages/dashboard/audiences/AudienceViewerPage.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import type { Audience } from "@/types/Audience";
+import type { Trackable } from "@/types/Timer";
+import { useAuthStore } from "@/store/useAuthStore";
 import { usePdfManagerStore } from "@/store/usePdfManagerStore";
+import { useLawyerStore } from "@/store/useLawyerStore";
 import { useAudienceStore } from "@/store/useAudienceStore";
+import { audienceToOpenDoc } from "@/store/useAudienceStore";
+import { useTimerUIStore } from "@/store/useTimerUIStore";
 import PdfTopBar from "@/components/pdf/PdfTopBar";
 import PdfViewerTabs from "@/components/pdf/PdfViewerTabs";
-import { audienceToOpenDoc } from "@/store/useAudienceStore";
+import { useTimeSyncInit } from "@/hooks/useTimeSyncInit";
+import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
+import { useAppPresenceTimer } from "@/hooks/useAppPresenceTimer";
+import { useFocusContext } from "@/hooks/useFocusContext";
 
 type FitMode = "actual" | "fitWidth" | "fitPage";
 
@@ -24,6 +32,14 @@ function useAudIdsFromQuery() {
 }
 
 export default function AudienceViewerPage() {
+  const user = useAuthStore((s) => s.user);
+  const lawyerId = useLawyerStore((s) => s.lawyer?.id);
+  const timersEnabled = !!lawyerId && user?.role !== "admin";
+
+  useTimeSyncInit(); // ✅ suscribirse al mirror
+  useActivityHeartbeat({ enabled: timersEnabled });
+  useAppPresenceTimer(timersEnabled);
+
   const [fitMode, setFitMode] = useState<FitMode>("fitPage");
   const [zoom, setZoom] = useState(1);
   const { ids, active } = useAudIdsFromQuery();
@@ -37,6 +53,11 @@ export default function AudienceViewerPage() {
   const setActiveDocId = usePdfManagerStore((s) => s.setActiveDocId);
   const openDocs = usePdfManagerStore((s) => s.openDocs);
   const activeDocId = usePdfManagerStore((s) => s.activeDocId);
+
+  // Contexto = Audiencia activo
+  useFocusContext(
+    activeDocId ? ({ type: "Audience", id: activeDocId } as Trackable) : null
+  );
 
   // --- IPC applyPayload: { audiences, activeId } ---
   const applyPayload = (payload: {

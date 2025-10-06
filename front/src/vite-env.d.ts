@@ -1,16 +1,12 @@
+// src/vite-env.d.ts
 /// <reference types="vite/client" />
 
-import type { TimerEvent } from "@/types/Timer";
+import type { TimeEntry } from "@/types/Timer";
 
-/**
- * Agregamos definiciones para que TypeScript sepa
- * qué es window.electronAPI y qué funciones tiene.
- */
 export {};
 
 declare global {
   interface Window {
-    // ⬇️ NUEVO
     presence?: {
       subscribe: (
         cb: (
@@ -20,12 +16,34 @@ declare global {
             | "app:lock"
             | "app:unlock"
             | "app:shutdown"
-            | "app:minimized-all" // ⬅️ agregados
-            | "app:restored-any" // ⬅️ agregados
+            | "app:minimized-all"
+            | "app:restored-any"
         ) => void
       ) => () => void;
     };
-    timerGlobal: {
+    timer: {
+      enable: (p: { lawyerId: string; appVersion?: string }) => Promise<any>;
+      disable: () => Promise<any>;
+      markActivity: () => void;
+      start: (t: { type: string; id: string }) => Promise<any>;
+      pause: (
+        p:
+          | {
+              reason: "idle" | "switch" | "close" | "logout" | "suspend";
+              effectiveEndMs?: number;
+            }
+          | "idle"
+          | "switch"
+          | "close"
+          | "logout"
+          | "suspend"
+      ) => Promise<any>;
+      switchTo: (t: { type: string; id: string } | null) => Promise<any>;
+      subscribe: (cb: (s: any) => void) => Promise<() => void>;
+      workStart: () => Promise<any>;
+      workPause: (effectiveEndMs?: number) => Promise<any>;
+    };
+    /*     timerGlobal: {
       getSnapshot: () => Promise<{
         dayKey: string;
         accumSecToday: number;
@@ -37,7 +55,7 @@ declare global {
         runningSince?: number | null;
       }) => Promise<boolean>;
       clearSnapshot: () => Promise<boolean>;
-    };
+    }; */
     electronAPI: {
       send: (channel: string, data?: any) => void;
       on: (
@@ -46,7 +64,6 @@ declare global {
       ) => void;
       invoke: (channel: string, data?: any) => Promise<any>;
       seleccionarArchivo: () => Promise<string | null>;
-      // ⬇️ NUEVO
       timeQueue: {
         appendEntry: (entry: TimeEntry) => Promise<number>;
         getPending: () => Promise<TimeEntry[]>;
@@ -66,7 +83,7 @@ declare global {
         cb: (payload: { docs: any[]; activeId?: string | null }) => void
       ) => () => void;
     };
-    audienceViewer?: {
+    audienceViewer: {
       open: (payload: {
         audiences: any[];
         activeId?: string | null;

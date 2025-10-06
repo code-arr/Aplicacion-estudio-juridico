@@ -37,7 +37,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useFocusContext } from "@/hooks/useFocusContext";
 
 const ClientsPage = () => {
-  useFocusContext(null);
+  useFocusContext({ type: "LawyerApp", id: "main" });
 
   const navigate = useNavigate();
 

@@ -1,8 +1,10 @@
 // electron/store/timeQueueStore.ts
 import store from "./electronStorage.js";
 import type { TimeEntry } from "../../src/types/Timer.js";
+import { EventEmitter } from "events";
 
 const KEY = "timers.pending.entries";
+export const timeQueueEvents = new EventEmitter();
 
 function readAll(): TimeEntry[] {
   const v = store.get(KEY);
@@ -10,6 +12,7 @@ function readAll(): TimeEntry[] {
 }
 function writeAll(entries: TimeEntry[]) {
   store.set(KEY, entries);
+  timeQueueEvents.emit("changed");
 }
 
 export const timeQueueStore = {

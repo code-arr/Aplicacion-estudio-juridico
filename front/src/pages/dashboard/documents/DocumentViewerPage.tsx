@@ -1,11 +1,19 @@
+// src/pages/dashboard/documents/DocumentViewerPage.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import type { Document as AppDocument } from "@/types/Document";
+import type { Trackable } from "@/types/Timer";
 import { usePdfManagerStore } from "@/store/usePdfManagerStore";
 import { useDocumentStore } from "@/store/useDocumentStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useLawyerStore } from "@/store/useLawyerStore";
+import { useTimerUIStore as useTimerStore } from "@/store/useTimerUIStore";
 import PdfTopBar from "@/components/pdf/PdfTopBar";
 import PdfViewerTabs from "@/components/pdf/PdfViewerTabs";
+import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 import { useAppPresenceTimer } from "@/hooks/useAppPresenceTimer";
+import { useFocusContext } from "@/hooks/useFocusContext";
+import { useTimeSyncInit } from "@/hooks/useTimeSyncInit";
 
 type FitMode = "actual" | "fitWidth" | "fitPage";
 
@@ -25,7 +33,13 @@ function useDocIdsFromQuery() {
 }
 
 const DocumentViewerPage = () => {
-  useAppPresenceTimer(); // 👈 mantiene corriendo el global y marca actividad cuando el visor está visible
+  const user = useAuthStore((s) => s.user);
+  const lawyerId = useLawyerStore((s) => s.lawyer?.id);
+  const timersEnabled = !!lawyerId && user?.role !== "admin";
+
+  useTimeSyncInit(); // ✅ suscribirse al mirror
+  useActivityHeartbeat({ enabled: timersEnabled });
+  useAppPresenceTimer(timersEnabled);
 
   const [fitMode, setFitMode] = useState<FitMode>("fitPage"); // tamaño original
   const [zoom, setZoom] = useState(1); // 1 = 100%
@@ -41,6 +55,11 @@ const DocumentViewerPage = () => {
   const setActiveDocId = usePdfManagerStore((s) => s.setActiveDocId);
   const openDocs = usePdfManagerStore((s) => s.openDocs);
   const activeDocId = usePdfManagerStore((s) => s.activeDocId);
+
+  // Contexto = Documento activo
+  useFocusContext(
+    activeDocId ? ({ type: "Document", id: activeDocId } as Trackable) : null
+  );
 
   const idsKey = useMemo(() => ids.join(","), [ids]);
 

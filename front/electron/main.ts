@@ -1,15 +1,19 @@
+// electron/main.ts
 import { app, BrowserWindow, ipcMain, dialog, nativeImage } from "electron";
 import { config as loadEnv } from "dotenv";
 import * as path from "path";
 import fs from "fs";
 import "./ipc/authHandlers.js";
 import { fileURLToPath } from "url";
-import { registerTimeQueueHandlers } from "./ipc/timeQueueHandlers.js";
 import {
   registerPresenceIpc,
   registerWindowVisibility,
 } from "./presenceBridge.js";
-import { registerGlobalTimerHandlers } from "./ipc/globalTimerHandlers.js";
+/* import { registerGlobalTimerHandlers } from "./ipc/globalTimerHandlers.js"; */
+import { createMainSyncService } from "./sync/syncService.js";
+import { createSyncApi } from "./sync/syncApi.js";
+import { registerTimerIpc, timerShutdown } from "./timer/ipc.js";
+import { registerTimeQueueHandlers } from "./ipc/timeQueueHandlers.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,12 +22,27 @@ loadEnv({ path: path.resolve(__dirname, "../../.env") });
 
 console.log("DEV_URL:", process.env.VITE_DEV_SERVER_URL);
 
+let _authToken: string | null = null;
+
+// ⚙️ Config del back (no el Vite server)
+const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3000";
+
+const syncApi = createSyncApi({
+  baseUrl: API_BASE_URL,
+  getAuthToken: () => _authToken,
+});
+const syncService = createMainSyncService({ api: syncApi });
+
 // =============================================
+
+let mainWindow: BrowserWindow | null = null;
 
 /** ==================== NUEVO: estado de la ventana del visor de documentos ==================== */
 let viewerWindow: BrowserWindow | null = null;
 
 function createViewerWindow() {
+  if (!mainWindow) return null; // 👈 asegura que haya padre
+
   if (viewerWindow && !viewerWindow.isDestroyed()) {
     return viewerWindow;
   }
@@ -31,6 +50,8 @@ function createViewerWindow() {
   viewerWindow = new BrowserWindow({
     width: 1600,
     height: 1000,
+    parent: mainWindow,
+    modal: false,
     icon: path.join(__dirname, "assets", "logo-iya.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -40,7 +61,7 @@ function createViewerWindow() {
     title: "Visor de documentos",
   });
 
-  registerWindowVisibility(viewerWindow); // ⬅️ AGREGA ESTO
+  registerWindowVisibility(viewerWindow);
 
   // Carga la app con la ruta del visor
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -49,10 +70,9 @@ function createViewerWindow() {
     );
     viewerWindow.webContents.openDevTools({ mode: "detach" });
   } else {
-    viewerWindow.loadFile(
-      path.join(__dirname, "../dist/index.html"),
-      { hash: "/viewer/documents" } // ← carga directamente en #/view/documents
-    );
+    viewerWindow.loadFile(path.join(__dirname, "../dist/index.html"), {
+      hash: "/viewer/documents",
+    });
   }
 
   viewerWindow.on("closed", () => {
@@ -67,6 +87,8 @@ function createViewerWindow() {
 let audienceViewerWindow: BrowserWindow | null = null;
 
 function createAudienceViewerWindow() {
+  if (!mainWindow) return null; // 👈 asegura que haya padre
+
   if (audienceViewerWindow && !audienceViewerWindow.isDestroyed()) {
     return audienceViewerWindow;
   }
@@ -74,6 +96,8 @@ function createAudienceViewerWindow() {
   audienceViewerWindow = new BrowserWindow({
     width: 1600,
     height: 1000,
+    parent: mainWindow,
+    modal: false,
     icon: path.join(__dirname, "assets", "logo-iya.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -83,7 +107,7 @@ function createAudienceViewerWindow() {
     title: "Audiencias (visor)",
   });
 
-  registerWindowVisibility(audienceViewerWindow); // ⬅️ AGREGA ESTO
+  registerWindowVisibility(audienceViewerWindow);
 
   // DEV vs PROD
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -130,7 +154,7 @@ function createWindow() {
   const iconImg = nativeImage.createFromPath(iconPath);
   console.log("[ICON EMPTY?]", iconImg.isEmpty());
 
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 1000,
     icon: iconImg,
@@ -143,39 +167,64 @@ function createWindow() {
   });
 
   // cuando esté lista, la maximizás y recién ahí la mostrás
-  win.once("ready-to-show", () => {
-    win.maximize();
-    win.show();
+  mainWindow.once("ready-to-show", () => {
+    mainWindow!.maximize();
+    mainWindow!.show();
   });
 
-  registerTimeQueueHandlers();
-  registerGlobalTimerHandlers();
+  /*   registerGlobalTimerHandlers(); */
   registerPresenceIpc();
-  registerWindowVisibility(win); // ⬅️ NUEVO
+  registerWindowVisibility(mainWindow);
 
   // Si estamos en desarrollo, cargamos el servidor de Vite
   if (process.env.VITE_DEV_SERVER_URL) {
-    win.loadURL(`${process.env.VITE_DEV_SERVER_URL}`);
-    win.webContents.openDevTools({ mode: "detach" });
+    mainWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}`);
+    mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     // ⬇️ el index real está en front/dist/index.html
     const indexHtml = path.join(__dirname, "..", "..", "dist", "index.html");
-    win.loadFile(indexHtml);
-
-    win.webContents.on("did-finish-load", () => {
-      win.webContents.executeJavaScript(`window.location.hash = '#/viewer'`);
+    mainWindow.loadFile(indexHtml);
+    mainWindow.webContents.on("did-finish-load", () => {
+      // ajustá a tu ruta por defecto si no querés ir al viewer
+      mainWindow!.webContents.executeJavaScript(
+        `window.location.hash = '#/viewer'`
+      );
     });
   }
+
+  // (opcional) si querés limpiar refs al cerrarse
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
+
+  return mainWindow;
 }
 
 // Evento cuando la app está lista
 app.whenReady().then(() => {
-  createWindow();
+  registerTimerIpc(); // ✅ ahora el motor y powerMonitor quedan online desde el inicio
+  registerTimeQueueHandlers();
 
+  // (Opcional) IPC para sync si tu servicio no los registra internamente.
+  // Si ya los registrás en createMainSyncService, podés borrar estas dos líneas.
+  ipcMain.handle("sync:flushNow", () => syncService.flushNow?.());
+  ipcMain.handle("sync:getStatus", () => syncService.getStatus?.());
+
+  syncService.scheduleAutoFlush(); // arrancá el loop
+
+  const win = createWindow(); // guarda la ref principal
   // En macOS, reabre una ventana si no hay ninguna activa
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on("before-quit", () => {
+  try {
+    timerShutdown();
+  } catch (e) {
+    console.error("[timerShutdown]", e);
+  }
 });
 
 // Evento cuando se cierran todas las ventanas
@@ -195,22 +244,22 @@ ipcMain.handle("abrir-dialogo", async () => {
   return result.filePaths[0];
 });
 
+// Hints desde renderer (opcional pero útil)
+ipcMain.on("auth:setToken", (_e, token: string | null) => {
+  _authToken = token || null;
+  syncService.onAuthOk();
+});
+ipcMain.on("net:online", () => syncService.onOnline());
+
 /** ==================== NUEVO: API del visor por IPC ==================== */
-/**
- * viewer:open (invoke)
- * - Garantiza que exista la ventana del visor
- * - La enfoca
- * - Envía payload de documentos al visor (como "viewer:addDocs")
- */
 ipcMain.handle(
   "viewer:open",
   async (_event, payload: { docs: any[]; activeId?: string | null }) => {
     const win = createViewerWindow();
-    // Enfocar/restaurar
+    if (!win) return false; // 👈 por si no hay mainWindow
     if (win.isMinimized()) win.restore();
     win.show();
 
-    // Cuando el contenido está listo, enviamos los docs
     const send = () => win.webContents.send("viewer:addDocs", payload);
     if (win.webContents.isLoading()) {
       win.webContents.once("did-finish-load", send);
@@ -222,15 +271,11 @@ ipcMain.handle(
   }
 );
 
-/**
- * viewer:addDocs (send)
- * - Envía nuevos documentos a la ventana del visor ya existente
- * - Si no existe, crea la ventana y los manda
- */
 ipcMain.on(
   "viewer:addDocs",
   (_event, payload: { docs: any[]; activeId?: string | null }) => {
     const win = createViewerWindow();
+    if (!win) return false; // 👈 por si no hay mainWindow
     if (win.isMinimized()) win.restore();
     win.focus();
 
@@ -243,10 +288,6 @@ ipcMain.on(
   }
 );
 
-/**
- * viewer:close (send)
- * - Cierra la ventana del visor si existe
- */
 ipcMain.on("viewer:close", () => {
   if (viewerWindow && !viewerWindow.isDestroyed()) {
     viewerWindow.close();
@@ -255,12 +296,11 @@ ipcMain.on("viewer:close", () => {
 /** ====================================================================== */
 
 // ===== IPC: AUDIENCES VIEWER =====
-
-// abrir (garantiza/crea ventana, enfoca y manda payload)
 ipcMain.handle(
   "viewer:audience:open",
   async (_event, payload: { audiences: any[]; activeId?: string | null }) => {
     const win = createAudienceViewerWindow();
+    if (!win) return false; // 👈 por si no hay mainWindow
     if (win.isMinimized()) win.restore();
     win.show();
 
@@ -274,11 +314,11 @@ ipcMain.handle(
   }
 );
 
-// enviar docs a una ventana ya abierta (o crear si no existe)
 ipcMain.on(
   "viewer:audience:addDocs",
   (_event, payload: { audiences: any[]; activeId?: string | null }) => {
     const win = createAudienceViewerWindow();
+    if (!win) return false; // 👈 por si no hay mainWindow
     if (win.isMinimized()) win.restore();
     win.focus();
 
@@ -291,7 +331,6 @@ ipcMain.on(
   }
 );
 
-// cerrar la ventana de audiencias
 ipcMain.on("viewer:audience:close", () => {
   if (audienceViewerWindow && !audienceViewerWindow.isDestroyed()) {
     audienceViewerWindow.close();

@@ -45,7 +45,7 @@ const ORDER_CMP: Record<SortKey, (a: ClientItem, b: ClientItem) => number> = {
 };
 
 const ItemsPage = () => {
-  useFocusContext(null);
+  useFocusContext({ type: "LawyerApp", id: "main" });
 
   const navigate = useNavigate();
   const PAGE_STEP = 10;

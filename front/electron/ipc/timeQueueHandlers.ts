@@ -20,7 +20,7 @@ export function registerTimeQueueHandlers() {
 
   ipcMain.handle("timeQueue:clear", () => {
     timeQueueStore.clear();
-    return 0;
+    return timeQueueStore.count();
   });
 
   ipcMain.handle("timeQueue:count", () => {

@@ -28,7 +28,7 @@ export type LawyerEditProfileProps = {
 export default function LawyerEditProfile({
   onSubmit,
 }: LawyerEditProfileProps) {
-  useFocusContext(null);
+  useFocusContext({ type: "LawyerApp", id: "main" });
 
   const lawyer = useLawyerStore((s) => s.lawyer);
   const lawyerUser = useAuthStore((s) => s.user);

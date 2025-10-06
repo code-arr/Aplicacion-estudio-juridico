@@ -1,60 +1,30 @@
+// src/hooks/useAppPresenceTimer.ts
 import { useEffect } from "react";
-import { useTimerStore } from "@/store/timer/useTimerStore";
-import { useLawyerStore } from "@/store/useLawyerStore";
-
-const PAUSE_ON_ALL_MINIMIZED = true; // ⬅️ flag: ponelo en false si querés ONLY-idle
 
 export function useAppPresenceTimer(enabled: boolean = true) {
   useEffect(() => {
     if (!enabled) return;
 
-    const onFocus = () => {
-      // solo actividad; evita doble start
-      useTimerStore.getState().markActivity();
-    };
+    const ping = () => window.timer?.markActivity?.();
+
+    const onFocus = () => ping();
     const onVisibility = () => {
-      if (!document.hidden) onFocus();
+      if (!document.hidden) ping();
     };
+
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
 
-    // ⬇️ NUEVO: presencia de SO + ventanas
+    // Si main ya reacciona a presence OS (attachOSPresence), acá NO pausar/reanudar.
     let unsubscribe: (() => void) | undefined;
-    if (typeof window !== "undefined" && window.presence?.subscribe) {
+    if (window.presence?.subscribe) {
       unsubscribe = window.presence.subscribe((ev) => {
-        console.log("[PRESENCE]", ev);
-        const s = useTimerStore.getState();
-
-        // Si la ventana vuelve de minimizada/suspendida y querés prender ahí.
-        if (ev === "app:restored-any") {
-          const s = useTimerStore.getState();
-          s.markActivity();
-          if (!s.active && document.visibilityState === "visible") {
-            const lid = useLawyerStore.getState().lawyer?.id;
-            if (lid) {
-              console.log("[AUTO-PRIME] presence restored-any");
-              if (s.status !== "running") s.workStart();
-              s.start({ type: "LawyerApp", id: lid }, "auto");
-            }
-          }
-        }
-
-        // Eventos del SO
         if (
-          ev === "app:suspend" ||
-          ev === "app:lock" ||
-          ev === "app:shutdown"
+          ev === "app:restored-any" &&
+          document.visibilityState === "visible"
         ) {
-          s.workPause("suspend");
-          if (s.active && s.contextStatus === "running") s.pause("suspend");
+          ping(); // deja que el heartbeat haga el auto-resume de contexto si corresponde
         }
-
-        // ⬇️ NUEVO: ventanas
-        if (PAUSE_ON_ALL_MINIMIZED && ev === "app:minimized-all") {
-          s.workPause("idle"); // usamos "idle" para mantener tu semántica
-          if (s.active && s.contextStatus === "running") s.pause("idle");
-        }
-        // "app:restored-any": no reanudamos solos; heartbeat lo hará al primer input
       });
     }
 

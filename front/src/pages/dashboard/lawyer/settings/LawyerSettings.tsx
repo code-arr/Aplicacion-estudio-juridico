@@ -12,7 +12,7 @@ import ChangePasswordDialog from "@/components/lawyer/ChangePasswordDialog";
 import { useFocusContext } from "@/hooks/useFocusContext";
 
 const Settings = () => {
-  useFocusContext(null);
+  useFocusContext({ type: "LawyerApp", id: "main" });
 
   const navigate = useNavigate();
 

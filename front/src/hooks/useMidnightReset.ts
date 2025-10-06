@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+// src/hooks/useMidnightReset.ts
+/* import { useEffect, useRef } from "react";
 import { clock } from "@/services/clock";
 import { getChileTz } from "@/utils/tz";
-import { useTimerStore } from "@/store/timer/useTimerStore";
+import { useTimerUIStore } from "@/store/useTimerUIStore";
 
 export function useMidnightReset(opts?: {
   tz?: string;
@@ -20,24 +21,18 @@ export function useMidnightReset(opts?: {
       const next = clock.nextMidnightMs(tz);
       const ms = Math.max(0, next - Date.now());
       timerRef.current = window.setTimeout(() => {
-        // 1) cortar global
-        const s = useTimerStore.getState();
-        s.workPause("close");
-        s.workReset();
+        const ui = useTimerUIStore.getState();
+        const activeBefore = ui.active ? { ...ui.active } : null;
 
-        // 2) cortar contexto
-        const activeBefore = s.active ? { ...s.active } : null;
-        if (s.active && s.contextStatus === "running") {
-          s.pause("close");
-        }
+        // Avisamos corte de jornada: el engine en main debe hacer el reset de acumulados allí.
+        window.timer?.pause("close");
 
-        // 3) (opcional) reiniciar el mismo contexto
+        // (opcional) reiniciar mismo contexto luego del corte
         if (restart && activeBefore) {
-          s.start(activeBefore, "auto");
+          window.timer?.start(activeBefore);
         }
 
-        // volver a programar para la próxima medianoche
-        schedule();
+        schedule(); // reprogramar para la próxima medianoche
       }, ms) as unknown as number;
     }
 
@@ -47,4 +42,4 @@ export function useMidnightReset(opts?: {
       timerRef.current = null;
     };
   }, [tz, restart, enabled]);
-}
+} */

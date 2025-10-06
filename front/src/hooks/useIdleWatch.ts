@@ -1,31 +1,34 @@
+// src/hooks/useIdleWatch.ts
 import { useEffect } from "react";
-import { useTimerStore } from "@/store/timer/useTimerStore";
 import { IDLE_LIMIT_MS } from "@/types/Timer";
+import { useTimerUIStore } from "@/store/useTimerUIStore";
 
-/**
- * Vigila inactividad del usuario (idle).
- * Si pasaron >= IDLE_LIMIT_MS (90s) desde la última actividad → pausa global y contexto.
- */
 export function useIdleWatch(enabled: boolean = true) {
   useEffect(() => {
     if (!enabled) return;
 
-    const interval = setInterval(() => {
-      const s = useTimerStore.getState();
-      const now = Date.now();
-      const idleFor = now - s.lastActivityAt;
+    let tripped = false; // evita disparar dos veces
+    const id = setInterval(() => {
+      if (tripped) return;
 
-      if (idleFor >= IDLE_LIMIT_MS) {
-        const endMs = s.lastActivityAt + IDLE_LIMIT_MS; // 👈 exacto 90s desde la última actividad
-        // Pausa global
-        s.workPause("idle", endMs);
-        // Pausa contexto (solo si está corriendo)
-        if (s.active && s.contextStatus === "running") {
-          s.pause("idle", endMs);
-        }
+      const s = useTimerUIStore.getState();
+      if (s.status !== "running") return; // solo si el global está corriendo
+
+      const idleFor = Date.now() - s.lastActivityAt;
+
+      // margen para no “ganarle” al engine (opcional pero recomendado)
+      if (idleFor >= IDLE_LIMIT_MS + 1500) {
+        tripped = true;
+        const endMs = s.lastActivityAt + IDLE_LIMIT_MS;
+        console.log("[IdleWatch] firing", { idleFor, endMs });
+
+        // ✅ pasar { reason, effectiveEndMs } (un solo argumento)
+        window.timer?.pause?.({ reason: "idle", effectiveEndMs: endMs });
+        // ✅ detener también el GLOBAL en el MISMO instante
+        window.timer?.workPause?.(endMs);
       }
-    }, 1000); // 1 Hz, suficiente y barato
+    }, 1000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(id);
   }, [enabled]);
 }

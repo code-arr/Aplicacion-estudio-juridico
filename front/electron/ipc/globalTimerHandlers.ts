@@ -1,4 +1,4 @@
-import { ipcMain } from "electron";
+/* import { ipcMain } from "electron";
 import { globalTimerStore } from "../store/globalTimerStore.js";
 import type { GlobalTimerSnapshot } from "../store/globalTimerStore.js";
 
@@ -16,4 +16,4 @@ export function registerGlobalTimerHandlers() {
     globalTimerStore.clear();
     return true;
   });
-}
+} */
