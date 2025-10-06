@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -55,8 +56,9 @@ export class ClienteController {
     );
   }
 
-  @Post('create/:lawyerId')
-  async createClient(@Body() createClientDto: CreateClienteDto, @Param('lawyerId') lawyerId: string): Promise<any> {
+  @Post('create')
+  async createClient(@Body() createClientDto: CreateClienteDto, @Query('lawyerId') lawyerId: string): Promise<any> {
+    
     return this.clienteService.createClient(createClientDto, lawyerId);
   }
 

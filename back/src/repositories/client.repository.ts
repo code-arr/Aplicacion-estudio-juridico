@@ -10,6 +10,7 @@ import { Client } from '../entities/client.entity';
 import { AbogadoService } from '../services/abogado.service'; // Este es el servicio que causa la circularidad
 import { clientesSeedData } from '../utils/clientes';
 import { Repository } from 'typeorm';
+import { log } from 'node:console';
 
 @Injectable()
 export class ClienteRepository {
@@ -101,12 +102,19 @@ export class ClienteRepository {
   }
 
   async createClient(createClientDto: CreateClienteDto, lawyerId: string): Promise<any> {
-    const client = this.clienteRepository.create(createClientDto);
+    
+    log("Lawyer ID recibido en createClient:", lawyerId); // Depuración
+    
     const lawyer = await this.abogadoService.getAbogadoById(lawyerId);
+    console.log('Lawyer found:', lawyer , "lawyer ID : ", lawyerId); // Depuración
+    
     if (!lawyer) {
       throw new NotFoundException('Abogado no encontrado');
     }
+    console.log("Paso el if");
+    
+    const client = this.clienteRepository.create(createClientDto);
     client.lawyers = [lawyer];
-    return this.clienteRepository.save(client);
+    return await this.clienteRepository.save(client);
   }
 }

@@ -36,10 +36,10 @@ export class Client {
   @IsUUID()
   id: string = uuid();
 
-  @Column()
+  @Column({nullable: true})
   firstName: string;
 
-  @Column()
+  @Column({nullable: true})
   lastName: string;
 
   @Column()
@@ -63,14 +63,11 @@ export class Client {
   @Column({ type: 'int', default: 0 })
   activeTime: number;
 
-  @Column({type : 'varchar', nullable: true})
+  @Column({type : 'varchar', nullable: true , unique : true})
   companyName : string;
 
   @Column({type : 'varchar', nullable: true})
   legalRepresentative : string;
-
-  @Column({type : 'varchar', nullable: true})
-  motherId : string;
 
   // La columna ya no necesita el "default" ya que lo asignas en el código
   @Column({ type: 'timestamp' })

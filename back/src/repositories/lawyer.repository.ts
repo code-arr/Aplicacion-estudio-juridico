@@ -77,9 +77,15 @@ export class AbogadoRepository {
   }
 
   async getAbogadoById(id: string): Promise<Lawyer | null> {
-    return await this.repository.findOne({
-      where: { id }
+    if (!id) {
+      return null;
+    }
+    const lawyer = await this.repository.findOne({
+      where: { id: id },
+
     });
+    console.log(" Lawyer en getAbogadoById:", lawyer);
+    return lawyer;
   }
 
   async getAbogadoByEmail(email: string): Promise<Lawyer | null> {

@@ -10,11 +10,11 @@ import {
 
 export class CreateClienteDto {
   @IsString({ message: 'El nombre debe ser una cadena de texto.' })
-  @IsNotEmpty({ message: 'El nombre no puede estar vacío.' })
+  @IsOptional()
   firstName: string;
 
   @IsString({ message: 'El apellido debe ser una cadena de texto.' })
-  @IsNotEmpty({ message: 'El apellido no puede estar vacío.' })
+  @IsOptional()
   lastName: string;
 
   @IsEmail(
@@ -23,7 +23,7 @@ export class CreateClienteDto {
       message: 'El correo electrónico debe ser una dirección de email válida.',
     },
   )
-  @IsNotEmpty({ message: 'El correo electrónico no puede estar vacío.' })
+  @IsOptional()
   email: string;
 
   @IsString({ message: 'El teléfono debe ser una cadena de texto.' }) // Se puede usar IsPhoneNumber si se necesita validación de formato más estricta
@@ -33,6 +33,7 @@ export class CreateClienteDto {
 
   @IsString({ message: 'La dirección debe ser una cadena de texto.' })
   @IsNotEmpty({ message: 'La dirección no puede estar vacía.' })
+  
   address: string; // Usar '?' para indicar que es opcional en TypeScript
 
   @IsString({ message: 'El RUT/DNI debe ser una cadena de texto.' })
@@ -42,4 +43,16 @@ export class CreateClienteDto {
       'El RUT/DNI debe tener entre 10 y 12 caracteres (incluyendo puntos y guión).',
   }) // Ajusta el Length según el formato exacto de tu RUT/DNI
   rut: string;
+
+  @IsString({ message: 'El nombre de la empresa debe ser una cadena de texto.' })
+  @IsOptional()
+  companyName : string;
+
+  @IsString({ message: 'El representante legal debe ser una cadena de texto.' })
+  @IsOptional()
+  legalRepresentative : string;
+
+
+
+
 }

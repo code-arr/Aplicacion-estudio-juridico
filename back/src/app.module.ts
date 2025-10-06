@@ -22,6 +22,7 @@ import { GoogleModule } from './auth/google.module';
 import { meet } from 'googleapis/build/src/apis/meet';
 import { MeetingModule } from './modules/meeting.module';
 import { AudienceModule } from './modules/audience.module';
+import { OpenSignModule } from './openSign/openSign.module';
 
 
 @Module({
@@ -54,7 +55,8 @@ import { AudienceModule } from './modules/audience.module';
     ProcessModule,
     GoogleModule,
     MeetingModule,
-    AudienceModule
+    AudienceModule,
+    OpenSignModule,
   ],
   controllers: [AppController ],
   providers: [AppService ],
