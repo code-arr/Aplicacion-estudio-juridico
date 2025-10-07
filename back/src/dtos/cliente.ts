@@ -6,9 +6,13 @@ import {
   IsOptional,
   Length,
 } from 'class-validator';
+import { clientType } from 'src/entities/client.entity';
 
 
 export class CreateClienteDto {
+  
+  type : clientType.FISICA | clientType.JURIDICA;
+
   @IsString({ message: 'El nombre debe ser una cadena de texto.' })
   @IsOptional()
   firstName: string;

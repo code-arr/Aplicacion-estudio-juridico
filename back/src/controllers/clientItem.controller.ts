@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ClientItemDto } from '../dtos/clientItem.dto';
 import { ItemType } from '../entities/itemType.entity';
 import { ClientItemService } from '../services/clientItem.service';
@@ -11,7 +11,7 @@ export class ClientItemController {
     @Body() clientItem: ClientItemDto,
     @Param('itemTypeId') itemTypeId: string,
     @Body("clientId") clientId : string,
-    @Body("lawyerId") lawyerId : string
+    @Query("lawyerId") lawyerId : string
     
   ) {
     return this.ClientItemService.createClientItem(clientItem, itemTypeId , clientId , lawyerId);
@@ -21,7 +21,7 @@ export class ClientItemController {
   async createInCategory(
     @Body() clientItem: ClientItemDto,
     @Param('categoryId') categoryId: string,
-    @Body("lawyerId") lawyerId : string,
+    @Query("lawyerId") lawyerId : string,
     @Body("clientId") clientId : string
   ) {
     return this.ClientItemService.createClientItemCategory(clientItem, categoryId, lawyerId, clientId);
@@ -29,7 +29,7 @@ export class ClientItemController {
   @Post("createInSection/:sectionId")
   async createInSection(
     @Body() clientItem: ClientItemDto,
-    @Body("lawyerId") lawyerId : string,
+    @Query("lawyerId") lawyerId : string,
     @Body("clientId") clientId : string,
     @Param('sectionId') sectionId: string
   ) {
