@@ -9,14 +9,10 @@ export class ClientItemService {
 
   async createClientItem(
     clientItem: ClientItemDto,
-    itemTypeId: string,
-    clientId: string,
     lawyerId: string,
   ): Promise<ClientItem> {
     return this.clientItemRepository.createClientItem(
       clientItem,
-      itemTypeId,
-      clientId,
       lawyerId,
     );
   }

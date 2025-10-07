@@ -51,7 +51,7 @@ export class Client {
   @Column({ nullable: true })
   address: string;
 
-  @Column()
+  @Column({ unique: true, nullable: true })
   rut: string;
 
   @Column({ type: 'enum', enum: clientType, default: clientType.FISICA })

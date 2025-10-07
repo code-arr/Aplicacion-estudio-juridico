@@ -3,57 +3,54 @@ import { ClientItemDto } from '../dtos/clientItem.dto';
 import { ItemType } from '../entities/itemType.entity';
 import { ClientItemService } from '../services/clientItem.service';
 
-@Controller("clientItem")
+@Controller('clientItem')
 export class ClientItemController {
   constructor(private readonly ClientItemService: ClientItemService) {}
-  @Post("create/:itemTypeId")
+  @Post('create')
   async createClientItem(
     @Body() clientItem: ClientItemDto,
-    @Param('itemTypeId') itemTypeId: string,
-    @Body("clientId") clientId : string,
-    @Query("lawyerId") lawyerId : string
-    
+    @Query('lawyerId') lawyerId: string,
   ) {
-    return this.ClientItemService.createClientItem(clientItem, itemTypeId , clientId , lawyerId);
+    if (clientItem.itemTypeId) {
+      return this.ClientItemService.createClientItem(clientItem, lawyerId);
+    } else if (clientItem.sectionId) {
+      return this.ClientItemService.createClientItemInSection(
+        clientItem,
+        clientItem.sectionId,
+        lawyerId,
+        clientItem.clientId,
+      );
+    } else if (clientItem.categoryId) {
+      return this.ClientItemService.createClientItemCategory(
+        clientItem,
+        clientItem.categoryId,
+        lawyerId,
+        clientItem.clientId,
+      );
+    }
   }
 
-  @Post("createInCategory/:categoryId")
-  async createInCategory(
-    @Body() clientItem: ClientItemDto,
-    @Param('categoryId') categoryId: string,
-    @Query("lawyerId") lawyerId : string,
-    @Body("clientId") clientId : string
-  ) {
-    return this.ClientItemService.createClientItemCategory(clientItem, categoryId, lawyerId, clientId);
-  }
-  @Post("createInSection/:sectionId")
-  async createInSection(
-    @Body() clientItem: ClientItemDto,
-    @Query("lawyerId") lawyerId : string,
-    @Body("clientId") clientId : string,
-    @Param('sectionId') sectionId: string
-  ) {
-    return this.ClientItemService.createClientItemInSection(clientItem, sectionId, lawyerId, clientId);
-  }
-
-  @Get("getAll")
-  async getAllClientItems():Promise<any> {
+  @Get('getAll')
+  async getAllClientItems(): Promise<any> {
     return this.ClientItemService.getAllClientItems();
   }
 
-  @Get("getById/:id")
+  @Get('getById/:id')
   async getClientItemById(@Param('id') id: string): Promise<any> {
     return this.ClientItemService.getClientItemById(id);
   }
 
-  @Get("getByClientId/:clientId")
-  async getClientItemsByClientId(@Param('clientId') clientId: string): Promise<any> {
+  @Get('getByClientId/:clientId')
+  async getClientItemsByClientId(
+    @Param('clientId') clientId: string,
+  ): Promise<any> {
     return this.ClientItemService.getByClientId(clientId);
   }
 
-  @Get("getByLawyerId/:lawyerId")
-  async getClientItemsByLawyerId(@Param('lawyerId') lawyerId: string): Promise<any> {
+  @Get('getByLawyerId/:lawyerId')
+  async getClientItemsByLawyerId(
+    @Param('lawyerId') lawyerId: string,
+  ): Promise<any> {
     return this.ClientItemService.getClientItemsByLawyerId(lawyerId);
   }
-
 }

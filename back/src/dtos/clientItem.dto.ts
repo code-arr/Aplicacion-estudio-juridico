@@ -7,4 +7,17 @@ export class ClientItemDto {
 
   @IsString()
   description?: string;
+
+  @IsString()
+  itemTypeId?: string;
+
+  @IsString()
+  categoryId?: string;
+
+  @IsString()
+  sectionId?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  clientId: string;
 }

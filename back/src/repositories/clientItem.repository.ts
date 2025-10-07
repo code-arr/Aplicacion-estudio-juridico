@@ -64,12 +64,14 @@ export class ClientItemRepository implements OnModuleInit {
   }
   async createClientItem(
     clientItem: ClientItemDto,
-    itemTypeId: string,
-    clientId: string,
     lawyerId: string,
   ): Promise<ClientItem> {
-    const itemType = await this.itemTypeService.getItemTypeById(itemTypeId);
-    const client = await this.clientService.getClienteById(clientId);
+    if (clientItem.itemTypeId === undefined) {
+      // Manejar el caso en que itemTypeId no está definido
+      throw new NotFoundException('itemTypeId es requerido');
+    }
+    const itemType = await this.itemTypeService.getItemTypeById(clientItem.itemTypeId);
+    const client = await this.clientService.getClienteById(clientItem.clientId);
     const lawyer = await this.lawyerService.getAbogadoById(lawyerId);
     if (!itemType) {
       throw new NotFoundException('itemType no encontrado');
