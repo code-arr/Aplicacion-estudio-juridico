@@ -48,7 +48,7 @@ export class CreateClienteDto {
   }) // Ajusta el Length según el formato exacto de tu RUT/DNI
   rut: string;
 
-  @IsString({ message: 'El nombre de la empresa debe ser una cadena de texto.' })
+  @IsString({ message: 'Elre de la empresa debe ser una cadena de tex nombto.' })
   @IsOptional()
   companyName : string;
 
@@ -56,7 +56,7 @@ export class CreateClienteDto {
   @IsOptional()
   legalRepresentative : string;
 
-
+ 
 
 
 }

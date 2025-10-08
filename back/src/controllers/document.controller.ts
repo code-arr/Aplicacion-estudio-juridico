@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -22,8 +23,8 @@ export class DocumentController {
   async createDocument(
     @UploadedFile() file: Express.Multer.File,
     @Param('clientItemId') clientItemId: string,
-    @Body('fileName') dbName: string,
-    @Body('lawyerId') lawyerId: string,
+    @Body('name') dbName: string,
+    @Query('lawyerId') lawyerId: string,
   ): Promise<Document> {
     const fileBuffer = file.buffer;
     const originalFileName = file.originalname;
