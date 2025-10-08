@@ -18,14 +18,14 @@ export class ClientItemController {
         clientItem,
         clientItem.sectionId,
         lawyerId,
-        clientItem.clientId,
+        clientItem.clientId
       );
     } else if (clientItem.categoryId) {
       return this.ClientItemService.createClientItemCategory(
         clientItem,
         clientItem.categoryId,
         lawyerId,
-        clientItem.clientId,
+        clientItem.clientId
       );
     }
   }
