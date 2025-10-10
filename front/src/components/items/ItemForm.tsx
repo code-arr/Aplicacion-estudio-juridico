@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { ItemType, Section } from "@/types/Catalog";
 import { useCatalogStore } from "@/store/useCatalogStore";
+import { useClientStore } from "@/store/useClientStore";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,6 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { createClientItem } from "@/api/clientItem";
+import { useClientItemStore } from "@/store/useClientItemStore";
+import { useLawyerStore } from "@/store/useLawyerStore";
 
 type ItemFormProps = {
   isDialogOpen: boolean;
@@ -26,40 +30,111 @@ type ItemFormProps = {
 };
 
 type NewItem = {
-  category: string;
-  section: string;
-  itemType: string;
+  categoryId: string;
+  sectionId: string;
+  itemTypeId: string;
   title: string;
   description: string;
+  clientId: string;
 };
 
 const initialItemState: NewItem = {
-  category: "",
-  section: "",
-  itemType: "",
+  categoryId: "",
+  sectionId: "",
+  itemTypeId: "",
   title: "",
   description: "",
+  clientId: "",
 };
 
 const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
   const { categories, sections, itemTypes } = useCatalogStore();
   const [newItem, setNewItem] = useState<NewItem>(initialItemState);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const categorySections = (): Section[] => {
-    const filteredSections = sections.filter(
-      (section) => String(section.categoryId) === newItem.category
-    );
-    return filteredSections;
+  const lawyerId = useLawyerStore((s) => s.lawyer?.id);
+
+  const fetchClientItemsByLawyerId = useClientItemStore(
+    (s) => s.fetchClientItemsByLawyerId
+  );
+  const fetchClientItemsByClientId = useClientItemStore(
+    (s) => s.fetchClientItemsByClientId
+  );
+
+  const clients = useClientStore((s) => s.clientsByLawyer);
+  const actualClient = useClientStore((s) => s.clientDetail);
+
+  const hasActualClient = !!actualClient?.id;
+
+  const actualClientLabel = useMemo(() => {
+    if (!actualClient) return "";
+    return actualClient.type === "Fisica"
+      ? `${actualClient.firstName} ${actualClient.lastName}`
+      : actualClient.companyName;
+  }, [actualClient]);
+
+  useEffect(() => {
+    if (!isDialogOpen) return;
+
+    // si hay cliente actual, precargarlo y limpiar el resto
+    if (actualClient?.id) {
+      setNewItem({
+        ...initialItemState,
+        clientId: String(actualClient.id),
+      });
+    } else {
+      // si no hay, reset normal vacío
+      setNewItem(initialItemState);
+    }
+  }, [isDialogOpen, actualClient?.id]);
+
+  const categorySections: Section[] = useMemo(
+    () => sections.filter((s) => String(s.categoryId) === newItem.categoryId),
+    [sections, newItem.categoryId]
+  );
+
+  const sectionItemTypes: ItemType[] = useMemo(
+    () => itemTypes.filter((t) => String(t.sectionId) === newItem.sectionId),
+    [itemTypes, newItem.sectionId]
+  );
+
+  function validate(): string | null {
+    if (!newItem.categoryId) return "La categoria es obligatoria.";
+    if (!newItem.sectionId) return "La seccion es obligatoria.";
+    if (!newItem.itemTypeId) return "El tipo de item es obligatorio.";
+    if (!newItem.title.trim()) return "El titulo es obligatorio.";
+    if (!newItem.description.trim()) return "La descripcion es obligatoria.";
+    if (!newItem.clientId) return "El cliente es obligatorio.";
+    return null;
+  }
+
+  const handleAddItem = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const err = validate();
+    if (err) {
+      setErrorMsg(err);
+      return;
+    }
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      await createClientItem(newItem);
+
+      if (hasActualClient) {
+        await fetchClientItemsByClientId(actualClient.id!);
+        await fetchClientItemsByLawyerId(lawyerId!);
+      } else {
+        await fetchClientItemsByLawyerId(lawyerId!);
+      }
+      setIsDialogOpen(false);
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message ?? "No se pudo crear el item");
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const sectionItemTypes = (): ItemType[] => {
-    const filteredItemTypes = itemTypes.filter(
-      (itemType) => String(itemType.sectionId) === newItem.section
-    );
-    return filteredItemTypes;
-  };
-
-  const handleAddItem = () => {};
 
   return (
     <Dialog
@@ -78,16 +153,63 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
             Complete los detalles del item para comenzar a trabajar en ello.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <form className="grid gap-4 pt-4 pb-2" onSubmit={handleAddItem}>
           <div className="grid gap-2">
             <Select
-              value={newItem.category}
+              value={newItem.clientId}
               onValueChange={(value: string) =>
                 setNewItem((prev) => ({
                   ...prev,
-                  category: value,
-                  section: "",
-                  itemType: "",
+                  clientId: value,
+                  categoryId: "",
+                  sectionId: "",
+                  itemTypeId: "",
+                }))
+              }
+              disabled={hasActualClient}
+            >
+              <SelectTrigger className="capitalize">
+                <SelectValue
+                  placeholder={
+                    hasActualClient ? actualClientLabel : "Elige un cliente"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {/* Si el cliente actual no está en la lista, agregamos uno “de cortesía” para que SelectValue lo pueda mostrar */}
+                {hasActualClient &&
+                  !clients?.some((c) => c.id === actualClient?.id) && (
+                    <SelectItem
+                      value={String(actualClient!.id)}
+                      className="capitalize"
+                    >
+                      {actualClientLabel}
+                    </SelectItem>
+                  )}
+
+                {clients?.map((client) => (
+                  <SelectItem
+                    className="capitalize"
+                    key={client.id}
+                    value={String(client.id)}
+                  >
+                    {client.type === "Fisica"
+                      ? `${client.firstName} ${client.lastName}`
+                      : client.companyName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Select
+              value={newItem.categoryId}
+              onValueChange={(value: string) =>
+                setNewItem((prev) => ({
+                  ...prev,
+                  categoryId: value,
+                  sectionId: "",
+                  itemTypeId: "",
                 }))
               }
             >
@@ -109,25 +231,25 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
           </div>
           <div className="grid gap-2">
             <Select
-              value={newItem.section}
+              value={newItem.sectionId}
               onValueChange={(value: string) =>
                 setNewItem((prev) => ({
                   ...prev,
-                  section: value,
-                  itemType: "",
+                  sectionId: value,
+                  itemTypeId: "",
                 }))
               }
-              disabled={!newItem.category || categorySections.length === 0}
+              disabled={!newItem.categoryId || categorySections.length === 0}
             >
               <SelectTrigger
                 className={`capitalize ${
-                  !newItem.category ? "opacity-50 cursor-not-allowed" : ""
+                  !newItem.categoryId ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
                 <SelectValue placeholder="Elige la seccion del item" />
               </SelectTrigger>
               <SelectContent>
-                {categorySections().map((section) => (
+                {categorySections.map((section) => (
                   <SelectItem
                     className="capitalize"
                     key={section.id}
@@ -141,24 +263,24 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
           </div>
           <div className="grid gap-2">
             <Select
-              value={newItem.itemType}
+              value={newItem.itemTypeId}
               onValueChange={(value: string) =>
                 setNewItem((prev) => ({
                   ...prev,
-                  itemType: value,
+                  itemTypeId: value,
                 }))
               }
-              disabled={!newItem.section || sectionItemTypes.length === 0}
+              disabled={!newItem.sectionId || sectionItemTypes.length === 0}
             >
               <SelectTrigger
                 className={`capitalize ${
-                  !newItem.section ? "opacity-50 cursor-not-allowed" : ""
+                  !newItem.sectionId ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
                 <SelectValue placeholder="Elige el tipo del item" />
               </SelectTrigger>
               <SelectContent>
-                {sectionItemTypes().map((itemType) => (
+                {sectionItemTypes.map((itemType) => (
                   <SelectItem
                     className="capitalize"
                     key={itemType.id}
@@ -200,12 +322,15 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
               placeholder="Escriba una breve descripcion" //Consultar preferencias
             />
           </div>
-        </div>
-        <DialogFooter>
-          <Button type="submit" onClick={handleAddItem}>
-            Agregar Item
-          </Button>
-        </DialogFooter>
+
+          {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+
+          <DialogFooter className="pt-3">
+            <Button type="submit" disabled={loading}>
+              {loading ? "Guardando..." : "Agregar Item"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

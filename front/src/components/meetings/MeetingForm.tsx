@@ -1,7 +1,7 @@
-// MeetingForm.tsx
+// src/components/meetings/MeetingForm.tsx
 import { useEffect, useState } from "react";
 import type { MeetingType, Participant } from "@/types/Meeting";
-import { Button } from "@components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,17 +9,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@components/ui/dialog";
-import { Input } from "@components/ui/input";
-import { Label } from "@components/ui/label";
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@components/ui/select";
-import { Textarea } from "@components/ui/textarea"; // si lo tenés, si no usa <textarea>
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea"; // si lo tenés, si no usa <textarea>
+import { createMeeting } from "@/api/meeting";
+import { useParams } from "react-router-dom";
+import { useMeetingStore } from "@/store/useMeetingStore";
+import { localDateTimeToIsoUtc } from "@/utils/dateTime";
 
 type MeetingFormProps = {
   isDialogOpen: boolean;
@@ -32,17 +36,17 @@ type NewMeeting = {
   startAt: string; // ISO local (del <input type="datetime-local">)
   participants: Participant[]; // mínimo: abogado + cliente
   meetingType: MeetingType;
-  description?: string;
-  error?: string | null;
+  notes: string;
 };
+
+type FieldErrors = Partial<Record<keyof NewMeeting, string>>;
 
 const initialMeeting: NewMeeting = {
   name: "",
   startAt: "",
   participants: [],
   meetingType: "google-meet",
-  description: "",
-  error: null,
+  notes: "",
 };
 
 const MeetingForm = ({
@@ -50,50 +54,88 @@ const MeetingForm = ({
   setIsDialogOpen,
   defaultParticipants,
 }: MeetingFormProps) => {
-  const [form, setForm] = useState<NewMeeting>(initialMeeting);
+  const { clientItemId } = useParams<{ clientItemId: string }>();
+  const [formData, setFormData] = useState<NewMeeting>(initialMeeting);
+
+  // 🛠️ Separado el manejo de errores y estado de envío (no mezclar con formData)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchMeetingsByClientItemId = useMeetingStore(
+    (s) => s.fetchMeetingsByClientItemId
+  );
 
   // cuando se abre, inyectamos participantes por defecto
   useEffect(() => {
     if (isDialogOpen) {
-      setForm((prev) => ({
+      setFormData((prev) => ({
         ...prev,
         participants: defaultParticipants,
-        error: null,
       }));
+      setFieldErrors({});
+      setFormError(null);
     } else {
-      setForm(initialMeeting);
+      setFormData(initialMeeting);
       setIsSubmitting(false);
     }
   }, [isDialogOpen, defaultParticipants]);
 
-  const handleChange = (key: keyof NewMeeting, value: any) =>
-    setForm((prev) => ({ ...prev, [key]: value, error: null }));
+  const set = <K extends keyof NewMeeting>(key: K, value: NewMeeting[K]) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((fe) => ({ ...fe, [key]: undefined }));
+    setFormError(null);
+  };
 
-  /*   const validate = (): string | null => {
-    if (!form.name.trim()) return "El título de la reunión es obligatorio.";
-    if (!form.startAt) return "La fecha y hora de inicio son obligatorias.";
-    if (!form.participants?.length)
-      return "La reunión debe tener al menos un participante.";
-    if (!form.meetingType) return "Seleccioná el tipo de reunión.";
-    return null;
-  }; */
+  // 🛠️ Validación con fieldErrors + formError (patrón consistente)
+  const validate = (): boolean => {
+    const fe: FieldErrors = {};
+    if (!formData.name.trim()) fe.name = "El título es obligatorio.";
+    if (!formData.startAt) fe.startAt = "La fecha y hora son obligatorias.";
+    if (!formData.meetingType) fe.meetingType = "Seleccioná el tipo.";
+    if (!formData.participants?.length)
+      fe.participants = "Debe haber al menos un participante.";
+
+    setFieldErrors(fe);
+    setFormError(Object.keys(fe).length ? "Revisá los campos marcados." : null);
+    return Object.keys(fe).length === 0;
+  };
 
   const handleSubmit = async () => {
-    /*     const err = validate();
-    if (err) return setForm((prev) => ({ ...prev, error: err }));
+    if (!clientItemId) {
+      setFormError("Falta el identificador del Item del cliente.");
+      return;
+    }
+
+    if (!validate()) return;
+
+    setIsSubmitting(true);
+    setFormError(null);
+
+    // 🛠️ Consistencia de fechas: convertimos datetime-local a ISO UTC
+    const startAtIsoUtc = localDateTimeToIsoUtc(formData.startAt);
+
+    // NOTA: Si tu endpoint acepta JSON, podés mandar un objeto.
+    // Conservo FormData por compatibilidad con tu back actual.
+    const body = new FormData();
+    body.append("name", formData.name.trim());
+    body.append("startAt", startAtIsoUtc || "");
+    body.append("meetingType", formData.meetingType);
+    body.append("participants", JSON.stringify(formData.participants));
+    if (formData.notes.trim()) body.append("notes", formData.notes.trim());
 
     try {
-      setIsSubmitting(true);
-      await onCreate?.(form);
+      await createMeeting(body, clientItemId);
+      await fetchMeetingsByClientItemId(clientItemId);
+
       setIsDialogOpen(false);
+      setFormData(initialMeeting);
     } catch (e: any) {
-      setForm((prev) => ({
-        ...prev,
-        error: e?.message ?? "No se pudo crear la reunión.",
-      }));
+      // 🛠️ Error general normalizado a mensaje simple para UI
+      setFormError(e?.message ?? "No se pudo crear la reunión.");
+    } finally {
       setIsSubmitting(false);
-    } */
+    }
   };
 
   return (
@@ -106,92 +148,117 @@ const MeetingForm = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Name */}
-        <div className="space-y-1.5">
-          <Label htmlFor="name">Título</Label>
-          <Input
-            id="name"
-            placeholder="Ej: Seguimiento medidas cautelares"
-            value={form.name}
-            onChange={(e) => handleChange("name", e.target.value)}
-          />
-        </div>
-
-        {/* Fecha/hora */}
-        <div className="space-y-1.5">
-          <Label htmlFor="startAt">Fecha y hora</Label>
-          <Input
-            id="startAt"
-            type="datetime-local"
-            value={form.startAt}
-            onChange={(e) => handleChange("startAt", e.target.value)}
-          />
-        </div>
-
-        {/* Tipo */}
-        <div className="space-y-1.5">
-          <Label>Tipo de reunión</Label>
-          <Select
-            value={form.meetingType}
-            onValueChange={(v) => handleChange("meetingType", v as MeetingType)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Seleccionar" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="google-meet">Google Meet</SelectItem>
-              <SelectItem value="in-person">Presencial</SelectItem>
-            </SelectContent>
-          </Select>
-          {form.meetingType === "google-meet" && (
-            <p className="text-xs text-muted-foreground">
-              Se creará un enlace de Meet si tu cuenta de Google está conectada.
-            </p>
-          )}
-        </div>
-
-        {/* Participants (solo lectura por ahora, con posibilidad de ampliar luego) */}
-        <div className="space-y-1.5">
-          <Label>Participantes</Label>
-          <div className="flex flex-wrap gap-2">
-            {form.participants.map((p, idx) => (
-              <span
-                key={`${p.email}-${idx}`}
-                className="text-xs rounded-full border px-2 py-1"
-                title={p.email}
-              >
-                {p.name || p.email}
-              </span>
-            ))}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
+          {/* Name */}
+          <div className="space-y-1.5">
+            <Label htmlFor="name">Título</Label>
+            <Input
+              id="name"
+              placeholder="Ej: Seguimiento medidas cautelares"
+              value={formData.name}
+              onChange={(e) => set("name", e.target.value)}
+              aria-invalid={!!fieldErrors.name}
+            />
+            {fieldErrors.name && (
+              <p className="text-xs text-red-600">{fieldErrors.name}</p>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Por ahora se agregan automáticamente el abogado y el cliente. Luego
-            podés sumar más.
-          </p>
-        </div>
 
-        {/* Description */}
-        <div className="space-y-1.5">
-          <Label htmlFor="desc">Descripción</Label>
-          <Textarea
-            id="desc"
-            rows={4}
-            placeholder="Notas, objetivos, agenda…"
-            value={form.description}
-            onChange={(e) => handleChange("description", e.target.value)}
-          />
-        </div>
+          {/* Fecha/hora */}
+          <div className="space-y-1.5">
+            <Label htmlFor="startAt">Fecha y hora</Label>
+            <Input
+              id="startAt"
+              type="datetime-local"
+              value={formData.startAt}
+              onChange={(e) => set("startAt", e.target.value)}
+              aria-invalid={!!fieldErrors.startAt}
+            />
+            {fieldErrors.startAt && (
+              <p className="text-xs text-red-600">{fieldErrors.startAt}</p>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Se convertirá a UTC para reportes consistentes.
+            </p>
+          </div>
 
-        {form.error && <p className="text-sm text-red-600">{form.error}</p>}
+          {/* Tipo */}
+          <div className="space-y-1.5">
+            <Label>Tipo de reunión</Label>
+            <Select
+              value={formData.meetingType}
+              onValueChange={(v) => set("meetingType", v as MeetingType)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="google-meet">Google Meet</SelectItem>
+                <SelectItem value="in-person">Presencial</SelectItem>
+              </SelectContent>
+            </Select>
+            {fieldErrors.meetingType && (
+              <p className="text-xs text-red-600">{fieldErrors.meetingType}</p>
+            )}
+            {formData.meetingType === "google-meet" && (
+              <p className="text-xs text-muted-foreground">
+                Se creará un enlace de Meet si tu cuenta de Google está
+                conectada.
+              </p>
+            )}
+          </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Creando…" : "Crear reunión"}
-          </Button>
-        </DialogFooter>
+          {/* Participants (solo lectura por ahora, con posibilidad de ampliar luego) */}
+          <div className="space-y-1.5">
+            <Label>Participantes</Label>
+            <div className="flex flex-wrap gap-2">
+              {formData.participants.map((p, idx) => (
+                <span
+                  key={`${p.email}-${idx}`}
+                  className="text-xs rounded-full border px-2 py-1"
+                  title={p.email}
+                >
+                  {p.name || p.email}
+                </span>
+              ))}
+            </div>
+            {fieldErrors.participants && (
+              <p className="text-xs text-red-600">{fieldErrors.participants}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Por ahora se agregan automáticamente el abogado y el cliente.
+              Luego podés sumar más.
+            </p>
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-1.5">
+            <Label htmlFor="desc">Descripción</Label>
+            <Textarea
+              id="desc"
+              rows={4}
+              placeholder="Notas, objetivos, agenda…"
+              value={formData.notes}
+              onChange={(e) => set("notes", e.target.value)}
+            />
+          </div>
+
+          {formError && <p className="text-sm text-red-600">{formError}</p>}
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onSubmit={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? "Creando…" : "Crear reunión"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

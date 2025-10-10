@@ -1,10 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronRight, User } from "lucide-react";
+import { Search, User } from "lucide-react";
 import googleLogo from "@/assets/logos/cromoVerde.png";
 import MeetingForm from "@/components/meetings/MeetingForm";
 import type { Meeting } from "@/types/Meeting";
+import { useLawyerStore } from "@/store/useLawyerStore";
+import { useClientItemStore } from "@/store/useClientItemStore";
+import { useClientStore } from "@/store/useClientStore";
+import MeetingCard from "@/components/meetings/MeetingCard";
 
 const meetings: Meeting[] = [
   {
@@ -17,11 +21,11 @@ const meetings: Meeting[] = [
       { name: "Cliente", email: "cliente@mail.com" },
     ],
     type: "google-meet",
-    meetLink: "https://meet.google.com/abc-defg-hij",
+    link: "https://meet.google.com/abc-defg-hij",
     status: "scheduled",
-    description: "Repasar documentación enviada por la contraparte.",
-    createdAt: "2025-08-20T12:00:00-03:00",
-    updatedAt: "2025-08-20T12:00:00-03:00",
+    notes: "Repasar documentación enviada por la contraparte.",
+    createAt: "2025-08-20T12:00:00-03:00",
+    updateAt: "2025-08-20T12:00:00-03:00",
   },
   {
     id: "mtg_099",
@@ -33,11 +37,11 @@ const meetings: Meeting[] = [
       { name: "Asociado", email: "asociado@estudio.com" },
     ],
     type: "google-meet",
-    meetLink: "https://meet.google.com/xyz-uvwx-123",
+    link: "https://meet.google.com/xyz-uvwx-123",
     status: "completed",
-    description: "Definir próximos pasos y responsables.",
-    createdAt: "2025-08-15T09:20:00-03:00",
-    updatedAt: "2025-08-22T17:00:00-03:00",
+    notes: "Definir próximos pasos y responsables.",
+    createAt: "2025-08-15T09:20:00-03:00",
+    updateAt: "2025-08-22T17:00:00-03:00",
   },
   {
     id: "mtg_095",
@@ -49,11 +53,11 @@ const meetings: Meeting[] = [
       { name: "Cliente", email: "cliente@mail.com" },
     ],
     type: "google-meet",
-    meetLink: "https://meet.google.com/meet-perito-11",
+    link: "https://meet.google.com/meet-perito-11",
     status: "canceled",
-    description: "Se reprograma por indisponibilidad del perito.",
-    createdAt: "2025-08-10T10:00:00-03:00",
-    updatedAt: "2025-08-17T18:10:00-03:00",
+    notes: "Se reprograma por indisponibilidad del perito.",
+    createAt: "2025-08-10T10:00:00-03:00",
+    updateAt: "2025-08-17T18:10:00-03:00",
   },
   {
     id: "mtg_110",
@@ -67,9 +71,9 @@ const meetings: Meeting[] = [
     type: "in-person",
     location: "Oficina central - Sala de reuniones 1",
     status: "scheduled",
-    description: "Revisión de contrato de arrendamiento.",
-    createdAt: "2025-08-25T12:00:00-03:00",
-    updatedAt: "2025-08-25T12:00:00-03:00",
+    notes: "Revisión de contrato de arrendamiento.",
+    createAt: "2025-08-25T12:00:00-03:00",
+    updateAt: "2025-08-25T12:00:00-03:00",
   },
   {
     id: "mtg_111",
@@ -84,9 +88,9 @@ const meetings: Meeting[] = [
     type: "in-person",
     location: "Tribunales - Sala de espera piso 3",
     status: "scheduled",
-    description: "Preparación de testimonios previos a la audiencia.",
-    createdAt: "2025-08-20T09:30:00-03:00",
-    updatedAt: "2025-08-20T09:30:00-03:00",
+    notes: "Preparación de testimonios previos a la audiencia.",
+    createAt: "2025-08-20T09:30:00-03:00",
+    updateAt: "2025-08-20T09:30:00-03:00",
   },
   {
     id: "mtg_112",
@@ -100,9 +104,9 @@ const meetings: Meeting[] = [
     type: "in-person",
     location: "Estudio jurídico - Sala de juntas",
     status: "scheduled",
-    description: "Analizar informe técnico y validar pruebas.",
-    createdAt: "2025-08-27T14:00:00-03:00",
-    updatedAt: "2025-08-27T14:00:00-03:00",
+    notes: "Analizar informe técnico y validar pruebas.",
+    createAt: "2025-08-27T14:00:00-03:00",
+    updateAt: "2025-08-27T14:00:00-03:00",
   },
   {
     id: "mtg_113",
@@ -114,11 +118,11 @@ const meetings: Meeting[] = [
       { name: "Cliente Nuevo", email: "nuevo.cliente@mail.com" },
     ],
     type: "google-meet",
-    meetLink: "https://meet.google.com/cli-ente-123",
+    link: "https://meet.google.com/cli-ente-123",
     status: "scheduled",
-    description: "Presentación y recopilación de antecedentes.",
-    createdAt: "2025-08-28T10:00:00-03:00",
-    updatedAt: "2025-08-28T10:00:00-03:00",
+    notes: "Presentación y recopilación de antecedentes.",
+    createAt: "2025-08-28T10:00:00-03:00",
+    updateAt: "2025-08-28T10:00:00-03:00",
   },
   {
     id: "mtg_114",
@@ -132,9 +136,9 @@ const meetings: Meeting[] = [
     type: "in-person",
     location: "Oficina central – Sala de juntas 2",
     status: "completed",
-    description: "Definición de modificaciones estatutarias.",
-    createdAt: "2025-08-22T12:30:00-03:00",
-    updatedAt: "2025-09-01T16:00:00-03:00",
+    notes: "Definición de modificaciones estatutarias.",
+    createAt: "2025-08-22T12:30:00-03:00",
+    updateAt: "2025-09-01T16:00:00-03:00",
   },
   {
     id: "mtg_115",
@@ -148,9 +152,9 @@ const meetings: Meeting[] = [
     type: "in-person",
     location: "Tribunales – Sala 4",
     status: "scheduled",
-    description: "Verificar disponibilidad de testigos y peritos.",
-    createdAt: "2025-08-29T09:00:00-03:00",
-    updatedAt: "2025-08-29T09:00:00-03:00",
+    notes: "Verificar disponibilidad de testigos y peritos.",
+    createAt: "2025-08-29T09:00:00-03:00",
+    updateAt: "2025-08-29T09:00:00-03:00",
   },
   {
     id: "mtg_116",
@@ -162,11 +166,11 @@ const meetings: Meeting[] = [
       { name: "Cliente", email: "cliente@mail.com" },
     ],
     type: "google-meet",
-    meetLink: "https://meet.google.com/cie-rre-contrato",
+    link: "https://meet.google.com/cie-rre-contrato",
     status: "completed",
-    description: "Confirmación de cláusulas y firma digital.",
-    createdAt: "2025-08-20T15:00:00-03:00",
-    updatedAt: "2025-08-26T18:05:00-03:00",
+    notes: "Confirmación de cláusulas y firma digital.",
+    createAt: "2025-08-20T15:00:00-03:00",
+    updateAt: "2025-08-26T18:05:00-03:00",
   },
   {
     id: "mtg_117",
@@ -178,11 +182,11 @@ const meetings: Meeting[] = [
       { name: "Asociado", email: "asociado@estudio.com" },
     ],
     type: "google-meet",
-    meetLink: "https://meet.google.com/per-ito-999",
+    link: "https://meet.google.com/per-ito-999",
     status: "canceled",
-    description: "Se cancela por imposibilidad de conexión.",
-    createdAt: "2025-08-24T10:00:00-03:00",
-    updatedAt: "2025-08-28T20:00:00-03:00",
+    notes: "Se cancela por imposibilidad de conexión.",
+    createAt: "2025-08-24T10:00:00-03:00",
+    updateAt: "2025-08-28T20:00:00-03:00",
   },
 ];
 
@@ -211,7 +215,21 @@ const ItemMeetingsPage = () => {
   const [openId, setOpenId] = useState<string | null>(null);
   const openMeeting = meetings.find((m) => m.id === openId) || null;
 
+  const lawyer = useLawyerStore((s) => s.lawyer);
+  const clientItemDetail = useClientItemStore((s) => s.clientItemDetail);
+  const clients = useClientStore((s) => s.clientsByLawyer);
+
+  const actualClient = useMemo(() => {
+    if (!clientItemDetail) return null;
+    return clients?.find((c) => c.id === clientItemDetail.clientId) || null;
+  }, [clientItemDetail, clients]);
+
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const togglePanel = (id?: string) => {
+    if (!id) return; // si no hay id, no hacemos nada
+    setOpenId((prev) => (prev === id ? null : id));
+  };
 
   useEffect(() => {
     if (!openMeeting || !containerRef.current) return;
@@ -226,13 +244,22 @@ const ItemMeetingsPage = () => {
     <div
       ref={containerRef}
       className={`relative overflow-x-hidden ${
-        openMeeting && "overflow-y-hidden"
+        openMeeting ? "overflow-y-hidden" : ""
       }`}
     >
       <MeetingForm
         isDialogOpen={isDialogOpen}
         setIsDialogOpen={setIsDialogOpen}
-        defaultParticipants={[{ name: "adasdsa", email: "afadsas" }]}
+        defaultParticipants={[
+          { name: "Tu", email: lawyer?.user?.email || "" },
+          {
+            name:
+              actualClient?.type === "Fisica"
+                ? `${actualClient?.firstName}  ${actualClient?.lastName}`
+                : actualClient?.companyName || "Cliente",
+            email: actualClient?.email || "",
+          },
+        ]}
       />
       <div className="flex flex-col gap-y-4 pl-2 pt-2">
         <h1 className="text-3xl font-semibold leading-tight">Reuniones</h1>
@@ -261,60 +288,7 @@ const ItemMeetingsPage = () => {
             {meetings
               .filter((m) => m.status === "scheduled")
               .map((m) => (
-                <li key={m.id} className="p-4">
-                  {/* fila */}
-                  <div className="flex items-center gap-4">
-                    {/* fecha */}
-                    <div className="w-24 shrink-0 text-gray-500 flex flex-col items-center">
-                      <span className="text-sm font-medium">
-                        {`${formatDateShort(m.startAt)}.`}
-                      </span>
-                      <span className="text-sm font-medium">
-                        {formatTime(m.startAt)}
-                      </span>
-                    </div>
-
-                    {/* contenido */}
-                    <div className="min-w-0 flex-1 pl-3">
-                      <p className="truncate font-semibold text-lg text-gray-900 mb-1">
-                        {m.name}
-                      </p>
-                      <div className="text-[0.9rem] text-gray-900 flex items-center gap-x-2">
-                        {m.type === "google-meet" ? (
-                          <>
-                            <img
-                              src={googleLogo}
-                              alt="Logo Google"
-                              className="h-[1.2rem] w-[1.2rem]"
-                            />
-                            <span className="font-medium">Google Meet</span>
-                          </>
-                        ) : (
-                          <>
-                            <User />
-                            <span className="font-medium">Presencial</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* arrow */}
-                    <div className="pr-2">
-                      <button
-                        className="cursor-pointer"
-                        onClick={() => setOpenId(openId === m.id ? null : m.id)}
-                        aria-expanded={openId === m.id}
-                        aria-controls="meeting-detail-panel"
-                      >
-                        <ChevronRight
-                          className={`transition-transform duration-200 ${
-                            openId === m.id ? "rotate-180" : ""
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </li>
+                <MeetingCard m={m} togglePanel={togglePanel} openId={openId} />
               ))}
           </ul>
         </div>
@@ -324,53 +298,7 @@ const ItemMeetingsPage = () => {
             {meetings
               .filter((m) => m.status === "completed")
               .map((m) => (
-                <li key={m.id} className="p-4">
-                  {/* fila */}
-                  <div className="flex items-center gap-4">
-                    {/* fecha */}
-                    <div className="w-24 shrink-0 text-gray-500 flex flex-col items-center">
-                      <span className="text-sm font-medium">
-                        {`${formatDateShort(m.startAt)}.`}
-                      </span>
-                      <span className="text-sm font-medium">
-                        {formatTime(m.startAt)}
-                      </span>
-                    </div>
-
-                    {/* contenido */}
-                    <div className="min-w-0 flex-1 pl-3">
-                      <p className="truncate font-semibold text-lg text-gray-900 mb-1">
-                        {m.name}
-                      </p>
-                      <div className="text-[0.9rem] text-gray-900 flex items-center gap-x-2">
-                        {m.type === "google-meet" ? (
-                          <>
-                            <img
-                              src={googleLogo}
-                              alt="Logo Google"
-                              className="h-[1.2rem] w-[1.2rem]"
-                            />
-                            <span className="font-medium">Google Meet</span>
-                          </>
-                        ) : (
-                          <span className="font-medium">Presencial</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* arrow */}
-                    <div className="pr-2">
-                      <button
-                        className="cursor-pointer"
-                        onClick={() => setOpenId(openId === m.id ? null : m.id)}
-                        aria-expanded={openId === m.id}
-                        aria-controls="meeting-detail-panel"
-                      >
-                        <ChevronRight />
-                      </button>
-                    </div>
-                  </div>
-                </li>
+                <MeetingCard m={m} togglePanel={togglePanel} openId={openId} />
               ))}
           </ul>
         </div>
@@ -380,57 +308,7 @@ const ItemMeetingsPage = () => {
             {meetings
               .filter((m) => m.status === "canceled")
               .map((m) => (
-                <li key={m.id} className="p-4">
-                  {/* fila */}
-                  <div className="flex items-center gap-4">
-                    {/* fecha */}
-                    <div className="w-24 shrink-0 text-gray-500 flex flex-col items-center">
-                      <span className="text-sm font-medium">
-                        {`${formatDateShort(m.startAt)}.`}
-                      </span>
-                      <span className="text-sm font-medium">
-                        {formatTime(m.startAt)}
-                      </span>
-                    </div>
-
-                    {/* contenido */}
-                    <div className="min-w-0 flex-1 pl-3">
-                      <p className="truncate font-semibold text-lg text-gray-900 mb-1">
-                        {m.name}
-                      </p>
-                      <div className="text-[0.9rem] text-gray-900 flex items-center gap-x-2">
-                        {m.type === "google-meet" ? (
-                          <>
-                            <img
-                              src={googleLogo}
-                              alt="Logo Google"
-                              className="h-[1.2rem] w-[1.2rem]"
-                            />
-                            <span className="font-medium">Google Meet</span>
-                          </>
-                        ) : (
-                          <span className="font-medium">Presencial</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* arrow */}
-                    <div className="pr-2">
-                      <button
-                        className="cursor-pointer"
-                        onClick={() => setOpenId(openId === m.id ? null : m.id)}
-                        aria-expanded={openId === m.id}
-                        aria-controls="meeting-detail-panel"
-                      >
-                        <ChevronRight
-                          className={`transition-transform duration-200 ${
-                            openId === m.id ? "rotate-180" : ""
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </li>
+                <MeetingCard m={m} togglePanel={togglePanel} openId={openId} />
               ))}
           </ul>
         </div>
@@ -468,8 +346,9 @@ const ItemMeetingsPage = () => {
             {openMeeting && (
               <p className="pt-1 pb-4 text-sm text-gray-600">
                 {formatDateShort(openMeeting.startAt)} ·{" "}
-                {formatTime(openMeeting.startAt)}–
-                {formatTime(openMeeting.endAt)}
+                {formatTime(openMeeting.startAt)}
+                {openMeeting.endAt ??
+                  `-${formatTime(openMeeting.endAt ?? openMeeting.startAt)}`}
               </p>
             )}
           </div>
@@ -506,15 +385,15 @@ const ItemMeetingsPage = () => {
                   )}
                 </div>
 
-                {openMeeting.meetLink && (
+                {openMeeting.link && (
                   <div className="pt-2">
                     <a
-                      href={openMeeting.meetLink}
+                      href={openMeeting.link}
                       target="_blank"
                       rel="noreferrer"
                       className="text-blue-700 underline break-all"
                     >
-                      {openMeeting.meetLink}
+                      {openMeeting.link}
                     </a>
                   </div>
                 )}
@@ -540,13 +419,13 @@ const ItemMeetingsPage = () => {
               </div>
 
               {/* Notas */}
-              {openMeeting.description && (
+              {openMeeting.notes && (
                 <div>
                   <p className="text-sm font-medium text-gray-900 pb-1">
                     Notas internas
                   </p>
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                    {openMeeting.description}
+                    {openMeeting.notes}
                   </p>
                 </div>
               )}

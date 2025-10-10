@@ -35,14 +35,19 @@ export function useActivityHeartbeat(opts?: {
     if (!enabled) return;
 
     handlerRef.current = throttle(() => {
+      const s = get.getState();
+
+      // ⛔️ Si el engine está deshabilitado (post-logout/antes de enable) no hagas nada
+      if (!s.enabled) return;
+
       // 1) avisamos actividad SIEMPRE
       window.timer?.markActivity?.();
 
       // 2) auto-start global si está detenido (sin depender de un contexto)
-      const s = get.getState();
-      if (s.status !== "running") {
+      /* if (s.status !== "running") {
         window.timer?.workStart?.(); // 👈 arranca el global en el primer input
-      }
+        console.log("Timer global auto-started due to activity");
+      } */
 
       // 3) si hay contexto activo pero no corriendo, reanudarlo
       if (s.active && s.contextStatus !== "running") {

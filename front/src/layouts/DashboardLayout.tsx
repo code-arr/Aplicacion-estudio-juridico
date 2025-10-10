@@ -127,7 +127,7 @@ const DashboardLayout = () => {
       <div className="min-h-screen flex items-start w-full bg-gray-50">
         <AppSidebar lawyer={lawyer} onLogout={logOut} />
         {/* Aca en seria mejor pasarle role={user.role} en lugar de lawyer={user} */}
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           <Outlet />
         </main>
         {/* 🔔 Modal de advertencia de inactividad */}

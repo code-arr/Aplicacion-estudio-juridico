@@ -7,13 +7,32 @@ import { timeQueueStore } from "../store/timeQueueStore.js";
 import { globalTimerStore } from "../store/globalTimerStore.js";
 import type { TimeEntry, PauseReason } from "../../src/types/Timer.js";
 
-const IDLE_LIMIT_MS = 90_000 as const;
+// ---------------------------------------------------------
+// 🆕 Flag global para no cablear dos veces (dev/HMR, ventanas extra, etc.)
+const GLOBAL_FLAG = "__timer_ipc_wired__";
 
+// Estado interno del módulo
 let engine: TimerEngine | null = null;
-let wired = false;
 
+// ---------------------------------------------------------
+// 🆕 Mantener la constante acá (evita import cycles con el front)
+const IDLE_LIMIT_MS = 90_000 as const;
 const IDLE_SEC = Math.floor(IDLE_LIMIT_MS / 1000);
-let _idleLoop: NodeJS.Timeout | null = null;
+
+// ---------------------------------------------------------
+// Bootstrap del motor
+const ensure = (): TimerEngine => {
+  if (!engine) {
+    engine = new TimerEngine();
+    // Sembrar con lo último guardado (si es del mismo día)
+    try {
+      engine.seedDailyBase(globalTimerStore.read());
+    } catch (e) {
+      console.error("[globalTimerStore.read] failed:", e);
+    }
+  }
+  return engine!;
+};
 
 /* export function timerShutdown() {
   if (!engine) return;
@@ -42,21 +61,8 @@ let _idleLoop: NodeJS.Timeout | null = null;
   }
 } */
 
-// ---------- bootstrap del motor ----------
-const ensure = () => {
-  if (!engine) {
-    engine = new TimerEngine();
-    // Sembrar con lo último guardado (si es del mismo día)
-    try {
-      engine.seedDailyBase(globalTimerStore.read());
-    } catch (e) {
-      console.error("[globalTimerStore.read] failed:", e);
-    }
-  }
-  return engine!;
-};
-
-// ---------- estado → persistencia y broadcast ----------
+// ---------------------------------------------------------
+// Persistencia + broadcast del mirror a todos los windows
 const wireState = () => {
   ensure().removeAllListeners("state");
   ensure().on("state", () => {
@@ -70,13 +76,55 @@ const wireState = () => {
     BrowserWindow.getAllWindows().forEach((win) => {
       try {
         win.webContents.send("timer:state", mirror);
-      } catch {}
+      } catch {
+        // no importa si falla en alguna ventana
+      }
     });
   });
 };
 
-// ---------- helper: stop alineado y persistente (DRY) ----------
-function alignedStop(reason: PauseReason | "suspend" | "close") {
+// ---------------------------------------------------------
+// Helpers de tiempo
+function alignedStop(reason: PauseReason | "suspend" | "close" | "idle") {
+  const now = Date.now();
+
+  // 1) ms del ÚLTIMO segundo ya mostrado (alineado a lo que vio el usuario)
+  const m = ensure().toMirror();
+  let displayEndMs = now;
+  if (m.runningSince != null) {
+    const runSecShown = Math.max(0, Math.floor((now - m.runningSince) / 1000));
+    displayEndMs = m.runningSince + runSecShown * 1000;
+  }
+
+  // 2) Si es IDLE, calculamos el "cap" para NO regalar tiempo
+  let idleCapMs = Number.POSITIVE_INFINITY;
+  if (reason === "idle") {
+    const st = ensure().getState();
+    const lastFromEngine = st.global.lastActivityUTC
+      ? Date.parse(st.global.lastActivityUTC)
+      : 0;
+    const idleSec = powerMonitor.getSystemIdleTime?.() ?? 0; // redondeado por SO
+    const lastFromOS = now - idleSec * 1000;
+    const lastInput = Math.max(lastFromEngine, lastFromOS);
+    idleCapMs = lastInput + IDLE_LIMIT_MS;
+  }
+
+  // 3) Elegimos el fin efectivo más conservador y realista
+  const eff = Math.min(displayEndMs, idleCapMs, now);
+
+  // 4) Cerrar contexto y global (idempotente si ya estaban parados)
+  const st2 = ensure().getState();
+  if (st2.ctx.status === "running") ensure().pause(reason, eff);
+  if (st2.global.status === "running") ensure().workPause(eff);
+
+  // 5) Snapshot
+  try {
+    globalTimerStore.write(ensure().getDailySnapshot());
+  } catch (e) {
+    console.error("[globalTimerStore.write] failed:", e);
+  }
+}
+/* function alignedStop(reason: PauseReason | "suspend" | "close") {
   const m = ensure().toMirror();
 
   // 1) fin alineado al último segundo ya mostrado
@@ -98,73 +146,38 @@ function alignedStop(reason: PauseReason | "suspend" | "close") {
   // 3) snapshot
   try {
     globalTimerStore.write(ensure().getDailySnapshot());
-  } catch {}
-}
+  } catch {
+    console.error("[globalTimerStore.write] failed:");
+  }
+} */
 
-// ---------- export: para usar en main.ts / before-quit ----------
+// ---------------------------------------------------------
+// Export para usar en main.ts (before-quit)
 export function timerShutdown() {
-  // Se usa como “último seguro” cuando la app está por cerrar.
   alignedStop("close");
 }
 
-// ---------- idle por SO (fallback) ----------
+// ---------------------------------------------------------
+// 🆕 Idle por SO (fallback) con “constructor” que devuelve starter idempotente
 function ensureIdleLoop() {
-  if (_idleLoop) return;
-  _idleLoop = setInterval(() => {
-    const st = ensure().getState();
-    if (st.global.status !== "running") return;
+  let idleLoop: NodeJS.Timeout | null = null;
+  return () => {
+    if (idleLoop) return; // ya corriendo
+    idleLoop = setInterval(() => {
+      const st = ensure().getState();
+      if (st.global.status !== "running") return;
 
-    const idle = powerMonitor.getSystemIdleTime?.() ?? 0;
-    if (idle >= IDLE_SEC) {
-      // Reutilizamos la lógica centralizada (alineado + pausa ctx + pausa global + snapshot)
-      alignedStop("idle");
-    }
-  }, 3000);
-}
-
-// ---------- idle por SO (fallback) ----------
-/* function ensureIdleLoop() {
-  if (_idleLoop) return;
-  _idleLoop = setInterval(() => {
-    const st = ensure().getState();
-    if (st.global.status !== "running") return;
-
-    const idle = powerMonitor.getSystemIdleTime?.() ?? 0;
-    if (idle >= IDLE_SEC) {
-      const lastFromEngine = st.global.lastActivityUTC
-        ? Date.parse(st.global.lastActivityUTC)
-        : 0;
-      const lastFromOS = Date.now() - idle * 1000;
-
-      // dentro del ensureIdleLoop, después de calcular lastFromEngine / lastFromOS
-      const lastInput = Math.max(lastFromEngine, lastFromOS);
-      const idleCapMs = lastInput + IDLE_SEC * 1000;
-
-      // endMs alineado al último segundo mostrado (sin helper del engine):
-      const mirror = ensure().toMirror();
-      let displayEndMs = Date.now();
-      if (mirror.runningSince != null) {
-        const runSecShown = Math.max(
-          0,
-          Math.floor((Date.now() - mirror.runningSince) / 1000)
-        );
-        displayEndMs = mirror.runningSince + runSecShown * 1000;
+      const idle = powerMonitor.getSystemIdleTime?.() ?? 0;
+      if (idle >= IDLE_SEC) {
+        // 🆕 usa alignedStop("idle") → evita regalar segundos
+        alignedStop("idle");
       }
+    }, 3000);
+  };
+}
+const startIdleLoop = ensureIdleLoop();
 
-      const eff = Math.min(displayEndMs, idleCapMs, Date.now());
-      ensure().pause("idle", eff);
-      ensure().workPause(eff);
-    }
-  }, 3000);
-} */
-
-// ---------- Disparadores: eventos del SO: suspend / lock / shutdown ----------
-powerMonitor.on("suspend", () => alignedStop("suspend"));
-powerMonitor.on("lock-screen", () => alignedStop("suspend")); // tratamos lock como suspend
-powerMonitor.on("shutdown", () => alignedStop("close")); // Windows: avisa antes que before-quit
-
-// ---------- segmentos → cola local ----------
-ensure().onEmitSegment((seg) => {
+/* ensure().onEmitSegment((seg) => {
   const meta = ensure().getMeta();
   const entry: TimeEntry = {
     id: randomUUID(),
@@ -209,36 +222,110 @@ ensure().onEmitSegment((seg) => {
       win.webContents.send("dev:time-entry", entry);
     } catch {}
   });
-});
+}); */
 
-// ---------- IPC público ----------
+// ---------------------------------------------------------
+// Pretty log para segmentos
+function hms(s: number) {
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(
+    2,
+    "0"
+  )}:${String(ss).padStart(2, "0")}`;
+}
+
+// 🆕 Conectar segmentos → cola + log + rebroadcast a renderers (dev)
+function wireSegments() {
+  const e = ensure();
+  e.onEmitSegment((seg) => {
+    const meta = e.getMeta();
+    const entry: TimeEntry = {
+      id: randomUUID(),
+      trackableType: seg.trackable.type,
+      trackableId: seg.trackable.id,
+      lawyerId: meta.lawyerId,
+      startedAtUTC: new Date(seg.startMs).toISOString(),
+      endedAtUTC: new Date(seg.endMs).toISOString(),
+      durationSec: seg.seconds,
+      pauseReason: seg.reason === "midnight-internal" ? "switch" : seg.reason,
+      appVersion: meta.appVersion,
+    };
+
+    console.log(
+      "[TIME-ENTRY]",
+      `${entry.pauseReason?.toUpperCase()} | ${entry.trackableType}:${
+        entry.trackableId
+      } | ${hms(entry.durationSec)} |`,
+      `${entry.startedAtUTC} → ${entry.endedAtUTC}`
+    );
+
+    try {
+      timeQueueStore.append(entry);
+    } catch (err) {
+      console.error("[timeQueueStore.append] failed:", err);
+    }
+
+    // 🆕 Útil para ver los entries también en DevTools (renderer)
+    BrowserWindow.getAllWindows().forEach((win) => {
+      try {
+        win.webContents.send("dev:time-entry", entry);
+      } catch {}
+    });
+  });
+}
+
+// ---------------------------------------------------------
+// 🆕 Handler idempotente: borra cualquier handler anterior antes de registrar
+function handleOnce<T extends (...args: any[]) => any>(channel: string, fn: T) {
+  try {
+    ipcMain.removeHandler(channel);
+  } catch {}
+  ipcMain.handle(channel, fn);
+}
+
+// ---------------------------------------------------------
+// Registro público de IPC (llamar UNA sola vez por proceso)
 export function registerTimerIpc() {
-  if (wired) return;
-  wired = true;
+  const g = globalThis as any;
+  if (g[GLOBAL_FLAG]) return; // ya cableado en este proceso
+  g[GLOBAL_FLAG] = true;
 
-  // snapshot inmediato para el primer bind
-  ipcMain.handle("timer:getMirror", () => ensure().toMirror());
+  // 🆕 Cableo base
+  wireState();
+  wireSegments();
+  startIdleLoop();
 
-  ipcMain.handle(
+  // 🆕 Eventos del SO (se instalan una sola vez)
+  powerMonitor.on("suspend", () => alignedStop("suspend"));
+  powerMonitor.on("lock-screen", () => alignedStop("suspend")); // tratamos lock como suspend
+  powerMonitor.on("shutdown", () => alignedStop("close")); // Windows: avisa antes que before-quit
+
+  // --- Rutas IPC (todas con handleOnce) ---
+  handleOnce("timer:getMirror", () => ensure().toMirror());
+
+  handleOnce(
     "timer:enable",
     (_e, p: { lawyerId: string; appVersion?: string }) => {
       ensure().enable(p.lawyerId, p.appVersion);
-      wireState();
+      // wireState ya está conectado y persistirá cambios
       return { ok: true };
     }
   );
-  ipcMain.handle("timer:disable", () => {
-    ensure().disable();
+
+  // 🆕 acepta opts si alguna vez querés reset duro (preserveDay=false)
+  handleOnce("timer:disable", (_e, opts?: { preserveDay?: boolean }) => {
+    ensure().disable(opts);
     return { ok: true };
   });
 
-  ipcMain.handle("timer:start", (_e, t: Trackable) => {
+  handleOnce("timer:start", (_e, t: Trackable) => {
     ensure().start(t);
     return { ok: true };
   });
 
-  // Recibe objeto { reason, effectiveEndMs? }
-  ipcMain.handle(
+  handleOnce(
     "timer:pause",
     (_e, p: { reason: PauseReason; effectiveEndMs?: number }) => {
       ensure().pause(p?.reason, p?.effectiveEndMs);
@@ -246,30 +333,27 @@ export function registerTimerIpc() {
     }
   );
 
-  ipcMain.handle("timer:switchTo", (_e, t: Trackable | null) => {
+  handleOnce("timer:switchTo", (_e, t: Trackable | null) => {
     ensure().switchTo(t);
     return { ok: true };
   });
 
-  ipcMain.handle("timer:workStart", () => {
+  handleOnce("timer:workStart", () => {
     ensure().workStart();
     return { ok: true };
   });
-  ipcMain.handle("timer:workPause", (_e, effectiveEndMs?: number) => {
+
+  handleOnce("timer:workPause", (_e, effectiveEndMs?: number) => {
     ensure().workPause(effectiveEndMs);
     return { ok: true };
   });
 
+  // 🆕 sigue siendo un “fire-and-forget” (no hay race si llega tarde)
   ipcMain.on("timer:activity", () => ensure().markActivity());
 
-  /*   ipcMain.handle("timer:shutdown", () => {
-    ensure().workPause(); // 👈 consolidar y dejar detenido
-    // (opcional) forzar un último write del snapshot:
-    try {
-      globalTimerStore.write(ensure().getDailySnapshot());
-    } catch {}
+  // 🆕 API utilitaria para pedir una detención alineada explícita
+  handleOnce("timer:alignedStop", (_e, reason: PauseReason) => {
+    alignedStop(reason);
     return { ok: true };
-  }); */
-
-  ensureIdleLoop();
+  });
 }

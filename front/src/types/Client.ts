@@ -23,9 +23,9 @@ export const CLIENT_STATUS_MAP: Record<
 };
 
 export interface Client {
-  id: string;
+  id?: string;
   type: ClientType;
-  status: ClientStatus;
+  status?: ClientStatus;
   rut: string;
   email: string;
   phone?: string;
@@ -40,8 +40,8 @@ export interface Client {
   companyName?: string;
   legalRepresentative?: string;
 
-  createAt: string; // ISO date string
-  updateAt: string;
+  createAt?: string; // ISO date string
+  updateAt?: string;
 
   // Jerarquía
   motherId?: string; // Para corporaciones dependientes de otra

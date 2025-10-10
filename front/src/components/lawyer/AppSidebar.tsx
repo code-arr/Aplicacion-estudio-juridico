@@ -1,3 +1,4 @@
+// src/components/lawyer/AppSidebar.tsx
 import { NavLink, useLocation } from "react-router-dom";
 import {
   SidebarContent,

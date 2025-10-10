@@ -1,13 +1,16 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import type { Client } from "@/types/Client";
+import { ArrowLeft, Building2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 interface ClientHeaderProps {
   client: {
-    id: string;
+    id?: string;
+    type?: "Fisica" | "Juridica";
     firstName?: string;
     lastName?: string;
+    companyName?: string;
     rut?: string;
   };
   prevRoute: string | null;
@@ -21,13 +24,10 @@ const ClientHeader = ({
 }: ClientHeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  console.log(location.hash);
-  console.log(location.pathname);
-  console.log(location.state);
 
-  const initials = `${client.firstName?.charAt(0) ?? ""}${
+  /*   const initials = `${client.firstName?.charAt(0) ?? ""}${
     client.lastName?.charAt(0) ?? ""
-  }`.toUpperCase();
+  }`.toUpperCase(); */
 
   const handleBack = () => {
     if (prevRoute === null && location.pathname.includes("category"))
@@ -35,6 +35,37 @@ const ClientHeader = ({
     else if (prevRoute === null) navigate("/dashboard/clients");
     else navigate(prevRoute);
   };
+
+  function getDisplayName(client: Client) {
+    return client.type === "Juridica"
+      ? client.companyName
+      : formatPersonName(client.firstName ?? "", client.lastName ?? "");
+  }
+
+  function formatPersonName(first: string, last: string) {
+    // Si el apellido tiene espacios, cortamos al primero (como hacías)
+    const firstLast = last?.includes(" ")
+      ? last.slice(0, last.indexOf(" "))
+      : last;
+    return `${first} ${firstLast}`.trim();
+  }
+
+  function getAvatarInitials(client: Client) {
+    if (client.type === "Juridica") {
+      // Tomá primeras letras de cada palabra (máx 2)
+      /*       const companyName = client.companyName ?? "";
+      const parts = companyName.trim().split(/\s+/);
+      const initials = (parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? ""); */
+      return <Building2 />;
+    } else {
+      const a = (client.firstName?.[0] ?? "").toUpperCase();
+      const b = (client.lastName?.[0] ?? "").toUpperCase();
+      return a + b || "P";
+    }
+  }
+
+  const displayName = getDisplayName(client as any);
+  const initials = getAvatarInitials(client as any);
 
   return (
     <div className="bg-[hsl(210,100%,45%)] law-gradient text-white p-6 shadow-md">
@@ -54,7 +85,9 @@ const ClientHeader = ({
             </AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="text-2xl font-bold">{`${client?.firstName} ${client?.lastName}`}</h2>
+            <h2 className="text-2xl font-bold truncate" title={displayName}>
+              {displayName}
+            </h2>
             <p className="text-base text-white/80">{client?.rut}</p>
           </div>
         </div>

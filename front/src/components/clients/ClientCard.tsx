@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight } from "lucide-react";
+import { Building2, ChevronRight } from "lucide-react";
 import type { Client } from "@/types/Client";
 
 interface ClientCardProps {
@@ -35,6 +35,40 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
     );
   };
 
+  function getDisplayName(client: Client) {
+    return client.type === "Juridica"
+      ? client.companyName
+      : formatPersonName(client.firstName ?? "", client.lastName ?? "");
+  }
+
+  function formatPersonName(first: string, last: string) {
+    // Si el apellido tiene espacios, cortamos al primero (como hacías)
+    const firstLast = last?.includes(" ")
+      ? last.slice(0, last.indexOf(" "))
+      : last;
+    return `${first} ${firstLast}`.trim();
+  }
+
+  function getAvatarInitials(client: Client) {
+    if (client.type === "Juridica") {
+      // Tomá primeras letras de cada palabra (máx 2)
+      /*       const companyName = client.companyName ?? "";
+      const parts = companyName.trim().split(/\s+/);
+      const initials = (parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? ""); */
+      return <Building2 />;
+    } else {
+      const a = (client.firstName?.[0] ?? "").toUpperCase();
+      const b = (client.lastName?.[0] ?? "").toUpperCase();
+      return a + b || "P";
+    }
+  }
+
+  function getAvatarAlt(client: Client) {
+    return client.type === "Juridica"
+      ? `Logo ${client.companyName}`
+      : `${client.firstName} ${client.lastName}`;
+  }
+
   const getInitials = (name?: string) => {
     if (!name) return "?"; // fallback si no hay nombre
     return name
@@ -52,24 +86,29 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
           <div className="flex items-center space-x-3">
             <Avatar className="h-12 w-12">
               {client.profileImage ? (
-                <AvatarImage src={client.profileImage} alt={client.firstName} />
+                <AvatarImage
+                  src={client.profileImage}
+                  alt={getAvatarAlt(client)}
+                />
               ) : (
                 <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] font-semibold">
-                  {getInitials(client.firstName)}
+                  {getAvatarInitials(client)}
                 </AvatarFallback>
               )}
             </Avatar>
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 text-lg leading-tight">
-                {client.lastName?.includes(" ")
-                  ? client.firstName +
-                    " " +
-                    client.lastName?.slice(0, client.lastName.indexOf(" "))
-                  : client.firstName + " " + client.lastName}
+              <h3
+                className="font-semibold text-gray-900 text-lg leading-tight truncate"
+                title={getDisplayName(client)}
+              >
+                {getDisplayName(client)}
               </h3>
+
+              {/* Mostrás el RUT igual para ambos tipos */}
               <p className="text-sm text-gray-600 mt-1">{client.rut}</p>
             </div>
           </div>
+
           {getStatusBadge(client.status)}
         </div>
       </CardHeader>
@@ -79,7 +118,7 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
           <div>
             <p className="text-xs text-gray-500 mb-1">Última actividad</p>
             <p className="text-sm text-gray-700 font-medium">
-              {client.updatedAt}
+              {client.updateAt}
             </p>
           </div>
           <Button

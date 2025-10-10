@@ -72,6 +72,10 @@ export const useClientStore = create<ClientState>()((set, get) => ({
     const clientDetail = get().clientsByLawyer?.find(
       (client) => client.id === clientId
     );
+    if (!clientDetail) {
+      set({ clientDetail: null });
+      return;
+    }
     set({ clientDetail });
   },
 

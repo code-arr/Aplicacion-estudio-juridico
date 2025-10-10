@@ -53,11 +53,9 @@ const ItemOverviewPage = () => {
         setIsDialogOpen={setIsDialogOpen}
         defaultParticipants={[{ name: "adasdsa", email: "afadsas" }]}
       />
-      <div className="flex flex-col w-3/4 gap-y-5">
+      <div className="flex flex-col w-3/4 min-w-0 gap-y-5">
         <InfoCard title="Descripción" titleSize="xl">
-          <div className="flex">
-            <p>{item?.description}</p>
-          </div>
+          <p className="whitespace-pre-line break-all">{item?.description}</p>
         </InfoCard>
         <div className="flex gap-x-4">
           <InfoCard title="Plazos" className="w-[70%]"></InfoCard>

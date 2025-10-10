@@ -20,15 +20,15 @@ export const CLIENTITEM_STATUS_MAP: Record<
 };
 
 export interface ClientItem {
-  id: string;
+  id?: string;
   categoryId?: string;
   sectionId?: string;
   itemTypeId?: string;
   clientId: string;
   title: string;
   description?: string;
-  status: ClientItemStatus;
+  status?: ClientItemStatus;
 
-  createAt: string; // ISO date string
-  updatedAt: string; // ISO date string
+  createAt?: string; // ISO date string
+  updatedAt?: string; // ISO date string
 }

@@ -36,7 +36,8 @@ contextBridge.exposeInMainWorld("presence", {
 contextBridge.exposeInMainWorld("timer", {
   enable: (p: { lawyerId: string; appVersion?: string }) =>
     ipcRenderer.invoke("timer:enable", p),
-  disable: () => ipcRenderer.invoke("timer:disable"),
+  disable: (opts?: { preserveDay?: boolean }) =>
+    ipcRenderer.invoke("timer:disable", opts),
 
   start: (t: { type: string; id: string }) =>
     ipcRenderer.invoke("timer:start", t),
@@ -61,6 +62,9 @@ contextBridge.exposeInMainWorld("timer", {
   workPause: (effectiveEndMs?: number) =>
     ipcRenderer.invoke("timer:workPause", effectiveEndMs),
   markActivity: () => ipcRenderer.send("timer:activity"),
+
+  alignedStop: (reason: string) =>
+    ipcRenderer.invoke("timer:alignedStop", reason),
 
   subscribe: async (cb: (partialMirror: any) => void) => {
     const listener = (_: any, mirror: any) => cb(mirror);

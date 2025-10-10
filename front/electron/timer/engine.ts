@@ -135,18 +135,35 @@ export class TimerEngine extends EventEmitter {
     this.ensureTicker();
   }
 
-  disable() {
+  disable(opts?: { preserveDay?: boolean }) {
+    const preserve = opts?.preserveDay ?? true;
+
     this.stopTicker();
     if (this.state.ctx.status === "running") {
       this.pause("close");
     }
     this.state.global = { enabled: false, status: "stopped" };
     this.state.ctx = { active: null, status: "stopped" };
-    this.workTodayBaseSec = 0;
+
+    // siempre cortamos el “ancla viva”
     this.globalRunStartMs = null;
-    this.lastEmittedWorkSec = 0;
-    this.state.metrics = { workTodaySec: 0, ctxRunningSec: 0 };
+
+    if (preserve) {
+      // mantené base y métricas del día
+      this.state.metrics.ctxRunningSec = 0;
+      // NO toques workTodayBaseSec
+    } else {
+      // reset duro (si alguna vez lo quisieras)
+      this.workTodayBaseSec = 0;
+      this.state.metrics = { workTodaySec: 0, ctxRunningSec: 0 };
+      this.lastEmittedWorkSec = 0;
+    }
+
     this.pushState();
+
+    /*     this.workTodayBaseSec = 0;
+    this.lastEmittedWorkSec = 0;
+    this.state.metrics = { workTodaySec: 0, ctxRunningSec: 0 }; */
   }
 
   start(trackable: Trackable) {
@@ -229,6 +246,8 @@ export class TimerEngine extends EventEmitter {
 
   workStart() {
     if (!this.state.global.enabled) return;
+    if (!this.state.ctx.active) return;
+
     if (this.state.global.status !== "running") {
       this.state.global.status = "running";
       if (this.globalRunStartMs == null) {
@@ -272,6 +291,23 @@ export class TimerEngine extends EventEmitter {
     this.lastActivityMs = now;
     this.state.global.lastActivityUTC = new Date(now).toISOString();
 
+    if (!this.state.global.enabled) return;
+
+    // ✅ Solo auto-resume si hay un contexto activo.
+    //    (No prendas el global “a ciegas” en Login, post-logout, etc.)
+    if (this.state.ctx.active && this.state.global.status !== "running") {
+      this.start(this.state.ctx.active); // start() prende global y reabre el contexto
+      return; // start() ya hace pushState internamente
+    }
+
+    // Si ya estaba corriendo, solo actualizaste lastActivity (lo correcto para el reloj de idle)
+  }
+
+  /* markActivity() {
+    const now = Date.now();
+    this.lastActivityMs = now;
+    this.state.global.lastActivityUTC = new Date(now).toISOString();
+
     // 🔁 Auto-resume si estaba pausado por idle
     if (this.state.global.enabled && this.state.global.status !== "running") {
       // reencendé global
@@ -288,7 +324,7 @@ export class TimerEngine extends EventEmitter {
 
       this.pushState();
     }
-  }
+  } */
 
   // =============== Ticker ===============
   private ensureTicker() {

@@ -9,9 +9,9 @@ import { useFocusContext } from "@/hooks/useFocusContext";
 
 const ClientLayout = () => {
   const { clientId } = useParams();
-  useFocusContext(clientId ? { type: "Client", id: clientId } : null);
-
   const location = useLocation();
+
+  useFocusContext(clientId ? { type: "Client", id: clientId } : null);
 
   const setClientDetail = useClientStore((s) => s.setClientDetail);
   const clientDetail = useClientStore(selectClientDetail);
@@ -22,6 +22,7 @@ const ClientLayout = () => {
     if (!clientId) return;
     setClientDetail(clientId);
     setLoading(false);
+    return () => setClientDetail("");
   }, [clientId, setClientDetail]);
 
   if (loading) return <LoadingSpinner />;

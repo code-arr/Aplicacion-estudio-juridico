@@ -1,12 +1,23 @@
-import axios from "./axios";
 import type { Process } from "@/types/Process";
+import axios from "./axios";
 
-export async function createProcess(process: Process) {
-  const res = await fetch("/processes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(process),
-  });
-  if (!res.ok) throw new Error("No se pudo crear el trámite");
-  return res.json() as Promise<{ id: string }>; // ← processId
-}
+export const getAllProcesses = async (): Promise<Process[]> => {
+  return (await axios.get("process/getAll")).data;
+};
+
+export const getProcessesByClientItem = async (
+  itemId: string
+): Promise<Process[]> => {
+  return (await axios.get(`process/getByClientItemId/${itemId}`)).data;
+};
+
+export const createProcess = async (
+  newProcess: Process,
+  clientItemId: string
+): Promise<Process> => {
+  return (await axios.post(`process/create/${clientItemId}`, newProcess)).data;
+};
+
+export const deleteProcess = async (processId: string): Promise<void> => {
+  return (await axios.delete(`process/delete/${processId}`)).data;
+};

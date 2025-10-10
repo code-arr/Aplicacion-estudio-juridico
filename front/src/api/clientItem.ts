@@ -22,3 +22,20 @@ export const getClientItemsByClientId = async (
 ): Promise<ClientItem[]> => {
   return (await axios.get(`clientItem/getByClientId/${clientId}`)).data;
 };
+
+export const createClientItem = async (
+  clientItem: ClientItem
+): Promise<ClientItem> => {
+  return (await axios.post("/clientItem/create", clientItem)).data;
+};
+
+export const updateClientItem = async (
+  id: string,
+  clientItem: Partial<ClientItem>
+): Promise<ClientItem> => {
+  return (await axios.put(`/clientItem/update/${id}`, clientItem)).data;
+};
+
+export const deleteClientItem = async (id: string): Promise<void> => {
+  await axios.delete(`/clientItem/delete/${id}`);
+};

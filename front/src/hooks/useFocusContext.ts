@@ -8,11 +8,19 @@ import { useTimerUIStore } from "@/store/useTimerUIStore";
  * Evita switches redundantes si ya está activo el mismo trackable.
  * Al desmontar, cierra el contexto SOLO si sigue siendo el mismo.
  */
+let pendingClose: number | null = null;
+
 export function useFocusContext(trackable: Trackable | null) {
   const openedRef = useRef<Trackable | null>(null);
 
   useEffect(() => {
     if (!trackable) return; // 👈 no hacemos switchTo(null) por defecto
+
+    // 1) Si había un close pendiente del saliente, CANCELALO
+    if (pendingClose) {
+      clearTimeout(pendingClose);
+      pendingClose = null;
+    }
 
     const current = useTimerUIStore.getState().active;
     /*     const same =
@@ -33,14 +41,22 @@ export function useFocusContext(trackable: Trackable | null) {
     openedRef.current = trackable;
 
     return () => {
-      const now = useTimerUIStore.getState().active;
-      /*       const stillSame =
-        (!!now &&
+      // 3) Difere el "close" unos ms para darle tiempo al nuevo "switchTo"
+      pendingClose = window.setTimeout(() => {
+        const now = useTimerUIStore.getState().active;
+        const stillSame =
+          !!now &&
           !!openedRef.current &&
           now.id === openedRef.current.id &&
-          now.type === openedRef.current.type) ||
-        (!now && !openedRef.current); */
-      const stillSame =
+          now.type === openedRef.current.type;
+
+        if (stillSame) window.timer?.pause("close");
+        openedRef.current = null;
+        pendingClose = null;
+      }, 120); // 100–150ms va bien
+      /* const now = useTimerUIStore.getState().active;
+      
+       const stillSame =
         !!now &&
         !!openedRef.current &&
         now.id === openedRef.current.id &&
@@ -50,7 +66,7 @@ export function useFocusContext(trackable: Trackable | null) {
       if (stillSame) {
         window.timer?.pause("close");
       }
-      openedRef.current = null;
+      openedRef.current = null; */
     };
   }, [trackable?.type, trackable?.id]);
 

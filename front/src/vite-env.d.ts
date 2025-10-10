@@ -23,7 +23,7 @@ declare global {
     };
     timer: {
       enable: (p: { lawyerId: string; appVersion?: string }) => Promise<any>;
-      disable: () => Promise<any>;
+      disable: (opts?: { preserveDay?: boolean }) => Promise<any>;
       markActivity: () => void;
       start: (t: { type: string; id: string }) => Promise<any>;
       pause: (
@@ -42,6 +42,9 @@ declare global {
       subscribe: (cb: (s: any) => void) => Promise<() => void>;
       workStart: () => Promise<any>;
       workPause: (effectiveEndMs?: number) => Promise<any>;
+      alignedStop: (
+        reason: "idle" | "switch" | "close" | "logout" | "suspend"
+      ) => Promise<any>;
     };
     /*     timerGlobal: {
       getSnapshot: () => Promise<{

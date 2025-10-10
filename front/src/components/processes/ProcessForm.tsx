@@ -1,3 +1,4 @@
+// src/components/processes/ProcessForm.tsx
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -13,8 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { localDateTimeToIsoUtc } from "@/utils/dateTime";
 import DurationPicker from "./DurationPicker";
-import { createManualTimeEntry } from "@/api/timer";
 import { createProcess } from "@/api/process";
+import { useParams } from "react-router-dom";
+import { useProcessStore } from "@/store/useProcessStore";
 
 type ProcessFormProps = {
   isDialogOpen: boolean;
@@ -28,6 +30,8 @@ type NewProcess = {
   durationSec: number; // en segundos
 };
 
+type FieldErrors = Partial<Record<keyof NewProcess, string>>;
+
 const initialItemState: NewProcess = {
   name: "",
   description: "",
@@ -36,61 +40,60 @@ const initialItemState: NewProcess = {
 };
 
 const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
+  const { clientItemId } = useParams<{ clientItemId: string }>();
   const [newProcess, setNewProcess] = useState<NewProcess>(initialItemState);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const fetchProcessesByClientItemId = useProcessStore(
+    (s) => s.fetchProcessesByClientItemId
+  );
+
+  // 🛠️ Errores separados y por campo (igual que en MeetingForm)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const validate = (data: NewProcess): boolean => {
+    const fe: FieldErrors = {};
+    if (!data.name.trim()) fe.name = "Ingresá un nombre.";
+    if (!data.dateTime) fe.dateTime = "Elegí fecha y hora de inicio.";
+    if (data.durationSec <= 0) fe.durationSec = "Duración debe ser > 0.";
+    if (data.durationSec > 12 * 3600)
+      fe.durationSec = "Duración máxima: 12 horas.";
+
+    setFieldErrors(fe);
+    setFormError(Object.keys(fe).length ? "Revisá los campos marcados." : null);
+    return Object.keys(fe).length === 0;
+  };
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
+    e.preventDefault(); // 🛠️ Ahora sí funciona porque estamos dentro de <form onSubmit>
+    setFormError(null);
 
-    if (!newProcess.name.trim()) return setError("Ingresá un nombre.");
-    if (!newProcess.dateTime) return setError("Elegí fecha y hora de inicio.");
-    if (newProcess.durationSec <= 0)
-      return setError("Elegí una duración mayor a 0.");
-    if (newProcess.durationSec > 12 * 3600)
-      return setError("Duración máxima: 12 horas.");
+    if (!validate(newProcess)) return;
 
     const startedAtIso = localDateTimeToIsoUtc(newProcess.dateTime)!; // ISO UTC
 
     try {
       setSaving(true);
 
-      // 1) Crear el trámite (si tu API guarda también la fecha de inicio del trámite, podés mandar startedAtIso)
-      const proc = await createProcess({
-        name: newProcess.name.trim(),
-        dateTime: startedAtIso, // o startedAtIso según cómo lo quieras persistir en Process
-        description: newProcess.description?.trim() || undefined,
-        durationSec: newProcess.durationSec,
-      });
+      // 1) Crear el trámite
+      await createProcess(
+        {
+          name: newProcess.name.trim(),
+          dateTime: startedAtIso, // o el campo que tu back espere
+          description: newProcess.description?.trim() || undefined,
+          durationSec: newProcess.durationSec,
+        },
+        clientItemId!
+      );
 
-      // 2) Crear la TimeEntry manual (usa startedAt + durationSec)
-      try {
-        await createManualTimeEntry({
-          trackableType: "Process",
-          trackableId: proc.id,
-          source: "manual",
-          durationSec: newProcess.durationSec,
-          startedAt: startedAtIso, // ← clave: ahora mandamos startedAt
-        });
-      } catch {
-        // Offline/HTTP: encolá para flush posterior (opcional)
-        await window.electronAPI.timeBuffer.append({
-          /* lawyerId, */
-          kind: "manual",
-          trackableType: "Process",
-          trackableId: proc.id,
-          durationSec: newProcess.durationSec,
-          startedAt: startedAtIso,
-          clientTs: new Date().toISOString(),
-        });
-        setError("Tiempo encolado para enviar cuando haya conexión ✅");
-      }
+      await fetchProcessesByClientItemId(clientItemId!);
 
       onOpenChange(false);
       setNewProcess(initialItemState);
+      setFieldErrors({});
     } catch (err: any) {
-      setError(err?.message || "No se pudo guardar el trámite.");
+      setFormError(err?.message || "No se pudo guardar el trámite.");
     } finally {
       setSaving(false);
     }
@@ -101,7 +104,11 @@ const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
       open={isDialogOpen}
       onOpenChange={(open) => {
         onOpenChange(open);
-        if (!open) setNewProcess(initialItemState);
+        if (!open) {
+          setNewProcess(initialItemState);
+          setFieldErrors({});
+          setFormError(null);
+        }
       }}
     >
       <DialogContent>
@@ -111,21 +118,24 @@ const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
             Registrar un nuevo trámite realizado fuera del estudio.
           </DialogDescription>
         </DialogHeader>
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          {/* Nombre */}
+          <div className="py-2">
+            <Label htmlFor="name">Nombre</Label>
+            <Input
+              type="text"
+              id="name"
+              value={newProcess.name}
+              onChange={(e) =>
+                setNewProcess({ ...newProcess, name: e.target.value })
+              }
+              aria-invalid={!!fieldErrors.name}
+            />
+            {fieldErrors.name && (
+              <div className="text-xs text-red-600">{fieldErrors.name}</div>
+            )}
+          </div>
 
-        {/* Nombre */}
-        <div className="py-4">
-          <Label htmlFor="name">Nombre</Label>
-          <Input
-            type="text"
-            id="name"
-            value={newProcess.name}
-            onChange={(e) =>
-              setNewProcess({ ...newProcess, name: e.target.value })
-            }
-          />
-        </div>
-
-        <div className="grid gap-4">
           {/* Inicio del trámite (datetime-local) */}
           <div>
             <Label htmlFor="startedAt">Inicio del trámite</Label>
@@ -136,7 +146,11 @@ const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
               onChange={(e) =>
                 setNewProcess({ ...newProcess, dateTime: e.target.value })
               }
+              aria-invalid={!!fieldErrors.dateTime}
             />
+            {fieldErrors.dateTime && (
+              <div className="text-xs text-red-600">{fieldErrors.dateTime}</div>
+            )}
             <div className="text-[11px] text-gray-500">
               Se convertirá a UTC para reportes consistentes.
             </div>
@@ -165,28 +179,34 @@ const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
                 setNewProcess({ ...newProcess, durationSec: sec })
               }
               maxHours={12}
+              aria-invalid={!!fieldErrors.durationSec}
             />
+            {fieldErrors.durationSec && (
+              <div className="text-xs text-red-600">
+                {fieldErrors.durationSec}
+              </div>
+            )}
           </div>
 
-          {error && <div className="text-sm">{error}</div>}
-        </div>
+          {formError && <div className="text-sm text-red-600">{formError}</div>}
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              onOpenChange(false);
-              setNewProcess(initialItemState);
-            }}
-            disabled={saving}
-          >
-            Cancelar
-          </Button>
-          <Button onSubmit={handleSubmit} type="submit" disabled={saving}>
-            {saving ? "Guardando..." : "Guardar"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                onOpenChange(false);
+                setNewProcess(initialItemState);
+              }}
+              disabled={saving}
+            >
+              Cancelar
+            </Button>
+            <Button onSubmit={handleSubmit} type="submit" disabled={saving}>
+              {saving ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
