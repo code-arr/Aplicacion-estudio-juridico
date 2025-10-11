@@ -24,14 +24,14 @@ export class MeetingsController {
     @Body() meetingData: MeetingDto,
     @Param('clientItemId') clientItemId: string,
     @Body('lawyerEmail') lawyerEmail: string,
-    @Body('to') to: string,
+   
   ): Promise<Meeting | null | void> {
     try {
       const meeting = await this.meetingService.createAndSchedule(
         meetingData,
         clientItemId,
         lawyerEmail,
-        to,
+        // cliente principal
       );
       return meeting;
     } catch (error) {
@@ -39,6 +39,11 @@ export class MeetingsController {
       // añadir una lógica de manejo de errores específica, puedes hacerlo aquí.
       throw error;
     }
+  }
+
+  @Get("getByClientItemId/:clientItemId")
+  async getByClientItemId(@Param("clientItemId") clientItemId: string) {
+    return this.meetingService.getByClientItemId(clientItemId);
   }
 
   @Get("GetAll")

@@ -23,7 +23,6 @@ export class MeetingService {
     meetingData: MeetingDto,
     clientItemId: string,
     lawyerEmail: string,
-    to: string, // cliente principal
   ): Promise<Meeting | null | void> {
     const { startAt, endAt, name, meetingType, participants } = meetingData;
 
@@ -43,7 +42,6 @@ export class MeetingService {
         // 2️⃣ Crear el evento en Google Calendar
         const googleEvent = await this.googleCalendarService.scheduleMeeting(
           lawyerEmail, // organizador
-          to, // cliente principal
           startDate, // fecha inicio
           name, // título
           participants, // participantes adicionales (opcional)
@@ -117,5 +115,9 @@ export class MeetingService {
 
   async getAllMeetings(): Promise<Meeting[]> {
     return this.meetingRepository.getAllMeetings();
+  }
+
+  async getByClientItemId(clientItemId: string): Promise<Meeting[]> {
+    return this.meetingRepository.getByClientItemId(clientItemId);
   }
 }

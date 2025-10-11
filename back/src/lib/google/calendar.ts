@@ -37,7 +37,6 @@ export class GoogleCalendarService {
 
   async scheduleMeeting(
     lawyerEmail: string,
-    to: string,
     date: Date,
     subject: string,
     participants?: { name?: string; email: string }[], // participantes adicionales opcionales
@@ -74,7 +73,6 @@ export class GoogleCalendarService {
       // 5️⃣ Construir lista de asistentes
       const attendees = [
         { email: lawyerEmail },
-        { email: to },
         ...(participants || []).map((p) => ({
           email: p.email,
           displayName: p.name,

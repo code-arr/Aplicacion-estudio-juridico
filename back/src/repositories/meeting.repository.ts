@@ -1,4 +1,8 @@
-import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Meeting } from '../entities/meeting.entity';
 import { Repository } from 'typeorm';
@@ -27,15 +31,27 @@ export class MeetingRepository {
   async updateMeeting(
     id: string,
     meetingData: Partial<Meeting>,
-  ): Promise<Meeting|null> {
-   try {
-     const updated = await this.meetingRepository.update(id, meetingData);
-     if (!updated) {
-       throw new InternalServerErrorException('No se pudo actualizar la reunión.');
-     }
-     return this.meetingRepository.findOne({ where: { id }, relations: ['clientItem'] });
-   } catch (error) {
-     throw new InternalServerErrorException('Error al actualizar la reunión.');
-   }
+  ): Promise<Meeting | null> {
+    try {
+      const updated = await this.meetingRepository.update(id, meetingData);
+      if (!updated) {
+        throw new InternalServerErrorException(
+          'No se pudo actualizar la reunión.',
+        );
+      }
+      return this.meetingRepository.findOne({
+        where: { id },
+        relations: ['clientItem'],
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('Error al actualizar la reunión.');
+    }
+  }
+
+  async getByClientItemId(clientItemId: string): Promise<Meeting[]> {
+    return this.meetingRepository.find({
+      where: { clientItem: { id: clientItemId } },
+      relations: ['clientItem'],
+    });
   }
 }
