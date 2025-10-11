@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+// src/components/items/ItemForm.tsx
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { ItemType, Section } from "@/types/Catalog";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useClientStore } from "@/store/useClientStore";
@@ -23,6 +24,7 @@ import {
 import { createClientItem } from "@/api/clientItem";
 import { useClientItemStore } from "@/store/useClientItemStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
+import type { Client } from "@/types/Client";
 
 type ItemFormProps = {
   isDialogOpen: boolean;
@@ -46,6 +48,163 @@ const initialItemState: NewItem = {
   description: "",
   clientId: "",
 };
+
+const ClientSelectRow = React.memo(function ClientSelectRow({
+  value,
+  hasActualClient,
+  clients,
+  actualClient,
+  actualClientLabel,
+  onChange,
+}: {
+  value: string;
+  hasActualClient: boolean;
+  clients: Client[] | null;
+  actualClient: Client | null;
+  actualClientLabel: string | undefined;
+  onChange: (val: string) => void;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Select value={value} onValueChange={onChange} disabled={hasActualClient}>
+        <SelectTrigger className="capitalize">
+          <SelectValue
+            placeholder={
+              hasActualClient ? actualClientLabel : "Elige un cliente"
+            }
+          />
+        </SelectTrigger>
+        <SelectContent>
+          {hasActualClient &&
+            !clients?.some((c) => c.id === actualClient?.id) && (
+              <SelectItem
+                value={String(actualClient!.id)}
+                className="capitalize"
+              >
+                {actualClientLabel}
+              </SelectItem>
+            )}
+          {clients?.map((client) => (
+            <SelectItem
+              className="capitalize"
+              key={client.id}
+              value={String(client.id)}
+            >
+              {client.type === "Fisica"
+                ? `${client.firstName} ${client.lastName}`
+                : client.companyName}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+});
+
+const CategorySelectRow = React.memo(function CategorySelectRow({
+  value,
+  categories,
+  onChange,
+}: {
+  value: string;
+  categories: any[];
+  onChange: (val: string) => void;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="capitalize">
+          <SelectValue placeholder="Elige la categoria del item" />
+        </SelectTrigger>
+        <SelectContent>
+          {categories.map((category) => (
+            <SelectItem
+              className="capitalize"
+              key={category.id}
+              value={String(category.id)}
+            >
+              {category.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+});
+
+const SectionSelectRow = React.memo(function SectionSelectRow({
+  value,
+  disabled,
+  sections,
+  onChange,
+}: {
+  value: string;
+  disabled: boolean;
+  sections: any[];
+  onChange: (val: string) => void;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger
+          className={`capitalize ${
+            disabled ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+        >
+          <SelectValue placeholder="Elige la seccion del item" />
+        </SelectTrigger>
+        <SelectContent>
+          {sections.map((section) => (
+            <SelectItem
+              className="capitalize"
+              key={section.id}
+              value={String(section.id)}
+            >
+              {section.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+});
+
+const ItemTypeSelectRow = React.memo(function ItemTypeSelectRow({
+  value,
+  disabled,
+  itemTypes,
+  onChange,
+}: {
+  value: string;
+  disabled: boolean;
+  itemTypes: any[];
+  onChange: (val: string) => void;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger
+          className={`capitalize ${
+            disabled ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+        >
+          <SelectValue placeholder="Elige el tipo del item" />
+        </SelectTrigger>
+        <SelectContent>
+          {itemTypes.map((it) => (
+            <SelectItem
+              className="capitalize"
+              key={it.id}
+              value={String(it.id)}
+            >
+              {it.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+});
 
 const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
   const { categories, sections, itemTypes } = useCatalogStore();
@@ -154,144 +313,57 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
           </DialogDescription>
         </DialogHeader>
         <form className="grid gap-4 pt-4 pb-2" onSubmit={handleAddItem}>
-          <div className="grid gap-2">
-            <Select
-              value={newItem.clientId}
-              onValueChange={(value: string) =>
-                setNewItem((prev) => ({
-                  ...prev,
-                  clientId: value,
-                  categoryId: "",
-                  sectionId: "",
-                  itemTypeId: "",
-                }))
-              }
-              disabled={hasActualClient}
-            >
-              <SelectTrigger className="capitalize">
-                <SelectValue
-                  placeholder={
-                    hasActualClient ? actualClientLabel : "Elige un cliente"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {/* Si el cliente actual no está en la lista, agregamos uno “de cortesía” para que SelectValue lo pueda mostrar */}
-                {hasActualClient &&
-                  !clients?.some((c) => c.id === actualClient?.id) && (
-                    <SelectItem
-                      value={String(actualClient!.id)}
-                      className="capitalize"
-                    >
-                      {actualClientLabel}
-                    </SelectItem>
-                  )}
+          <ClientSelectRow
+            value={newItem.clientId}
+            hasActualClient={hasActualClient}
+            clients={clients}
+            actualClient={actualClient}
+            actualClientLabel={actualClientLabel}
+            onChange={useCallback((value: string) => {
+              setNewItem((prev) => ({
+                ...prev,
+                clientId: value,
+                categoryId: "",
+                sectionId: "",
+                itemTypeId: "",
+              }));
+            }, [])}
+          />
 
-                {clients?.map((client) => (
-                  <SelectItem
-                    className="capitalize"
-                    key={client.id}
-                    value={String(client.id)}
-                  >
-                    {client.type === "Fisica"
-                      ? `${client.firstName} ${client.lastName}`
-                      : client.companyName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Select
-              value={newItem.categoryId}
-              onValueChange={(value: string) =>
-                setNewItem((prev) => ({
-                  ...prev,
-                  categoryId: value,
-                  sectionId: "",
-                  itemTypeId: "",
-                }))
-              }
-            >
-              <SelectTrigger className="capitalize">
-                <SelectValue placeholder="Elige la categoria del item" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem
-                    className="capitalize"
-                    key={category.id}
-                    value={String(category.id)}
-                  >
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Select
-              value={newItem.sectionId}
-              onValueChange={(value: string) =>
-                setNewItem((prev) => ({
-                  ...prev,
-                  sectionId: value,
-                  itemTypeId: "",
-                }))
-              }
-              disabled={!newItem.categoryId || categorySections.length === 0}
-            >
-              <SelectTrigger
-                className={`capitalize ${
-                  !newItem.categoryId ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                <SelectValue placeholder="Elige la seccion del item" />
-              </SelectTrigger>
-              <SelectContent>
-                {categorySections.map((section) => (
-                  <SelectItem
-                    className="capitalize"
-                    key={section.id}
-                    value={String(section.id)}
-                  >
-                    {section.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Select
-              value={newItem.itemTypeId}
-              onValueChange={(value: string) =>
-                setNewItem((prev) => ({
-                  ...prev,
-                  itemTypeId: value,
-                }))
-              }
-              disabled={!newItem.sectionId || sectionItemTypes.length === 0}
-            >
-              <SelectTrigger
-                className={`capitalize ${
-                  !newItem.sectionId ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                <SelectValue placeholder="Elige el tipo del item" />
-              </SelectTrigger>
-              <SelectContent>
-                {sectionItemTypes.map((itemType) => (
-                  <SelectItem
-                    className="capitalize"
-                    key={itemType.id}
-                    value={String(itemType.id)}
-                  >
-                    {itemType.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <CategorySelectRow
+            value={newItem.categoryId}
+            categories={categories}
+            onChange={useCallback((value: string) => {
+              setNewItem((prev) => ({
+                ...prev,
+                categoryId: value,
+                sectionId: "",
+                itemTypeId: "",
+              }));
+            }, [])}
+          />
+
+          <SectionSelectRow
+            value={newItem.sectionId}
+            disabled={!newItem.categoryId || categorySections.length === 0}
+            sections={categorySections}
+            onChange={useCallback((value: string) => {
+              setNewItem((prev) => ({
+                ...prev,
+                sectionId: value,
+                itemTypeId: "",
+              }));
+            }, [])}
+          />
+
+          <ItemTypeSelectRow
+            value={newItem.itemTypeId}
+            disabled={!newItem.sectionId || sectionItemTypes.length === 0}
+            itemTypes={sectionItemTypes}
+            onChange={useCallback((value: string) => {
+              setNewItem((prev) => ({ ...prev, itemTypeId: value }));
+            }, [])}
+          />
           <div className="grid gap-2">
             <Label htmlFor="title">Titulo del Item</Label>
             <Input
@@ -305,6 +377,10 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
                 })
               }
               placeholder="Juicio Tribunal Civil 187"
+              spellCheck={false}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
             />
           </div>
           <div className="grid gap-2">
@@ -320,6 +396,10 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
                 })
               }
               placeholder="Escriba una breve descripcion" //Consultar preferencias
+              spellCheck={false}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
             />
           </div>
 
@@ -336,4 +416,4 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
   );
 };
 
-export default ItemForm;
+export default React.memo(ItemForm);

@@ -1,3 +1,4 @@
+// src/store/useClientItemStore.ts
 import { create } from "zustand";
 import type { ClientItem } from "@/types/ClientItem";
 import {

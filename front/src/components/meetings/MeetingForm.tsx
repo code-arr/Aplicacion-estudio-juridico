@@ -28,13 +28,15 @@ import { localDateTimeToIsoUtc } from "@/utils/dateTime";
 type MeetingFormProps = {
   isDialogOpen: boolean;
   setIsDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  lawyerEmail: string; // email del abogado (para participante por defecto)
   defaultParticipants: Participant[]; // [abogadoActual, clienteDelItem]
 };
 
 type NewMeeting = {
   name: string;
   startAt: string; // ISO local (del <input type="datetime-local">)
-  participants: Participant[]; // mínimo: abogado + cliente
+  lawyerEmail: string; // email del abogado
+  participants: Participant[]; // mínimo: cliente
   meetingType: MeetingType;
   notes: string;
 };
@@ -44,6 +46,7 @@ type FieldErrors = Partial<Record<keyof NewMeeting, string>>;
 const initialMeeting: NewMeeting = {
   name: "",
   startAt: "",
+  lawyerEmail: "",
   participants: [],
   meetingType: "google-meet",
   notes: "",
@@ -52,6 +55,7 @@ const initialMeeting: NewMeeting = {
 const MeetingForm = ({
   isDialogOpen,
   setIsDialogOpen,
+  lawyerEmail,
   defaultParticipants,
 }: MeetingFormProps) => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
@@ -71,6 +75,7 @@ const MeetingForm = ({
     if (isDialogOpen) {
       setFormData((prev) => ({
         ...prev,
+        lawyerEmail,
         participants: defaultParticipants,
       }));
       setFieldErrors({});
@@ -79,7 +84,7 @@ const MeetingForm = ({
       setFormData(initialMeeting);
       setIsSubmitting(false);
     }
-  }, [isDialogOpen, defaultParticipants]);
+  }, [isDialogOpen, defaultParticipants, lawyerEmail]);
 
   const set = <K extends keyof NewMeeting>(key: K, value: NewMeeting[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -93,10 +98,12 @@ const MeetingForm = ({
     if (!formData.name.trim()) fe.name = "El título es obligatorio.";
     if (!formData.startAt) fe.startAt = "La fecha y hora son obligatorias.";
     if (!formData.meetingType) fe.meetingType = "Seleccioná el tipo.";
+    if (!formData.lawyerEmail) fe.lawyerEmail = "Falta el email del abogado.";
     if (!formData.participants?.length)
       fe.participants = "Debe haber al menos un participante.";
 
     setFieldErrors(fe);
+
     setFormError(Object.keys(fe).length ? "Revisá los campos marcados." : null);
     return Object.keys(fe).length === 0;
   };
@@ -115,17 +122,8 @@ const MeetingForm = ({
     // 🛠️ Consistencia de fechas: convertimos datetime-local a ISO UTC
     const startAtIsoUtc = localDateTimeToIsoUtc(formData.startAt);
 
-    // NOTA: Si tu endpoint acepta JSON, podés mandar un objeto.
-    // Conservo FormData por compatibilidad con tu back actual.
-    const body = new FormData();
-    body.append("name", formData.name.trim());
-    body.append("startAt", startAtIsoUtc || "");
-    body.append("meetingType", formData.meetingType);
-    body.append("participants", JSON.stringify(formData.participants));
-    if (formData.notes.trim()) body.append("notes", formData.notes.trim());
-
     try {
-      await createMeeting(body, clientItemId);
+      await createMeeting(formData, clientItemId);
       await fetchMeetingsByClientItemId(clientItemId);
 
       setIsDialogOpen(false);
@@ -250,7 +248,7 @@ const MeetingForm = ({
 
           {formError && <p className="text-sm text-red-600">{formError}</p>}
 
-          <DialogFooter>
+          <DialogFooter className="pt-4">
             <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
               Cancelar
             </Button>

@@ -1,3 +1,4 @@
+// src/routes/RootRouter.tsx
 import { HashRouter } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import AppRoutes from "./AppRoutes";

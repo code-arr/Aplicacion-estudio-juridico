@@ -57,6 +57,7 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
   );
 
   const StatusBadge = (status: ClientItem["status"]) => {
+    if (!status) return null;
     const cfg = CLIENTITEM_STATUS_MAP[status] ?? {
       label: "Desconocido",
       className: "bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-200",
@@ -105,7 +106,9 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
           </div>
           <div className="flex flex-col capitalize pt-0.5">
             <h1 className="text-lg font-semibold mb-1.5">{item.title}</h1>
-            <p className="mb-0.5 text-gray-800">{"Cliente: " + clientName}</p>
+            <p className="mb-0.5 text-gray-800">
+              {"Cliente: " + (clientName ? clientName : "-")}
+            </p>
             <p className="text-gray-800">
               {`Cateogría: ${category?.name}`}{" "}
               {section ? ` → ${section?.name}` : null}

@@ -12,9 +12,11 @@ export const getMeetingsByClientItem = async (
 };
 
 export const createMeeting = async (
-  newMeeting: FormData,
+  newMeeting: any,
   clientItemId: string
 ): Promise<Meeting> => {
+  console.log(newMeeting);
+
   return (await axios.post(`meeting/create/${clientItemId}`, newMeeting)).data;
 };
 

@@ -13,9 +13,16 @@ export async function restoreSession() {
     const authData = await window.electronAPI?.invoke("auth:get");
     if (authData && authData.token) {
       const user = await getUserById(authData.id);
+
       if (user) {
-        useLawyerStore.getState().setLawyer(user.email);
-        useAuthStore.getState().login(user, authData.token);
+        // ✅ SOLO si es lawyer, hidrato el store del abogado
+        if (user.role === "lawyer") {
+          // Si tenés lawyerId, mejor hidratar por id:
+          // await useLawyerStore.getState().hydrateById(user.lawyerId!);
+          useLawyerStore.getState().setLawyer(user.email);
+        }
+        // Dejo que login unifique flags y estado
+        await useAuthStore.getState().login(user, authData.token);
       }
     }
   } catch (error) {
@@ -29,10 +36,12 @@ export const useAuthStore = create<AuthState>()((set) => ({
   user: null,
   token: null,
   isLoggedIn: false,
-  isLoadingSession: true, //Ver si conviene setearlo en true aca o antes de llamar a restoreSession en LoginPage
+  isLoadingSession: true,
   isAdmin: false,
   isLawyer: false,
   showInactivityModal: false,
+
+  // 🔐 login: deriva flags SIEMPRE desde user.role
   login: async (user: User, token: string) => {
     await window.electronAPI.invoke("auth:save", {
       token,

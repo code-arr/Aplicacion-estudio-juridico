@@ -1,3 +1,4 @@
+// src/pages/auth/LoginPage.tsx
 import { useEffect, useState } from "react";
 import LoginForm from "@/components/auth/LoginForm";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -24,9 +25,9 @@ const LoginPage = () => {
     if (isLoggedIn && user) {
       if (isLawyer) {
         navigate(from, { replace: true });
-        /* navigate("/dashboard", { replace: true }); */
       } else if (isAdmin) {
-        navigate("/adminDashboard", { replace: true });
+        // ⬇️ ir directo a clientes admin
+        navigate("/dashboard/admin/clients", { replace: true });
       }
     }
   }, [isLoggedIn, user, navigate, isAdmin, isLawyer, from]);

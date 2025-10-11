@@ -1,3 +1,4 @@
+// src/types/Lawyer.ts
 /* type lawyerType = "criminal" |  */
 import type { Client } from "./Client";
 import type { User } from "./User";

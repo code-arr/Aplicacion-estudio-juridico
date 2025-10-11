@@ -1,3 +1,4 @@
+// src/types/Client.ts
 import type { Lawyer } from "./Lawyer";
 
 export type ClientType = "Juridica" | "Fisica";

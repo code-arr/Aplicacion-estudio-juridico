@@ -4,13 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Search, User } from "lucide-react";
 import googleLogo from "@/assets/logos/cromoVerde.png";
 import MeetingForm from "@/components/meetings/MeetingForm";
-import type { Meeting } from "@/types/Meeting";
-import { useLawyerStore } from "@/store/useLawyerStore";
+
+import { useMeetingStore } from "@/store/useMeetingStore";
 import { useClientItemStore } from "@/store/useClientItemStore";
 import { useClientStore } from "@/store/useClientStore";
 import MeetingCard from "@/components/meetings/MeetingCard";
+import { useParams } from "react-router-dom";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useLawyerStore } from "@/store/useLawyerStore";
 
-const meetings: Meeting[] = [
+/* const meetings: Meeting[] = [
   {
     id: "mtg_101",
     name: "Seguimiento medidas cautelares",
@@ -188,7 +191,7 @@ const meetings: Meeting[] = [
     createAt: "2025-08-24T10:00:00-03:00",
     updateAt: "2025-08-28T20:00:00-03:00",
   },
-];
+]; */
 
 const formatDateShort = (isoString: string) => {
   const date = new Date(isoString);
@@ -209,13 +212,39 @@ const formatTime = (isoString: string) => {
 };
 
 const ItemMeetingsPage = () => {
+  const { clientItemId } = useParams<{ clientItemId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const meetingsByClientItem = useMeetingStore((s) => s.meetingsByClientItem);
+  const fetchMeetingsByClientItemId = useMeetingStore(
+    (s) => s.fetchMeetingsByClientItemId
+  );
+
+  useEffect(() => {
+    if (!clientItemId) return;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        await fetchMeetingsByClientItemId(clientItemId);
+      } catch (e) {
+        setError("No se pudieron cargar las reuniones");
+        console.log(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [clientItemId, fetchMeetingsByClientItemId]);
 
   const [openId, setOpenId] = useState<string | null>(null);
-  const openMeeting = meetings.find((m) => m.id === openId) || null;
+  const openMeeting = meetingsByClientItem.find((m) => m.id === openId) || null;
 
+  const user = useAuthStore((s) => s.user);
   const lawyer = useLawyerStore((s) => s.lawyer);
+
   const clientItemDetail = useClientItemStore((s) => s.clientItemDetail);
   const clients = useClientStore((s) => s.clientsByLawyer);
 
@@ -250,8 +279,8 @@ const ItemMeetingsPage = () => {
       <MeetingForm
         isDialogOpen={isDialogOpen}
         setIsDialogOpen={setIsDialogOpen}
+        lawyerEmail={user?.googleEmail || ""}
         defaultParticipants={[
-          { name: "Tu", email: lawyer?.user?.email || "" },
           {
             name:
               actualClient?.type === "Fisica"
@@ -285,30 +314,45 @@ const ItemMeetingsPage = () => {
         <div className="py-4">
           <p className="text-lg text-gray-950 font-medium pb-2">Proximas</p>
           <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
-            {meetings
+            {meetingsByClientItem
               .filter((m) => m.status === "scheduled")
               .map((m) => (
-                <MeetingCard m={m} togglePanel={togglePanel} openId={openId} />
+                <MeetingCard
+                  key={m.id}
+                  m={m}
+                  togglePanel={togglePanel}
+                  openId={openId}
+                />
               ))}
           </ul>
         </div>
         <div className="py-4">
           <p className="text-lg text-gray-950 font-medium pb-2">Finalizadas</p>
           <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
-            {meetings
+            {meetingsByClientItem
               .filter((m) => m.status === "completed")
               .map((m) => (
-                <MeetingCard m={m} togglePanel={togglePanel} openId={openId} />
+                <MeetingCard
+                  key={m.id}
+                  m={m}
+                  togglePanel={togglePanel}
+                  openId={openId}
+                />
               ))}
           </ul>
         </div>
         <div className="py-4">
           <p className="text-lg text-gray-950 font-medium pb-2">Canceladas</p>
           <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
-            {meetings
+            {meetingsByClientItem
               .filter((m) => m.status === "canceled")
               .map((m) => (
-                <MeetingCard m={m} togglePanel={togglePanel} openId={openId} />
+                <MeetingCard
+                  key={m.id}
+                  m={m}
+                  togglePanel={togglePanel}
+                  openId={openId}
+                />
               ))}
           </ul>
         </div>
@@ -347,8 +391,8 @@ const ItemMeetingsPage = () => {
               <p className="pt-1 pb-4 text-sm text-gray-600">
                 {formatDateShort(openMeeting.startAt)} ·{" "}
                 {formatTime(openMeeting.startAt)}
-                {openMeeting.endAt ??
-                  `-${formatTime(openMeeting.endAt ?? openMeeting.startAt)}`}
+                {/* {openMeeting.endAt ??
+                  `-${formatTime(openMeeting.endAt ?? openMeeting.startAt)}`} */}
               </p>
             )}
           </div>
@@ -415,6 +459,10 @@ const ItemMeetingsPage = () => {
                       {p.email}
                     </li>
                   ))}
+                  <li className="text-sm text-gray-700">
+                    {`${lawyer?.firstName}  ${lawyer?.lastName} · `}
+                    {user?.googleEmail}
+                  </li>
                 </ul>
               </div>
 

@@ -1,3 +1,4 @@
+// src/types/User.ts
 export type Role = "admin" | "lawyer";
 
 export interface User {
@@ -5,6 +6,9 @@ export interface User {
   email: string;
   role: Role;
   googleEmail?: string;
+
+  lawyerId?: string;
+  adminId?: string;
 
   createAt: Date;
   updateAt: Date;

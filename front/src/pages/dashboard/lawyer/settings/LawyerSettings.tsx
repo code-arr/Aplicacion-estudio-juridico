@@ -103,9 +103,7 @@ const Settings = () => {
                     </p>
                     <p>
                       <span className="font-medium">Tipo: </span>
-                      {lawyer?.lawyerType
-                        ? lawyer?.lawyerType
-                        : "No especificado"}
+                      {lawyer?.type ? lawyer?.type : "No especificado"}
                     </p>
                     <p>
                       <span className="font-medium">Seniority: </span>
@@ -231,7 +229,7 @@ const Settings = () => {
                 </div>
 
                 {/* Verificación en dos pasos */}
-                <div className="flex items-center justify-between p-3">
+                {/*                 <div className="flex items-center justify-between p-3">
                   <div>
                     <p className="font-medium text-[hsl(225,15%,15%)]">
                       Verificación en dos pasos (2FA)
@@ -244,11 +242,9 @@ const Settings = () => {
                   <Switch
                     className="bg-slate-200 ml-3"
                     checked={true}
-                    onCheckedChange={(val) => {
-                      /* toggle en store */
-                    }}
+                    onCheckedChange={(val) => {}}
                   />
-                </div>
+                </div> */}
               </div>
             </CardContent>
           </div>

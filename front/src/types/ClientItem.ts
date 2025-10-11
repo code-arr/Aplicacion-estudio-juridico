@@ -1,3 +1,4 @@
+// src/types/ClientItem.ts
 export type ClientItemStatus = "open" | "on_hold" | "closed";
 
 export const CLIENTITEM_STATUS_MAP: Record<

@@ -1,10 +1,12 @@
+// src/pages/dashboard/items/ItemsPage.tsx
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ClientItem } from "@/types/ClientItem";
-import { selectCategories, useCatalogStore } from "@/store/useCatalogStore";
 import {
   useClientItemStore,
   selectClientItems,
+  selectClientItemsBusy,
+  selectIsClientItemsHydrated,
 } from "@/store/useClientItemStore";
 import ItemForm from "@/components/items/ItemForm";
 import ItemCard from "@/components/items/ItemCard";
@@ -51,17 +53,30 @@ const ItemsPage = () => {
   const PAGE_STEP = 10;
   const [pageSize, setPageSize] = useState(PAGE_STEP);
   const [showAll, setShowAll] = useState(false);
-
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [orderBy, setOrderBy] = useState<string>("");
-  /*   const [categoryFilter, setCategoryFilter] = useState<string>("todos"); */
-  const [loading, setLoading] = useState(true);
 
-  /*  const categories = useCatalogStore(selectCategories); */
   const clientItems = useClientItemStore(selectClientItems);
-  /*   const filteredClientItems = useClientItemStore(selectClientItemsByFilters); */
+  const busy = useClientItemStore(selectClientItemsBusy);
+  const hydrated = useClientItemStore(selectIsClientItemsHydrated);
+
+  // Opcional: delay anti-parpadeo
+  function useBusyDelay(active: boolean, ms = 200) {
+    const [show, setShow] = useState(active);
+    useEffect(() => {
+      if (active) setShow(true);
+      else {
+        const id = setTimeout(() => setShow(false), ms);
+        return () => clearTimeout(id);
+      }
+    }, [active, ms]);
+    return show;
+  }
+
+  const showSpinner = useBusyDelay(busy || !hydrated, 50);
+
   const filters = useClientItemStore((s) => s.filters);
   const setFilters = useClientItemStore((s) => s.setFilters);
 
@@ -102,10 +117,10 @@ const ItemsPage = () => {
     });
   }, [debouncedQuery, statusFilter, orderBy, setFilters]);
 
-  useEffect(() => {
+  /*   useEffect(() => {
     setLoading(true);
     if (filteredClientItems.length >= 0) setLoading(false);
-  }, [filteredClientItems]);
+  }, [filteredClientItems]); */
 
   useEffect(() => {
     setPageSize(PAGE_STEP);
@@ -179,9 +194,9 @@ const ItemsPage = () => {
           {visibleItems.length} de {total} resultados
         </p>
         {/* ClientItem Cards Grid */}
-        {loading ? (
+        {showSpinner ? (
           <LoadingSpinner />
-        ) : (
+        ) : total > 0 ? (
           <div className="grid grid-cols-1 pr-10 gap-4">
             {visibleItems.map((item) => {
               return (
@@ -193,12 +208,12 @@ const ItemsPage = () => {
               );
             })}
           </div>
-        )}
-        {!loading && total === 0 && (
+        ) : (
           <p className="text-sm text-gray-900">
             No hay ítems que coincidan con tu búsqueda.
           </p>
         )}
+
         <div className="flex items-center justify-center py-3 gap-2">
           {!showAll && visibleItems.length < total && (
             <Button

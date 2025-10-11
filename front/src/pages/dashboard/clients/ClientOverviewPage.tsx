@@ -14,10 +14,8 @@ import ErrorScreen from "@/components/shared/ErrorScreen";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { formatTimeFromSeconds } from "@/utils/dateTime";
 import googleLogo from "@/assets/logos/google.png";
-import { FileText, Plus, Search, SquarePlus } from "lucide-react";
+import { FileText, Plus, SquarePlus } from "lucide-react";
 import ItemCard from "@/components/items/ItemCard";
 import { ItemsSearchBar } from "@/components/items/ItemSearchBar";
 
@@ -158,7 +156,7 @@ const ClientOverviewPage = () => {
                     {formatDate(
                       clientDetail.updateAt
                         ? clientDetail.updateAt
-                        : clientDetail.createAt
+                        : clientDetail.createAt!
                     )}
                   </p>
 
@@ -341,7 +339,9 @@ const ClientOverviewPage = () => {
               </div>
               <div>
                 <p className="text-[hsl(225,10%,50%)]">Ítems Registrados</p>
-                <p className="font-semibold text-[hsl(225,15%,15%)]">0</p>
+                <p className="font-semibold text-[hsl(225,15%,15%)]">
+                  {clientItemsByClientId?.length}
+                </p>
               </div>
               <div>
                 <p className="text-[hsl(225,10%,50%)]">Último Movimiento</p>

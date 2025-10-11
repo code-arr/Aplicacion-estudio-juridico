@@ -18,7 +18,7 @@ import {
   selectIsClientItemsPrefetched,
 } from "@/store/useClientItemStore";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import AppSidebar from "@/components/lawyer/AppSidebar";
+import LawyerSidebar from "@/components/lawyer/LawyerSidebar";
 import WorkTimeBadge from "@/components/timer/WorkTimeBadge";
 import InactivityModal from "@/components/shared/InactivityModal";
 import LoadingScreen from "@/components/shared/LoadingScreen";
@@ -30,6 +30,7 @@ import { useEnsureTimerPrimed } from "@/hooks/useEnsureTimerPrimed";
 import { useTimerEngineGate } from "@/hooks/useTimerEngineGate";
 import { useTimeSyncInit } from "@/hooks/useTimeSyncInit";
 import { useIdleWatch } from "@/hooks/useIdleWatch";
+import AdminSidebar from "@/components/admin/AdminSidebar";
 
 const DashboardLayout = () => {
   const user = useAuthStore((s) => s.user);
@@ -97,17 +98,29 @@ const DashboardLayout = () => {
     selectIsClientItemsPrefetched
   );
 
-  // Primer montaje: respeta TTL (no bloquear si hay cache, sí bloquear si es primer fetch)
+  // 🔸 Catálogo lo puede necesitar cualquiera
   useEffect(() => {
     hydrateCatalog(); // respeta TTL
-    if (lawyer) hydrateClientsByLawyer(lawyer.id); // respeta TTL
-  }, [hydrateCatalog, hydrateClientsByLawyer, lawyer]);
+  }, [hydrateCatalog]);
 
-  //Prefecth de clientItems, despues de renderizar la vista "Mis Clientes"
+  // 🔸 Clientes e items SOLO en modo lawyer (evita fetch inútil para Admin)
   useEffect(() => {
-    if (isHydratedCatalog && isHydratedClients && !itemClientsIsPrefetched)
+    if (!isAdmin && lawyer) {
+      hydrateClientsByLawyer(lawyer.id); // respeta TTL
+    }
+  }, [hydrateClientsByLawyer, isAdmin, lawyer]);
+
+  useEffect(() => {
+    if (
+      !isAdmin &&
+      isHydratedCatalog &&
+      isHydratedClients &&
+      !itemClientsIsPrefetched
+    ) {
       if (lawyer) hydrateClientItems(lawyer.id);
+    }
   }, [
+    isAdmin,
     isHydratedCatalog,
     isHydratedClients,
     hydrateClientItems,
@@ -116,20 +129,31 @@ const DashboardLayout = () => {
   ]);
 
   if (
-    (!isHydratedCatalog && isLoadingCatalog) ||
-    (!isHydratedClients && isLoadingClients) ||
-    (!isAdmin && !lawyer?.id)
-  )
+    // para Lawyer: esperamos cat + clients
+    (!isAdmin && !isHydratedCatalog && isLoadingCatalog) ||
+    (!isAdmin && !isHydratedClients && isLoadingClients)
+  ) {
     return <LoadingScreen />;
+  }
+
+  // para Admin: con catálogo basta para montar layout; las páginas admin traen su data
+  if (isAdmin && isLoadingCatalog && !isHydratedCatalog) {
+    return <LoadingScreen />;
+  }
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex items-start w-full bg-gray-50">
-        <AppSidebar lawyer={lawyer} onLogout={logOut} />
-        {/* Aca en seria mejor pasarle role={user.role} en lugar de lawyer={user} */}
+        {isAdmin ? (
+          <AdminSidebar />
+        ) : (
+          <LawyerSidebar lawyer={lawyer} onLogout={logOut} />
+        )}
+
         <main className="flex-1 min-w-0">
           <Outlet />
         </main>
+
         {/* 🔔 Modal de advertencia de inactividad */}
         <InactivityModal />
         {timersEnabled && <WorkTimeBadge />}

@@ -1,4 +1,4 @@
-// src/components/lawyer/AppSidebar.tsx
+// src/components/lawyer/LawyerSidebar.tsx
 import { NavLink, useLocation } from "react-router-dom";
 import {
   SidebarContent,
@@ -19,12 +19,12 @@ import type { Lawyer } from "@/types/Lawyer";
 import { useState } from "react";
 import LogoApp from "@/assets/logos/logo-i&a-2.png";
 
-interface AppSidebarProps {
+interface LawyerSidebarProps {
   lawyer: Lawyer | null;
   onLogout: () => void;
 }
 
-const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
+const LawyerSidebar = ({ lawyer, onLogout }: LawyerSidebarProps) => {
   const { pathname, hash } = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -185,4 +185,4 @@ const AppSidebar = ({ lawyer, onLogout }: AppSidebarProps) => {
   );
 };
 
-export default AppSidebar;
+export default LawyerSidebar;

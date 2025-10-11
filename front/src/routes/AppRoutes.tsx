@@ -1,40 +1,43 @@
 // src/routes/AppRoutes.tsx
 import { Route, Routes, Navigate } from "react-router-dom";
-
 import PrivateRoute from "@/routes/PrivateRoute";
-
 import { useAuthStore } from "@/store/useAuthStore";
 
+// Layouts y páginas
 import DashboardLayout from "@/layouts/DashboardLayout";
-import ItemLayout from "@/layouts/ItemLayout";
-import ClientLayout from "@/layouts/ClientLayout";
-
 import LoginPage from "@/pages/auth/LoginPage";
-import NotFoundPage from "@/pages/not-found/NotFoundPage";
 import UnauthorizedAccess from "@/pages/auth/UnauthorizedAccess";
-import AdminDashboard from "@/pages/dashboard/admin/AdminDashboard";
+import NotFoundPage from "@/pages/not-found/NotFoundPage";
+
+// Viewers
+import DocumentViewerPage from "@/pages/dashboard/documents/DocumentViewerPage";
+import AudienceViewerPage from "@/pages/dashboard/audiences/AudienceViewerPage";
+
+// Lawyer (las tuyas existentes)
 import ClientsPage from "@/pages/dashboard/clients/ClientsPage";
+import ClientLayout from "@/layouts/ClientLayout";
 import ClientOverviewPage from "@/pages/dashboard/clients/ClientOverviewPage";
 import ClientCatalogPage from "@/pages/dashboard/clients/ClientCatalogPage";
-
-import LawyerStatistics from "@/pages/dashboard/lawyer/statistics/LawyerStatistics";
-import LawyerSettings from "@/pages/dashboard/lawyer/settings/LawyerSettings";
-import LawyerEditProfile from "@/pages/dashboard/lawyer/settings/LawyerEditProfile";
-
-import ItemOverviewPage from "@/pages/dashboard/items/ItemOverviewPage";
 import ItemsPage from "@/pages/dashboard/items/ItemsPage";
+import ItemLayout from "@/layouts/ItemLayout";
+import ItemOverviewPage from "@/pages/dashboard/items/ItemOverviewPage";
 import ItemDocumentsPage from "@/pages/dashboard/items/ItemDocumentsPage";
 import ItemAudiencesPage from "@/pages/dashboard/items/ItemAudiencesPage";
 import ItemMeetingsPage from "@/pages/dashboard/items/ItemMeetingsPage";
 import ItemProcessPage from "@/pages/dashboard/items/ItemProcessPage";
-import DocumentViewerPage from "@/pages/dashboard/documents/DocumentViewerPage";
-import AudienceViewerPage from "@/pages/dashboard/audiences/AudienceViewerPage";
+import LawyerStatistics from "@/pages/dashboard/lawyer/statistics/LawyerStatistics";
+import LawyerSettings from "@/pages/dashboard/lawyer/settings/LawyerSettings";
+import LawyerEditProfile from "@/pages/dashboard/lawyer/settings/LawyerEditProfile";
+
+// Admin (nuevas)
+import AdminClientsPage from "@/pages/dashboard/admin/AdminClientsPage";
+import AdminLawyersPage from "@/pages/dashboard/admin/AdminLawyersPage";
+import AdminStatsPage from "@/pages/dashboard/admin/AdminStatsPage";
 
 import LoadingScreen from "@/components/shared/LoadingScreen";
 
 const AppRoutes = () => {
   const { isAdmin, isLawyer, isLoadingSession } = useAuthStore();
-
   if (isLoadingSession) return <LoadingScreen />;
 
   return (
@@ -102,8 +105,33 @@ const AppRoutes = () => {
 
         {isAdmin && (
           <>
-            <Route path="admin" element={<AdminDashboard />} />
-            <Route index element={<Navigate to="admin" replace />} />
+            {/* Index admin => clients */}
+            <Route index element={<Navigate to="admin/clients" replace />} />
+
+            <Route
+              path="admin/clients"
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <AdminClientsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="admin/lawyers"
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <AdminLawyersPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="admin/stats"
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <AdminStatsPage />
+                </PrivateRoute>
+              }
+            />
           </>
         )}
 

@@ -1,3 +1,4 @@
+// src/routes/PrivateRoute.tsx
 import { useAuthStore } from "@/store/useAuthStore";
 import { Navigate, useLocation } from "react-router-dom";
 import type { JSX } from "react";
