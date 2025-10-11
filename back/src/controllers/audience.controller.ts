@@ -16,7 +16,7 @@ import { AudienceService } from 'src/services/audience.service';
 export class AudienceController {
   constructor(private readonly audienceService: AudienceService) {}
 
-  @Post('/createAudience/:clientItemId')
+  @Post('/create/:clientItemId')
   @UseInterceptors(FileInterceptor('file'))
   async createDocument(
     @UploadedFile() file: Express.Multer.File,

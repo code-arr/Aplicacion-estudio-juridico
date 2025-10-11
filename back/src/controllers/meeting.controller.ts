@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   Get,
+  Query,
 } from '@nestjs/common';
 import { GoogleCalendarService } from '../lib/google/calendar';
 import { MeetingDto } from 'src/dtos/meeting.dto';
@@ -22,7 +23,7 @@ export class MeetingsController {
   async scheduleMeeting(
     @Body() meetingData: MeetingDto,
     @Param('clientItemId') clientItemId: string,
-    @Body('lawyerEmail') lawyerEmail: string,
+    @Query('lawyerEmail') lawyerEmail: string,
     @Body('to') to: string,
   ): Promise<Meeting | null | void> {
     try {
