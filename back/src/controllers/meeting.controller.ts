@@ -18,12 +18,12 @@ import { Meeting } from 'src/entities/meeting.entity';
 export class MeetingsController {
   constructor(private readonly meetingService: MeetingService) {}
 
-  @Post('schedule/:clientItemId')
+  @Post('create/:clientItemId')
   @HttpCode(HttpStatus.CREATED)
   async scheduleMeeting(
     @Body() meetingData: MeetingDto,
     @Param('clientItemId') clientItemId: string,
-    @Query('lawyerEmail') lawyerEmail: string,
+    @Body('lawyerEmail') lawyerEmail: string,
     @Body('to') to: string,
   ): Promise<Meeting | null | void> {
     try {
