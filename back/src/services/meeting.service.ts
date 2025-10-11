@@ -57,11 +57,18 @@ export class MeetingService {
             'No se pudo obtener la URL del evento de Google Meet.',
           );
         }
+        const eventId = googleEvent.id;
+        if (!eventId) {
+          throw new InternalServerErrorException(
+            'No se pudo obtener el ID del evento de Google Calendar.',
+          );
+        }
 
         // 4️⃣ Actualizar la reunión con el link
         const meeting = await this.meetingRepository.updateMeeting(
           newMeeting.id,
-          { link },
+          { link, eventId },
+          
         );
         if (!meeting) {
           throw new InternalServerErrorException(

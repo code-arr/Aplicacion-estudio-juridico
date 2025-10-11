@@ -46,6 +46,9 @@ export class Meeting {
   @Column({ type: 'varchar', length: 255, nullable: true })
   participants: [{ name: string; email: string }]; // Lista de participantes (nombre y correo electrónico)
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  eventId: string; // ID del evento en Google Calendar
+  
   @Column({ type: 'varchar', nullable: true })
   location: string; // Ubicación física si es una reunión en persona
   @Column({
