@@ -39,7 +39,7 @@ export class ClienteController {
     @Body('email') to: string,
     @Body('subject') subject: string,
     @Body('description') description: string,
-    @Body('lawyerEmail') lawyerEmail: string,
+    @Query('lawyerEmail') lawyerEmail: string,
     @Body('title') title: string, // <-- Agregamos este parámetro para capturar el título
   ) {
     const contractBuffer = file.buffer;

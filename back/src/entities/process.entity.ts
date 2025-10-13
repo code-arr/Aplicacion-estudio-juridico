@@ -3,6 +3,7 @@ import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToOne, PrimaryGenerated
 import { v4 as uuid } from 'uuid';
 import { ClientItem } from './clientItem.entity';
 import * as moment from 'moment-timezone';
+
 @Entity()
 export class Process {
   @PrimaryGeneratedColumn('uuid')
