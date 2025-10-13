@@ -106,4 +106,43 @@ export class UserRepository {
       );
     }
   }
+
+  async verifyPassword(email: string, password: string): Promise<boolean> {
+    try {
+      const user = await this.userRepository.findOne({ where: { email } });
+
+      if (!user) {
+        throw new NotFoundException('Usuario no encontrado.');
+      }
+      const isMatch = await bcrypt.compare(password, user.password);
+      return isMatch;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Error inesperado al verificar la contraseña. REPOSITORIO',
+      );
+    }
+  }
+
+  async changePassword(email: string, newPassword: string): Promise<string | void> {
+    try {
+      const user = await this.userRepository.findOne({ where: { email } });
+      if (!user) {
+        throw new NotFoundException('Usuario no encontrado.');
+      }
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+      await this.userRepository.save(user);
+      return 'Contraseña del usuario ' + user.email + ' actualizada exitosamente.';
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      } 
+      throw new InternalServerErrorException(
+        'Error inesperado al cambiar la contraseña. REPOSITORIO',
+      );
+    }
+  }
 }

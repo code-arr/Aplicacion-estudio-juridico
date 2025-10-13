@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { User } from '../entities/user.entity';
 import { UserService } from '../services/user.service';
 
@@ -17,5 +17,14 @@ export class UserController {
   @Get('getUserById/:id')
   async getUserById(@Param('id') id: string): Promise<User | null> {
     return this.userService.getOneById(id);
+  }
+  @Post("verifyPassword")
+  async verifyPassword(@Body() email: string, @Body() password: string): Promise<boolean> {
+    return this.userService.verifyPassword(email, password);
+  }
+
+  @Post("newPassword")
+  async changePassword(@Body() email: string, @Body() newPassword: string): Promise<string | void> {
+    return this.userService.changePassword(email, newPassword);
   }
 }
