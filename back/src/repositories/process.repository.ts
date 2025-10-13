@@ -52,4 +52,19 @@ export class ProcessRepository {
       throw new Error('Error fetching process');
     }
   }
+
+  async getProcessesByClientItemId(clientItemId: string): Promise<Process[]> {
+    try {
+      const processes = await this.processRepository.find({
+        where: { clientItem: { id: clientItemId } },
+        relations: ['clientItem'],
+        order: { dateTime: 'DESC' },
+      });
+      return processes;
+    } catch (error) {
+      console.log(error);
+
+      throw new Error('Error fetching processes');
+    }
+  }
 }

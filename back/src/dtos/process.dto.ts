@@ -1,5 +1,6 @@
 export class ProcessDto {
     name : string ;
     description : string;
-    duration : number;
+    durationSec : number;
+    dateTime : string
 }

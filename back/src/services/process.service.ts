@@ -14,4 +14,8 @@ export class ProcessService {
   async getProcessById(id: string): Promise<Process> {
     return this.processRepository.getProcessById(id);
   }
+
+  async getProcessesByClientItemId(clientItemId: string): Promise<Process[]> {
+    return this.processRepository.getProcessesByClientItemId(clientItemId);
+  }
 }

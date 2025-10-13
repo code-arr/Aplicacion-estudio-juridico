@@ -18,4 +18,9 @@ export class ProcessController {
   getProcess(@Param('id') id: string) {
     return this.processService.getProcessById(id);
   }
+
+  @Get('getByClientItemId/:clientItemId')
+  getProcessesByClientItemId(@Param('clientItemId') clientItemId: string) {
+    return this.processService.getProcessesByClientItemId(clientItemId);
+  }
 }
