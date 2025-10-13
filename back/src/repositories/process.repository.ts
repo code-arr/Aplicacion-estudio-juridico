@@ -20,12 +20,21 @@ export class ProcessRepository {
     try {
       const clientItem =
         await this.clientItemService.getClientItemById(clientItemId);
-
+        const { dateTime, name , description , durationSec } = process;
       if (!clientItem) {
         throw new NotFoundException('Client item not found');
       }
+
+      const date = new Date(dateTime);
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid date format');
+      }
+      
       const newProcess = this.processRepository.create({
-        ...process,
+        name : name,
+        description : description,
+        durationSec : durationSec,
+        dateTime : date,
         clientItem: clientItem,
       });
 

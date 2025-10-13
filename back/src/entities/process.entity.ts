@@ -15,7 +15,7 @@ export class Process {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2 })
+  @Column({ type: 'integer', default: 0 })
   durationSec: number; // Duración del trabajo en segundos
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
