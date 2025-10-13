@@ -19,12 +19,12 @@ export class UserController {
     return this.userService.getOneById(id);
   }
   @Post("verifyPassword")
-  async verifyPassword(@Body() email: string, @Body() password: string): Promise<boolean> {
+  async verifyPassword(@Body("email") email: string, @Body("password") password: string): Promise<boolean> {
     return this.userService.verifyPassword(email, password);
   }
 
   @Post("newPassword")
-  async changePassword(@Body() email: string, @Body() newPassword: string): Promise<string | void> {
+  async changePassword(@Body("email") email: string, @Body("newPassword") newPassword: string): Promise<string | void> {
     return this.userService.changePassword(email, newPassword);
   }
 }

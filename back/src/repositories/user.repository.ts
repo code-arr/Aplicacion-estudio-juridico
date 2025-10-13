@@ -110,7 +110,9 @@ export class UserRepository {
   async verifyPassword(email: string, password: string): Promise<boolean> {
     try {
       const user = await this.userRepository.findOne({ where: { email } });
-
+      console.log(user);
+      console.log(email);
+      
       if (!user) {
         throw new NotFoundException('Usuario no encontrado.');
       }
