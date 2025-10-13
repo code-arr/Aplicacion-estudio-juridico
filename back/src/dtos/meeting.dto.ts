@@ -3,5 +3,5 @@ export class MeetingDto{
     startAt : string;
     endAt? : string;
     participants : [{name:string, email:string}];
-    meetingType : "google-meet" | "in-person";
+    type : "google-meet" | "in-person";
 }

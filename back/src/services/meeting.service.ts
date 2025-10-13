@@ -24,14 +24,14 @@ export class MeetingService {
     clientItemId: string,
     lawyerEmail: string,
   ): Promise<Meeting | null | void> {
-    const { startAt, endAt, name, meetingType, participants } = meetingData;
+    const { startAt, endAt, name, type, participants } = meetingData;
 
     const startDate = new Date(startAt);
     const endDate = endAt
       ? new Date(endAt)
       : new Date(startDate.getTime() + 60 * 60 * 1000); // +1h por defecto
 
-    if (meetingType === 'google-meet') {
+    if (type === 'google-meet') {
       try {
         // 1️⃣ Crear registro inicial en la base de datos
         const newMeeting = await this.meetingRepository.createMeeting(
@@ -97,7 +97,7 @@ export class MeetingService {
           'Falló la creación de la reunión en Google Meet.',
         );
       }
-    } else if (meetingType === 'in-person') {
+    } else if (type === 'in-person') {
       try {
         // Reunión presencial
         return this.meetingRepository.createMeeting(
