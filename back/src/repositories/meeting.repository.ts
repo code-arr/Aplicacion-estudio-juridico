@@ -54,4 +54,10 @@ export class MeetingRepository {
       relations: ['clientItem'],
     });
   }
+
+  async getByClientId(clientId: string , lawyerId: string): Promise<Meeting[]> {
+    return this.meetingRepository.find({
+      where: { clientItem: { client: { id: clientId } ,  lawyer: { id: lawyerId } } },
+    });
+  }
 }

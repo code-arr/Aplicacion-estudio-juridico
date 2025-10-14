@@ -24,7 +24,6 @@ export class MeetingsController {
     @Body() meetingData: MeetingDto,
     @Param('clientItemId') clientItemId: string,
     @Body('lawyerEmail') lawyerEmail: string,
-   
   ): Promise<Meeting | null | void> {
     try {
       const meeting = await this.meetingService.createAndSchedule(
@@ -41,13 +40,21 @@ export class MeetingsController {
     }
   }
 
-  @Get("getByClientItemId/:clientItemId")
-  async getByClientItemId(@Param("clientItemId") clientItemId: string) {
+  @Get('getByClientItemId/:clientItemId')
+  async getByClientItemId(@Param('clientItemId') clientItemId: string) {
     return this.meetingService.getByClientItemId(clientItemId);
   }
 
-  @Get("GetAll")
+  @Get('GetAll')
   async getAllMeetings() {
     return this.meetingService.getAllMeetings();
+  }
+
+  @Get('getByClientId/:clientId')
+  async getByClientId(
+    @Param('clientId') clientId: string,
+    @Query('lawyerId') lawyerId: string,
+  ) {
+    return this.meetingService.getByClientId(clientId, lawyerId);
   }
 }

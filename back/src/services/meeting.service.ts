@@ -120,4 +120,8 @@ export class MeetingService {
   async getByClientItemId(clientItemId: string): Promise<Meeting[]> {
     return this.meetingRepository.getByClientItemId(clientItemId);
   }
+
+  async getByClientId(clientId: string , lawyerId: string): Promise<Meeting[]> {
+    return this.meetingRepository.getByClientId(clientId, lawyerId);
+  }
 }
