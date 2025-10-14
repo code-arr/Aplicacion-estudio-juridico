@@ -23,7 +23,7 @@ import { meet } from 'googleapis/build/src/apis/meet';
 import { MeetingModule } from './modules/meeting.module';
 import { AudienceModule } from './modules/audience.module';
 import { OpenSignModule } from './openSign/openSign.module';
-
+import { TimeEntriesModule } from './modules/timeEntry.module';
 
 @Module({
   imports: [
@@ -36,7 +36,7 @@ import { OpenSignModule } from './openSign/openSign.module';
         return options;
       },
     }),
-     JwtModule.register({
+    JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1d' },
@@ -57,9 +57,9 @@ import { OpenSignModule } from './openSign/openSign.module';
     MeetingModule,
     AudienceModule,
     OpenSignModule,
+    TimeEntriesModule,
   ],
-  controllers: [AppController ],
-  providers: [AppService ],
-
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
