@@ -17,4 +17,10 @@ export class EntryDay {
 
   @Column()
   lawyerId : string;
+
+  @Column()
+  clientId : string;
+
+  @Column()
+  type : string;
 }

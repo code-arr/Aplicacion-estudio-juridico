@@ -25,7 +25,7 @@ export class TimeEntriesService {
     return this.repo.getAll();
   }
 
-  async getEntriesByClientId(clientId: string, lawyerId: string): Promise<TimeEntry[]> {
-    return this.repo.getEntriesByClientId(clientId, lawyerId);
-  }
+  // async getEntriesByClientId(clientId: string, lawyerId: string): Promise<TimeEntry[]> {
+  //   return this.repo.getEntriesByClientId(clientId, lawyerId);
+  // }
 }

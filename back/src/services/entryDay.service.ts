@@ -14,4 +14,7 @@ export class EntryDayService {
   async updateEntryDay(timeEntry: CreateTimeEntryDto[]): Promise<EntryDay[]> {
     return this.repo.updateEntryDay(timeEntry);
   }
+  async getByClientId(lawyerId: string, clientId: string) {
+    return this.repo.getByClientId(lawyerId, clientId);
+  }
 }

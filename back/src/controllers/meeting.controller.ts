@@ -24,14 +24,21 @@ export class MeetingsController {
     @Body() meetingData: MeetingDto,
     @Param('clientItemId') clientItemId: string,
     @Body('lawyerEmail') lawyerEmail: string,
+    @Body('clientId') clientId: string
   ): Promise<Meeting | null | void> {
     try {
       const meeting = await this.meetingService.createAndSchedule(
         meetingData,
         clientItemId,
         lawyerEmail,
+        clientId
         // cliente principal
       );
+      console.log('Reunión programada:', meetingData.name);
+      console.log('ID del cliente:', clientId);
+      console.log('ID del abogado:', lawyerEmail);
+      
+      
       return meeting;
     } catch (error) {
       // NestJS maneja los errores lanzados por el servicio, pero si quieres

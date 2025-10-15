@@ -7,8 +7,8 @@ import { ProcessRepository } from "../repositories/process.repository";
 export class ProcessService {
   constructor(private readonly processRepository: ProcessRepository) {}
 
-  async createProcess(processDto: ProcessDto, clientItemId: string): Promise<Process> {
-    return this.processRepository.createProcess(processDto, clientItemId);
+  async createProcess(processDto: ProcessDto, clientItemId: string, clientId: string): Promise<Process> {
+    return this.processRepository.createProcess(processDto, clientItemId, clientId);
   }
 
   async getProcessById(id: string): Promise<Process> {

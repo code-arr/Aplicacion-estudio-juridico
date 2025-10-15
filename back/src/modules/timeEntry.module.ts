@@ -28,9 +28,9 @@ import { EntryDayModule } from './entryDay.module';
 
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TimeEntry ,Document , Audience , Client , Event , Lawyer , EntryDay]) , ClienteModule , DocumentModule, AudienceModule , clientItemModule , EventModule , AbogadoModule , EntryDayModule ],
+  imports: [TypeOrmModule.forFeature([TimeEntry  , EntryDay]), EntryDayModule ],
   controllers: [TimeEntriesController],
-  providers: [TimeEntriesService , TimeEntriesRepository , DocumentRepository , AudiencieRepository , ClienteRepository , AwsS3Service , ClientItemService  ],
-  exports: [TimeEntriesService, TimeEntriesRepository , DocumentRepository , AudiencieRepository , ClienteRepository  ],
+  providers: [TimeEntriesService , TimeEntriesRepository ,   ],
+  exports: [TimeEntriesService, TimeEntriesRepository ]  ,
 })
 export class TimeEntriesModule {}

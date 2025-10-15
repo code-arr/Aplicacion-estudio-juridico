@@ -24,6 +24,7 @@ export class DocumentController {
     @UploadedFile() file: Express.Multer.File,
     @Param('clientItemId') clientItemId: string,
     @Body('name') name: string,
+    @Body('clientId') clientId: string,
     @Query('lawyerId') lawyerId: string,
   ): Promise<Document> {
     const fileBuffer = file.buffer;
@@ -36,7 +37,8 @@ export class DocumentController {
       originalFileName,
       name,
       mimetype,
-      lawyerId 
+      lawyerId ,
+      clientId
     );
   }
   @Delete('/delete/:documentId')

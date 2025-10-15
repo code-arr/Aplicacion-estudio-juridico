@@ -18,9 +18,11 @@ export class MeetingRepository {
   async createMeeting(
     meetingData: Partial<Meeting>,
     clientItemId: string,
+    clientId: string
   ): Promise<Meeting> {
     const meeting = this.meetingRepository.create(meetingData);
     meeting.clientItem = await this.clientItem.getClientItemById(clientItemId);
+    meeting.clientId = clientId
     return this.meetingRepository.save(meeting);
   }
 

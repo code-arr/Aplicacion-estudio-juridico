@@ -31,6 +31,7 @@ export class DocumentRepository {
     dbName: string,
     mimetype: string,
     lawyerId: string,
+    clientId: string
   ): Promise<Document> {
     try {
       const clientItem =
@@ -56,6 +57,7 @@ export class DocumentRepository {
       document.name = dbName;
       document.fileUrl = s3Url;
       document.clientItem = clientItem;
+      document.clientId = clientId; // Asigna el clientId al documento
       const type = mimetype.split('/').pop(); // Guarda el tipo de documento (mimetype)
       if (!type) {
         throw new InternalServerErrorException('Invalid file type');

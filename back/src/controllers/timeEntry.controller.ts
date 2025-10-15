@@ -33,8 +33,8 @@ export class TimeEntriesController {
     return this.svc.getAll();
   }
 
-  @Get("getByClientId/:clientId")
-  getByClientId(@Param("clientId") clientId: string , @Query("lawyerId") lawyerId: string ) {
-    return this.svc.getEntriesByClientId(clientId, lawyerId);
-  }
+  // @Get("getByClientId/:clientId")
+  // getByClientId(@Param("clientId") clientId: string , @Query("lawyerId") lawyerId: string ) {
+  //   return this.svc.getEntriesByClientId(clientId, lawyerId);
+  // }
 }

@@ -22,6 +22,7 @@ export class AudienceController {
     @UploadedFile() file: Express.Multer.File,
     @Param('clientItemId') clientItemId: string,
     @Body('name') name: string,
+    @Body('clientId') clientId: string,
     @Query('lawyerId') lawyerId: string,
   ): Promise<Audience> {
     const fileBuffer = file.buffer;
@@ -34,7 +35,8 @@ export class AudienceController {
       originalFileName,
       name,
       mimetype,
-      lawyerId 
+      lawyerId ,
+      clientId
     );
   }
 

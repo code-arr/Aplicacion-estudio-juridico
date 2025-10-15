@@ -16,12 +16,6 @@ export class TimeEntriesRepository {
   constructor(
     @InjectRepository(TimeEntry)
     private readonly repo: Repository<TimeEntry>,
-    @InjectRepository(Document)
-    private readonly documentRepo: Repository<Document>,
-    @InjectRepository(Audience)
-    private readonly audienceRepo: Repository<Audience>,
-    @InjectRepository(Client)
-    private readonly clientRepo: Repository<Client>,
     private readonly entryDayService: EntryDayService,
   ) {}
 
@@ -66,45 +60,6 @@ export class TimeEntriesRepository {
     return qb.orderBy('t.startedAtUTC', 'ASC').getMany();
   }
 
-  async getEntriesByClientId(
-    clientId: string,
-    lawyerId: string,
-  ): Promise<TimeEntry[]> {
-    const entries = await this.repo.find({ where: { lawyerId } });
-    const entriesToReturn: TimeEntry[] = [];
-
-    for (const entry of entries) {
-      if (entry.trackableType === TrackableType.Audience) {
-        const audience = await this.audienceRepo.findOne({
-          where: { id: entry.trackableId },
-          relations: ['clientItem', 'clientItem.client'],
-        });
-
-        if (audience && audience.clientItem.client.id === clientId) {
-          entriesToReturn.push(entry);
-        }
-      } else if (entry.trackableType === TrackableType.Client) {
-        const client = await this.clientRepo.findOne({
-          where: { id: entry.trackableId },
-          relations: ['clientItems'],
-        });
-        if (client && client.id === clientId) {
-          entriesToReturn.push(entry);
-        }
-      } else if (entry.trackableType === TrackableType.Document) {
-        const document = await this.documentRepo.findOne({
-          where: { id: entry.trackableId },
-          relations: ['clientItem', 'clientItem.client'],
-        });
-
-        if (document && document.clientItem.client.id === clientId) {
-          entriesToReturn.push(entry);
-        }
-      }
-    }
-
-    return entriesToReturn;
-  }
 
   async getAll(): Promise<TimeEntry[]> {
     return this.repo.find();

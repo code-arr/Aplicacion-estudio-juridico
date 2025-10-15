@@ -18,6 +18,7 @@ export class ProcessRepository {
   async createProcess(
     process: ProcessDto,
     clientItemId: string,
+    clientId: string
   ): Promise<Process> {
     try {
       const clientItem =
@@ -38,6 +39,7 @@ export class ProcessRepository {
         durationSec : durationSec,
         dateTime : date,
         clientItem: clientItem,
+        clientId: clientId
       });
 
       return await this.processRepository.save(newProcess);

@@ -29,6 +29,9 @@ export class Process {
   @Column({ type: 'timestamp', nullable: true })
   updateAt: Date;
 
+  @Column({ type: 'uuid' , nullable: true})
+  clientId: string;
+
   @BeforeInsert()
   setCreateAt() {
     this.createAt = moment().tz('America/Santiago').toDate();

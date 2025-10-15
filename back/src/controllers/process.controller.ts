@@ -10,8 +10,9 @@ export class ProcessController {
   createProcess(
     @Param('clientItemId') clientItemId: string,
     @Body() process: ProcessDto,
+    @Body('clientId') clientId: string,
   ) {
-    return this.processService.createProcess(process, clientItemId);
+    return this.processService.createProcess(process, clientItemId , clientId);
   }
 
   @Get('getById/:id')

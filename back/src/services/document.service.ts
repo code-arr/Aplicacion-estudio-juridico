@@ -13,7 +13,8 @@ export class DocumentService {
     originalFileName: string,
     dbName: string,
     mimetype: string ,
-    lawyerId: string
+    lawyerId: string,
+    clientId: string
   ): Promise<Document> {
     return this.documentRepository.createDocument(
       clientItemId,
@@ -21,7 +22,8 @@ export class DocumentService {
       originalFileName,
       dbName,
       mimetype,
-      lawyerId
+      lawyerId,
+      clientId
     );
   }
   async getAllDocuments(): Promise<Document[]> {

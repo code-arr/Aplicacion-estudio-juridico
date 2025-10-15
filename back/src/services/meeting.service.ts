@@ -23,6 +23,7 @@ export class MeetingService {
     meetingData: MeetingDto,
     clientItemId: string,
     lawyerEmail: string,
+    clientId: string
   ): Promise<Meeting | null | void> {
     const { startAt, endAt, name, type, participants } = meetingData;
 
@@ -36,7 +37,7 @@ export class MeetingService {
         // 1️⃣ Crear registro inicial en la base de datos
         const newMeeting = await this.meetingRepository.createMeeting(
           { ...meetingData, startAt: startDate, endAt: endDate },
-          clientItemId,
+          clientItemId,clientId
         );
 
         // 2️⃣ Crear el evento en Google Calendar
@@ -47,7 +48,8 @@ export class MeetingService {
           participants, // participantes adicionales (opcional)
           'America/Santiago', // zona horaria
         );
-
+        console.log("LELGA ACA 2");
+        
         // 3️⃣ Obtener el link del Meet
         const link = googleEvent?.hangoutLink || googleEvent?.htmlLink;
         if (!link) {
@@ -89,7 +91,7 @@ export class MeetingService {
           entityType: 'MEETING',
           lawyerId: lawyer.id,
         });
-
+        
         return meeting;
       } catch (error) {
         console.error('Error creando reunión en Google Meet:', error);
@@ -102,7 +104,7 @@ export class MeetingService {
         // Reunión presencial
         return this.meetingRepository.createMeeting(
           { ...meetingData, startAt: startDate, endAt: endDate },
-          clientItemId,
+          clientItemId,clientId
         );
       } catch (error) {
         console.error('Error creando reunión en persona:', error);

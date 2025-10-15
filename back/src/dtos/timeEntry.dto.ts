@@ -25,5 +25,7 @@ export class CreateTimeEntryDto {
 
   @IsString() dayKey?: string | null; // Formato 'YYYY-MM-DD', para consultas y reportes diarios
 
+  @IsString() clientId : string
+  
   @IsOptional() @IsString() appVersion?: string | null;
 }
