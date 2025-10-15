@@ -29,7 +29,7 @@ export class Process {
   @Column({ type: 'timestamp', nullable: true })
   updateAt: Date;
 
-  @Column({ type: 'uuid' , nullable: true})
+  @Column({ type: 'uuid' })
   clientId: string;
 
   @BeforeInsert()

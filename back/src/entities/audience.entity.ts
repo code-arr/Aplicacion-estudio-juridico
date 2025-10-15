@@ -41,7 +41,7 @@ export class Audience {
   @Column({type : "timestamp", nullable: true})
   date: Date;
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ type: 'uuid' })
   clientId: string;
 
   @BeforeInsert()

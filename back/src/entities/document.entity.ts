@@ -25,7 +25,7 @@ export class Document {
   @Column({ type: 'int', default: 0 })
   activeTime: number;
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ type: 'uuid' })
   clientId: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

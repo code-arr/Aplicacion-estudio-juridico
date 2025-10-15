@@ -61,7 +61,7 @@ export class Meeting {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ type: 'uuid' })
   clientId: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
