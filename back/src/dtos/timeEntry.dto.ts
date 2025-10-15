@@ -23,5 +23,7 @@ export class CreateTimeEntryDto {
   @IsInt() durationSec!: number;
   @IsEnum(PauseReason) pauseReason!: PauseReason;
 
+  @IsString() dayKey?: string | null; // Formato 'YYYY-MM-DD', para consultas y reportes diarios
+
   @IsOptional() @IsString() appVersion?: string | null;
 }

@@ -1,5 +1,5 @@
 // src/time-entries/time-entries.controller.ts
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { QueryTimeEntriesDto } from 'src/dtos/queryTimeEntry.dto';
 import { CreateTimeEntryDto } from 'src/dtos/timeEntry.dto';
 import { TimeEntry } from 'src/entities/timeEntry.entity';
@@ -19,7 +19,7 @@ export class TimeEntriesController {
   /** Upsert en bloque (idempotente por id). */
   @Post('bulk')
   upsertBulk(@Body() body: { entries: CreateTimeEntryDto[] }) {
-    return this.svc.upsertBulk(body.entries ?? []);
+    return this.svc.upsertBulk(body.entries || []);
   }
 
   /** Query por abogado + (dayKey | rango) */
@@ -31,5 +31,10 @@ export class TimeEntriesController {
   @Get('all')
   getAll() {
     return this.svc.getAll();
+  }
+
+  @Get("getByClientId/:clientId")
+  getByClientId(@Param("clientId") clientId: string , @Query("lawyerId") lawyerId: string ) {
+    return this.svc.getEntriesByClientId(clientId, lawyerId);
   }
 }

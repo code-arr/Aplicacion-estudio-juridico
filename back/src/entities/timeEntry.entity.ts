@@ -66,6 +66,9 @@ export class TimeEntry {
   })
   pauseReason!: PauseReason;
 
+  @Column({type : "varchar" , nullable : true})
+  dayKey?: string | null; // Formato 'YYYY-MM-DD', para consultas y reportes diarios
+
   @Column({ type: 'text', nullable: true })
   appVersion?: string | null;
 

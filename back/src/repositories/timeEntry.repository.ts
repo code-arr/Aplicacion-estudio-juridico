@@ -3,7 +3,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryTimeEntriesDto } from 'src/dtos/queryTimeEntry.dto';
 import { CreateTimeEntryDto } from 'src/dtos/timeEntry.dto';
-import { TimeEntry } from 'src/entities/timeEntry.entity';
+import { Audience } from 'src/entities/audience.entity';
+import { Client } from 'src/entities/client.entity';
+import { Document } from 'src/entities/document.entity';
+import { EntryDay } from 'src/entities/entryDay.entity';
+import { TimeEntry, TrackableType } from 'src/entities/timeEntry.entity';
+import { EntryDayService } from 'src/services/entryDay.service';
 import { In, Repository } from 'typeorm';
 
 @Injectable()
@@ -11,6 +16,13 @@ export class TimeEntriesRepository {
   constructor(
     @InjectRepository(TimeEntry)
     private readonly repo: Repository<TimeEntry>,
+    @InjectRepository(Document)
+    private readonly documentRepo: Repository<Document>,
+    @InjectRepository(Audience)
+    private readonly audienceRepo: Repository<Audience>,
+    @InjectRepository(Client)
+    private readonly clientRepo: Repository<Client>,
+    private readonly entryDayService: EntryDayService,
   ) {}
 
   /** Upsert 1 entrada (idempotente por PK=id). */
@@ -27,48 +39,16 @@ export class TimeEntriesRepository {
   /** Upsert en bloque (idempotente por PK=id). */
   async upsertBulk(
     dtos: CreateTimeEntryDto[],
-  ): Promise<{ inserted: number; updated: number }> {
+  ): Promise<
+    | EntryDay[]
+    | { inserted: number; updated: number }
+  > {
     console.log(dtos.length);
-    
+
     if (!dtos.length) return { inserted: 0, updated: 0 };
 
-    // Opción A (simple y portable): save() de todo el array.
-    // TypeORM intentará insert/update según exista el id.
-    const entities = dtos.map((d) =>
-      this.repo.create({
-        ...d,
-        startedAtUTC: new Date(d.startedAtUTC),
-        endedAtUTC: new Date(d.endedAtUTC),
-      }),
-    );
-
-    // Para saber cuántos son nuevos vs actualizados, primero consultamos ids existentes
-    const ids = dtos.map((d) => d.id);
-    const existing = await this.repo.find({
-      select: ['id'],
-      where: { id: In(ids) },
-    });
-    const existingSet = new Set(existing.map((e) => e.id));
-    const maybeNew = entities.filter((e) => !existingSet.has(e.id));
-    const maybeUpdate = entities.filter((e) => existingSet.has(e.id));
-
-    await this.repo.save(entities); // hace el upsert
-
-    return { inserted: maybeNew.length, updated: maybeUpdate.length };
-
-    /* 
-    Opción B (Postgres): usar onConflict para un bulk más eficiente:
-    await this.repo
-      .createQueryBuilder()
-      .insert()
-      .into(TimeEntry)
-      .values(entities)
-      .orUpdate(
-        ['lawyerId','trackableType','trackableId','startedAtUTC','endedAtUTC','durationSec','pauseReason','appVersion','dayKey','updatedAt'],
-        ['id'],
-      )
-      .execute();
-    */
+    const updatedEntryDays = await this.entryDayService.updateEntryDay(dtos);
+    return updatedEntryDays;
   }
 
   async findByQuery(q: QueryTimeEntriesDto): Promise<TimeEntry[]> {
@@ -84,6 +64,46 @@ export class TimeEntriesRepository {
     }
 
     return qb.orderBy('t.startedAtUTC', 'ASC').getMany();
+  }
+
+  async getEntriesByClientId(
+    clientId: string,
+    lawyerId: string,
+  ): Promise<TimeEntry[]> {
+    const entries = await this.repo.find({ where: { lawyerId } });
+    const entriesToReturn: TimeEntry[] = [];
+
+    for (const entry of entries) {
+      if (entry.trackableType === TrackableType.Audience) {
+        const audience = await this.audienceRepo.findOne({
+          where: { id: entry.trackableId },
+          relations: ['clientItem', 'clientItem.client'],
+        });
+
+        if (audience && audience.clientItem.client.id === clientId) {
+          entriesToReturn.push(entry);
+        }
+      } else if (entry.trackableType === TrackableType.Client) {
+        const client = await this.clientRepo.findOne({
+          where: { id: entry.trackableId },
+          relations: ['clientItems'],
+        });
+        if (client && client.id === clientId) {
+          entriesToReturn.push(entry);
+        }
+      } else if (entry.trackableType === TrackableType.Document) {
+        const document = await this.documentRepo.findOne({
+          where: { id: entry.trackableId },
+          relations: ['clientItem', 'clientItem.client'],
+        });
+
+        if (document && document.clientItem.client.id === clientId) {
+          entriesToReturn.push(entry);
+        }
+      }
+    }
+
+    return entriesToReturn;
   }
 
   async getAll(): Promise<TimeEntry[]> {
