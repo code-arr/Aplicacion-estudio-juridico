@@ -1,0 +1,8 @@
+
+> back@0.0.1 prestart
+> npm run build
+
+
+> back@0.0.1 build
+> nest build
+

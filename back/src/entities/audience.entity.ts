@@ -1,0 +1,56 @@
+import { IsUUID } from 'class-validator';
+import {
+  BeforeInsert,
+  BeforeUpdate,
+  Column,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { v4 as uuid } from 'uuid';
+import { ClientItem } from './clientItem.entity';
+import * as moment from 'moment-timezone';
+@Entity()
+export class Audience {
+  @PrimaryGeneratedColumn('uuid')
+  @IsUUID()
+  id: string = uuid();
+
+  @Column({ type: 'varchar', length: 255 })
+  name: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  fileUrl: string | null;
+
+  @Column({ type: 'int', default: 0 })
+  activeTime: number;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createAt: Date;
+
+  // La columna ya no necesita "onUpdate"
+  @Column({ type: 'timestamp', nullable: true })
+  updateAt: Date;
+
+  @Column({ type: 'int', nullable: true })
+  size: number;
+
+  @Column({type : 'int', nullable: true})
+  pages : number;
+
+  @Column({type : "timestamp", nullable: true})
+  date: Date;
+
+  @BeforeInsert()
+  setCreateAt() {
+    this.createAt = moment().tz('America/Santiago').toDate();
+  }
+
+  @BeforeUpdate()
+  setUpdateAt() {
+    this.updateAt = moment().tz('America/Santiago').toDate();
+  }
+
+  @ManyToOne(() => ClientItem, (clientItem) => clientItem.audiences)
+  clientItem: ClientItem;
+}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conectar con Google</title>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Conectar tu cuenta de Google</h1>
+      <p>
+        Haz clic en el botón para vincular tu cuenta con Google Calendar y
+        Gmail.
+      </p>
+
+      <button id="connectGoogleBtn">Conectar con Google</button>
+    </div>
+
+    <script>
+      const userJwtToken =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImJjNDJhZmIxLWNmNGEtNDQyMi05NDNkLTdjNTk4OGYzOTg3NiIsImVtYWlsIjoiYmVuamFkZWxjYW1wbzE1QGdtYWlsLmNvbSIsInJvbGUiOiJsYXd5ZXIiLCJpYXQiOjE3NTY0OTg4NTMsImV4cCI6MTc1NjU4NTI1M30.SYXOKpskJakIDLlrofoMtNhE5K46Rm95ke5hEfePd3A";
+
+      document
+        .getElementById("connectGoogleBtn")
+        .addEventListener("click", async () => {
+          
+
+          try {
+            // Asegúrate de que el método sea GET
+            const backendUrl = "http://localhost:3000/auth/google/connect";
+            const email = "benjadelcampo15@gmail.com";
+            const response = await fetch(
+              `${backendUrl}?email=${encodeURIComponent(email)}`,
+              {
+                method: "GET",
+                headers: { Authorization: `Bearer ${userJwtToken}` },
+              }
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              // El servidor debería devolver un JSON con la URL de redirección
+              window.location.href = data.redirectUrl;
+            } else {
+              console.error(
+                "Error al iniciar el flujo de Google:",
+                response.status
+              );
+            }
+          } catch (error) {
+            console.error("Error de red:", error);
+          }
+        });
+    </script>
+  </body>
+</html>
