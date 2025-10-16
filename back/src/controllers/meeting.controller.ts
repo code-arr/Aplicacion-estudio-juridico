@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   Get,
+  Query,
 } from '@nestjs/common';
 import { GoogleCalendarService } from '../lib/google/calendar';
 import { MeetingDto } from 'src/dtos/meeting.dto';
@@ -17,21 +18,27 @@ import { Meeting } from 'src/entities/meeting.entity';
 export class MeetingsController {
   constructor(private readonly meetingService: MeetingService) {}
 
-  @Post('schedule/:clientItemId')
+  @Post('create/:clientItemId')
   @HttpCode(HttpStatus.CREATED)
   async scheduleMeeting(
     @Body() meetingData: MeetingDto,
     @Param('clientItemId') clientItemId: string,
     @Body('lawyerEmail') lawyerEmail: string,
-    @Body('to') to: string,
+    @Body('clientId') clientId: string
   ): Promise<Meeting | null | void> {
     try {
       const meeting = await this.meetingService.createAndSchedule(
         meetingData,
         clientItemId,
         lawyerEmail,
-        to,
+        clientId
+        // cliente principal
       );
+      console.log('Reunión programada:', meetingData.name);
+      console.log('ID del cliente:', clientId);
+      console.log('ID del abogado:', lawyerEmail);
+      
+      
       return meeting;
     } catch (error) {
       // NestJS maneja los errores lanzados por el servicio, pero si quieres
@@ -40,8 +47,21 @@ export class MeetingsController {
     }
   }
 
-  @Get("GetAll")
+  @Get('getByClientItemId/:clientItemId')
+  async getByClientItemId(@Param('clientItemId') clientItemId: string) {
+    return this.meetingService.getByClientItemId(clientItemId);
+  }
+
+  @Get('GetAll')
   async getAllMeetings() {
     return this.meetingService.getAllMeetings();
+  }
+
+  @Get('getByClientId/:clientId')
+  async getByClientId(
+    @Param('clientId') clientId: string,
+    @Query('lawyerId') lawyerId: string,
+  ) {
+    return this.meetingService.getByClientId(clientId, lawyerId);
   }
 }

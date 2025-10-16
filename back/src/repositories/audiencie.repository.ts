@@ -29,6 +29,7 @@ export class AudiencieRepository {
     dbName: string,
     mimetype: string,
     lawyerId: string,
+    clientId: string
   ): Promise<Audience> {
     try {
       const clientItem =
@@ -53,6 +54,7 @@ export class AudiencieRepository {
       audience.name = dbName;
       audience.fileUrl = s3Url;
       audience.clientItem = clientItem;
+      audience.clientId = clientId; // Asigna el clientId a la audiencia
       const eventData: EventDto = {
         action: 'create',
         entityName: audience.name,

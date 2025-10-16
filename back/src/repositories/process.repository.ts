@@ -4,6 +4,8 @@ import { Process } from '../entities/process.entity';
 import { Repository } from 'typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as moment from 'moment-timezone';
+
 
 @Injectable()
 export class ProcessRepository {
@@ -16,17 +18,28 @@ export class ProcessRepository {
   async createProcess(
     process: ProcessDto,
     clientItemId: string,
+    clientId: string
   ): Promise<Process> {
     try {
       const clientItem =
         await this.clientItemService.getClientItemById(clientItemId);
-
+        const { dateTime, name , description , durationSec } = process;
       if (!clientItem) {
         throw new NotFoundException('Client item not found');
       }
+
+      const date = new Date(dateTime);
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid date format');
+      }
+      
       const newProcess = this.processRepository.create({
-        ...process,
+        name : name,
+        description : description,
+        durationSec : durationSec,
+        dateTime : date,
         clientItem: clientItem,
+        clientId: clientId
       });
 
       return await this.processRepository.save(newProcess);
@@ -50,6 +63,21 @@ export class ProcessRepository {
       console.log(error);
 
       throw new Error('Error fetching process');
+    }
+  }
+
+  async getProcessesByClientItemId(clientItemId: string): Promise<Process[]> {
+    try {
+      const processes = await this.processRepository.find({
+        where: { clientItem: { id: clientItemId } },
+        relations: ['clientItem'],
+        order: { dateTime: 'DESC' },
+      });
+      return processes;
+    } catch (error) {
+      console.log(error);
+
+      throw new Error('Error fetching processes');
     }
   }
 }

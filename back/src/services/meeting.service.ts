@@ -23,51 +23,67 @@ export class MeetingService {
     meetingData: MeetingDto,
     clientItemId: string,
     lawyerEmail: string,
-    to: string,
+    clientId: string
   ): Promise<Meeting | null | void> {
-    const { date, name, meetingType } = meetingData;
+    const { startAt, endAt, name, type, participants } = meetingData;
 
-    if (meetingType === 'google-meet') {
+    const startDate = new Date(startAt);
+    const endDate = endAt
+      ? new Date(endAt)
+      : new Date(startDate.getTime() + 60 * 60 * 1000); // +1h por defecto
+
+    if (type === 'google-meet') {
       try {
-        // Solo llama al servicio de calendario
-
-        const meetingDate = new Date(date);
-        // Crea el registro en la base de datos con el ID del evento de Google
-
+        // 1️⃣ Crear registro inicial en la base de datos
         const newMeeting = await this.meetingRepository.createMeeting(
-          { ...meetingData, startAt: meetingDate },
-          clientItemId,
+          { ...meetingData, startAt: startDate, endAt: endDate },
+          clientItemId,clientId
         );
 
+        // 2️⃣ Crear el evento en Google Calendar
         const googleEvent = await this.googleCalendarService.scheduleMeeting(
-          lawyerEmail,
-          to,
-          meetingDate,
-          name,
+          lawyerEmail, // organizador
+          startDate, // fecha inicio
+          name, // título
+          participants, // participantes adicionales (opcional)
+          'America/Santiago', // zona horaria
         );
-        const link = googleEvent.htmlLink;
+        console.log("LELGA ACA 2");
+        
+        // 3️⃣ Obtener el link del Meet
+        const link = googleEvent?.hangoutLink || googleEvent?.htmlLink;
         if (!link) {
           throw new InternalServerErrorException(
-            'No se pudo obtener la URL del evento de Google.',
+            'No se pudo obtener la URL del evento de Google Meet.',
           );
         }
+        const eventId = googleEvent.id;
+        if (!eventId) {
+          throw new InternalServerErrorException(
+            'No se pudo obtener el ID del evento de Google Calendar.',
+          );
+        }
+
+        // 4️⃣ Actualizar la reunión con el link
         const meeting = await this.meetingRepository.updateMeeting(
           newMeeting.id,
-          { link },
+          { link, eventId },
+          
         );
-
         if (!meeting) {
           throw new InternalServerErrorException(
             'No se pudo actualizar la reunión con la URL de Google Meet.',
           );
         }
 
+        // 5️⃣ Registrar el evento del sistema (log)
         const lawyer = await this.lawyerService.getAbogadoByEmail(lawyerEmail);
         if (!lawyer) {
           throw new InternalServerErrorException(
             'No se pudo obtener el abogado por su correo electrónico.',
           );
         }
+
         this.eventService.createEvent({
           action: 'CREATE',
           entityName: meeting.name,
@@ -75,20 +91,23 @@ export class MeetingService {
           entityType: 'MEETING',
           lawyerId: lawyer.id,
         });
+        
         return meeting;
       } catch (error) {
+        console.error('Error creando reunión en Google Meet:', error);
         throw new InternalServerErrorException(
           'Falló la creación de la reunión en Google Meet.',
         );
       }
-    } else if (meetingType === 'in-person') {
+    } else if (type === 'in-person') {
       try {
-        const meetingDate = new Date(date);
+        // Reunión presencial
         return this.meetingRepository.createMeeting(
-          { ...meetingData, startAt: meetingDate },
-          clientItemId,
+          { ...meetingData, startAt: startDate, endAt: endDate },
+          clientItemId,clientId
         );
       } catch (error) {
+        console.error('Error creando reunión en persona:', error);
         throw new InternalServerErrorException(
           'Falló la creación de la reunión en persona.',
         );
@@ -98,5 +117,13 @@ export class MeetingService {
 
   async getAllMeetings(): Promise<Meeting[]> {
     return this.meetingRepository.getAllMeetings();
+  }
+
+  async getByClientItemId(clientItemId: string): Promise<Meeting[]> {
+    return this.meetingRepository.getByClientItemId(clientItemId);
+  }
+
+  async getByClientId(clientId: string , lawyerId: string): Promise<Meeting[]> {
+    return this.meetingRepository.getByClientId(clientId, lawyerId);
   }
 }

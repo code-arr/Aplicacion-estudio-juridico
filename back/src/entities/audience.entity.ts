@@ -41,6 +41,9 @@ export class Audience {
   @Column({type : "timestamp", nullable: true})
   date: Date;
 
+  @Column({ type: 'uuid' })
+  clientId: string;
+
   @BeforeInsert()
   setCreateAt() {
     this.createAt = moment().tz('America/Santiago').toDate();

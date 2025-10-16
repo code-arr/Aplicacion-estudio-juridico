@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -15,13 +16,14 @@ import { AudienceService } from 'src/services/audience.service';
 export class AudienceController {
   constructor(private readonly audienceService: AudienceService) {}
 
-  @Post('/createAudience/:clientItemId')
+  @Post('/create/:clientItemId')
   @UseInterceptors(FileInterceptor('file'))
   async createDocument(
     @UploadedFile() file: Express.Multer.File,
     @Param('clientItemId') clientItemId: string,
-    @Body('fileName') dbName: string,
-    @Body('lawyerId') lawyerId: string,
+    @Body('name') name: string,
+    @Body('clientId') clientId: string,
+    @Query('lawyerId') lawyerId: string,
   ): Promise<Audience> {
     const fileBuffer = file.buffer;
     const originalFileName = file.originalname;
@@ -31,9 +33,10 @@ export class AudienceController {
       clientItemId,
       fileBuffer,
       originalFileName,
-      dbName,
+      name,
       mimetype,
-      lawyerId 
+      lawyerId ,
+      clientId
     );
   }
 

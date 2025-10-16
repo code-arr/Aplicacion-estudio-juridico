@@ -28,4 +28,15 @@ export class UserService {
   async updateUser(id: string, userData: Partial<User>): Promise<Partial<User> | void> {
     return this.userRepository.updateUser(id, userData);
   }
+  async verifyPassword(email: string, password: string): Promise<boolean> {
+    return this.userRepository.verifyPassword(email, password);
+  }
+
+  async changePassword(email: string, newPassword: string): Promise<string | void> {
+    return this.userRepository.changePassword(email, newPassword);
+  }
+
+  async updatePassword(id: string, newPassword: string) {
+    return this.userRepository.updatePassword(id, newPassword);
+  }
 }

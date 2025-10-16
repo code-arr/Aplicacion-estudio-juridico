@@ -3,6 +3,7 @@ import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToOne, PrimaryGenerated
 import { v4 as uuid } from 'uuid';
 import { ClientItem } from './clientItem.entity';
 import * as moment from 'moment-timezone';
+
 @Entity()
 export class Process {
   @PrimaryGeneratedColumn('uuid')
@@ -15,7 +16,7 @@ export class Process {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2 })
+  @Column({ type: 'integer', default: 0 })
   durationSec: number; // Duración del trabajo en segundos
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
@@ -27,6 +28,9 @@ export class Process {
   // La columna ya no necesita "onUpdate"
   @Column({ type: 'timestamp', nullable: true })
   updateAt: Date;
+
+  @Column({ type: 'uuid' })
+  clientId: string;
 
   @BeforeInsert()
   setCreateAt() {

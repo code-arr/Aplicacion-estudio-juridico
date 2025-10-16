@@ -23,7 +23,8 @@ export class DocumentController {
   async createDocument(
     @UploadedFile() file: Express.Multer.File,
     @Param('clientItemId') clientItemId: string,
-    @Body('name') dbName: string,
+    @Body('name') name: string,
+    @Body('clientId') clientId: string,
     @Query('lawyerId') lawyerId: string,
   ): Promise<Document> {
     const fileBuffer = file.buffer;
@@ -34,9 +35,10 @@ export class DocumentController {
       clientItemId,
       fileBuffer,
       originalFileName,
-      dbName,
+      name,
       mimetype,
-      lawyerId 
+      lawyerId ,
+      clientId
     );
   }
   @Delete('/delete/:documentId')

@@ -27,7 +27,7 @@ export class Meeting {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  @Column({ type: 'timestamp' , nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   startAt: Date;
 
   @Column({ type: 'timestamp', nullable: true })
@@ -43,8 +43,11 @@ export class Meeting {
   })
   type: 'google-meet' | 'in-person';
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'json', nullable: true })
   participants: [{ name: string; email: string }]; // Lista de participantes (nombre y correo electrónico)
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  eventId: string; // ID del evento en Google Calendar
 
   @Column({ type: 'varchar', nullable: true })
   location: string; // Ubicación física si es una reunión en persona
@@ -57,6 +60,9 @@ export class Meeting {
 
   @Column({ type: 'text', nullable: true })
   description: string;
+
+  @Column({ type: 'uuid' })
+  clientId: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createAt: Date;

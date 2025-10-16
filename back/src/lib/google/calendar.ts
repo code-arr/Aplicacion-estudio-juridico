@@ -37,11 +37,13 @@ export class GoogleCalendarService {
 
   async scheduleMeeting(
     lawyerEmail: string,
-    to: string,
     date: Date,
     subject: string,
+    participants?: { name?: string; email: string }[], // participantes adicionales opcionales
+    timeZone: string = 'America/Santiago', // por defecto Chile
   ) {
     try {
+      // 1️⃣ Obtener usuario y refresh token
       const user = await this.userService.findOneByEmail(lawyerEmail);
       if (!user?.googleRefreshToken) {
         throw new InternalServerErrorException(
@@ -49,39 +51,51 @@ export class GoogleCalendarService {
         );
       }
 
+      // 2️⃣ Obtener access token
       const accessToken = await this.getAccessTokenFromRefreshToken(
         user.googleRefreshToken,
       );
-
       if (!accessToken) {
         throw new InternalServerErrorException(
           'No se pudo obtener el token de acceso.',
         );
       }
 
-      const calendar = google.calendar({ version: 'v3' });
+      // 3️⃣ Configurar cliente de Google
       const oauth2Client = new google.auth.OAuth2();
       oauth2Client.setCredentials({ access_token: accessToken });
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
+      // 4️⃣ Fechas
       const startDate = new Date(date);
-      const endDate = new Date(date.getTime() + 60 * 60 * 1000); // +1 hora
+      const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1h por defecto
 
+      // 5️⃣ Construir lista de asistentes
+      const attendees = [
+        { email: lawyerEmail },
+        ...(participants || []).map((p) => ({
+          email: p.email,
+          displayName: p.name,
+        })),
+      ];
+
+      // 6️⃣ Crear evento
       const res = await calendar.events.insert({
-        auth: oauth2Client,
         calendarId: 'primary',
         requestBody: {
           summary: subject,
-          attendees: [{ email: lawyerEmail }, { email: to }],
-          start: {
-            dateTime: this.formatDateToGoogle(startDate),
-            timeZone: 'America/Argentina/Buenos_Aires', //RECORDAR CAMBIAR A CHILE!!!!!!!!!!!!!!!!!
-          },
-          end: {
-            dateTime: this.formatDateToGoogle(endDate),
-            timeZone: 'America/Argentina/Buenos_Aires', //RECORDAR CAMBIAR A CHILE!!!!!!!!!!!!!!!!!
+          start: { dateTime: startDate.toISOString(), timeZone },
+          end: { dateTime: endDate.toISOString(), timeZone },
+          attendees,
+          conferenceData: {
+            createRequest: {
+              requestId: `${Date.now()}`,
+              conferenceSolutionKey: { type: 'hangoutsMeet' },
+            },
           },
         },
-        sendUpdates: 'all',
+        conferenceDataVersion: 1,
+        sendUpdates: 'all', // 🔔 notifica a todos los asistentes
       });
 
       return res.data;
