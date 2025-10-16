@@ -2,14 +2,25 @@ import { registerUserDto } from 'src/dtos/user.dto';
 import { User } from 'src/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { isBefore , addMinutes} from 'date-fns';
+
 import { UserService } from 'src/services/user.service';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { MyMailerService } from 'src/mailer/mailer.service';
+import { PasswordResetRepository } from 'src/repositories/passwordResetToken.repository';
 
 @Injectable()
 export class AuthRepository {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
+    private readonly mailer: MyMailerService,
+    private readonly resetRepo: PasswordResetRepository,
   ) {}
 
   async register(user): Promise<Partial<User> | void> {
@@ -83,19 +94,59 @@ export class AuthRepository {
     return user;
   }
 
-  async linkGoogleAccount(userId: string, googleData: {  googleRefreshToken: string }): Promise<User> {
+  async linkGoogleAccount(
+    userId: string,
+    googleData: { googleRefreshToken: string },
+  ): Promise<User> {
     const user = await this.userService.getOneById(userId);
 
     if (!user) {
-        throw new NotFoundException('Usuario no encontrado.');
+      throw new NotFoundException('Usuario no encontrado.');
     }
-    
+
     user.googleRefreshToken = googleData.googleRefreshToken;
 
-     this.userService.updateUser(userId, user);
+    this.userService.updateUser(userId, user);
 
-     return user;
-}
+    return user;
+  }
+  async forgotPassword(email: string) {
+    const user = await this.userService.findOneByEmail(email);
 
+    // Siempre responder igual, no revelar si existe o no
+    if (user) {
+      await this.resetRepo.invalidateAll(user.id);
 
+      const token = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const expiresAt = addMinutes(new Date(), 30);
+
+      await this.resetRepo.createToken({
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      });
+
+      
+      await this.mailer.sendResetPasswordEmail(email, token);
+    }
+
+    return { message: 'Si existe, te enviamos un correo' };
+  }
+
+  // --- NUEVO: Restablecer la contraseña ---
+  async resetPassword(token: string, password: string) {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const t = await this.resetRepo.findValidByHash(tokenHash);
+
+    if (!t || isBefore(t.expiresAt, new Date()) || t.usedAt) {
+      throw new BadRequestException('Token inválido o expirado');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await this.userService.updatePassword(t.userId, hashedPassword);
+    await this.resetRepo.markUsed(t.id);
+
+    return { ok: true, message: 'Contraseña restablecida correctamente' };
+  }
 }

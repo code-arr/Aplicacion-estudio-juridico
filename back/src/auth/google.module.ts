@@ -5,18 +5,23 @@ import { User } from '../entities/user.entity';
 import { AuthRepository } from './auth.repository';
 import { UserService } from 'src/services/user.service';
 import { UserRepository } from 'src/repositories/user.repository';
+import { MyMailerModule } from 'src/mailer/mailer.module';
+import { PasswordResetRepository } from 'src/repositories/passwordResetToken.repository';
+import { PasswordResetToken } from 'src/entities/passwordResetToken.entity';
+import { PasswordResetTokenModule } from 'src/modules/passwordResetToken.module';
 
 @Module({
   imports: [
     // Aquí importamos el repositorio de usuarios
     // para que la estrategia y el servicio puedan acceder a la base de datos
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User , PasswordResetToken]), MyMailerModule , PasswordResetTokenModule
   ],
   providers: [
     GoogleStrategy, 
     AuthRepository,
     UserService,
-    UserRepository
+    UserRepository,
+    PasswordResetRepository,
   ],
   exports: [
     GoogleStrategy, 

@@ -73,7 +73,7 @@ export class UserRepository {
     }
   }
 
-  async getAllUsers():Promise<User[]>{
+  async getAllUsers(): Promise<User[]> {
     return await this.userRepository.find();
   }
 
@@ -87,7 +87,10 @@ export class UserRepository {
     }
   }
 
-  async updateUser(id: string, userData: Partial<User>): Promise<Partial<User> | void> {
+  async updateUser(
+    id: string,
+    userData: Partial<User>,
+  ): Promise<Partial<User> | void> {
     try {
       const user = await this.userRepository.findOne({ where: { id } });
       if (!user) {
@@ -112,7 +115,7 @@ export class UserRepository {
       const user = await this.userRepository.findOne({ where: { email } });
       console.log(user);
       console.log(email);
-      
+
       if (!user) {
         throw new NotFoundException('Usuario no encontrado.');
       }
@@ -128,7 +131,10 @@ export class UserRepository {
     }
   }
 
-  async changePassword(email: string, newPassword: string): Promise<string | void> {
+  async changePassword(
+    email: string,
+    newPassword: string,
+  ): Promise<string | void> {
     try {
       const user = await this.userRepository.findOne({ where: { email } });
       if (!user) {
@@ -137,14 +143,32 @@ export class UserRepository {
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       user.password = hashedPassword;
       await this.userRepository.save(user);
-      return 'Contraseña del usuario ' + user.email + ' actualizada exitosamente.';
+      return (
+        'Contraseña del usuario ' + user.email + ' actualizada exitosamente.'
+      );
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
-      } 
+      }
       throw new InternalServerErrorException(
         'Error inesperado al cambiar la contraseña. REPOSITORIO',
       );
     }
+  }
+
+  async updatePassword(userId: string, newPassword: string) {
+    const user = await this.getOneById(userId);
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // 🔐 Hash del password antes de guardar
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    user.password = hashed;
+    await this.userRepository.save(user);
+
+    return { message: 'Contraseña actualizada correctamente' };
   }
 }

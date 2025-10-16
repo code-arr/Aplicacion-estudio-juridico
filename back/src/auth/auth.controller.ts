@@ -55,8 +55,8 @@ export class AuthController {
     if (!callback) {
       throw new Error('Google callback URL no está definida');
     }
-    console.log("callback" + callback);
-    
+    console.log('callback' + callback);
+
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent(callback)}&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`;
 
     res.json({ redirectUrl: googleAuthUrl });
@@ -69,8 +69,8 @@ export class AuthController {
     console.log('User: ', user);
 
     if (!user || !user.user || !user.googleTokens) {
-      console.log("ERROR GOOGLE TOKEN");
-      
+      console.log('ERROR GOOGLE TOKEN');
+
       return res.redirect('http://tu-frontend.com/error?reason=no_google_data');
     }
 
@@ -85,9 +85,21 @@ export class AuthController {
 
       res.redirect(`${process.env.FRONTEND_URL}/#/dashboard/settings`);
     } catch (error) {
-      console.log("error 1" + error);
+      console.log('error 1' + error);
 
-      return res.redirect(`${process.env.FRONTEND_URL}/error?reason=${encodeURIComponent(error.message)}`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/error?reason=${encodeURIComponent(error.message)}`,
+      );
     }
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body('email') email: string) {
+    return this.authRepository.forgotPassword(email);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() body: { token: string; password: string }) {
+    return this.authRepository.resetPassword(body.token, body.password);
   }
 }
