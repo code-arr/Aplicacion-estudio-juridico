@@ -105,37 +105,20 @@ export class MyMailerService {
         resetToken,
       )}`;
 
-      const scheme = process.env.APP_SCHEME || 'ibarrayasoc';
-    const deepLink = `${scheme}://reset?token=${encodeURIComponent(resetToken)}`;
-
       const gmail = getGmailClient(user.googleRefreshToken);
 
-// Usa tu builder; renombro el método local para evitar confusión con el importado
-    const raw = await this.buildHtmlMime({
-      from: user.googleEmail,
-      to: userEmail,
-      subject: 'Restablecer contraseña',
-      html: `
-        <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;">
-          <p>Hola,</p>
-          <p>Para restablecer tu contraseña, hacé click en el botón:</p>
-
-          <p style="margin:24px 0;">
-            <a href="${deepLink}"
-               style="background:#0b63ce;color:#fff;text-decoration:none;
-                      padding:12px 18px;border-radius:6px;display:inline-block;">
-              Restablecer contraseña
-            </a>
-          </p>
-
-          <p>Si el botón no funciona, probá con este enlace:</p>
-          <p><a href="${deepLink}">${deepLink}</a></p>
-
-          <hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />
-          <p style="color:#555;">Si no solicitaste este cambio, ignorá este correo.</p>
-        </div>
+      // Llamamos buildMimeMessage sin pdfBuffer ni filename
+      const raw = await this.buildMimeMessage({
+        from: user.googleEmail,
+        to: userEmail,
+        subject: 'Restablecer contraseña',
+        html: `
+        <p>Hola,</p>
+        <p>Para restablecer tu contraseña, hacé click en el siguiente enlace:</p>
+        <p><a href="${resetLink}">${resetLink}</a></p>
+        <p>Si no solicitaste este cambio, podés ignorar este correo.</p>
       `,
-    });
+      });
 
       await gmail.users.messages.send({
         userId: 'me',
@@ -156,20 +139,29 @@ export class MyMailerService {
 
   // src/lib/google/gmail.client.ts
 
-  async buildHtmlMime(options: { from: string; to: string; subject: string; html: string }) {
-  const encodedSubject = `=?UTF-8?B?${Buffer.from(options.subject).toString('base64')}?=`;
-  let mime =
-    `From: ${options.from}\r\n` +
-    `To: ${options.to}\r\n` +
-    `Subject: ${encodedSubject}\r\n` +
-    `MIME-Version: 1.0\r\n` +
-    `Content-Type: text/html; charset=UTF-8\r\n\r\n` +
-    options.html;
+  async buildMimeMessage(options: MimeOptions) {
+    const encodedSubject = `=?UTF-8?B?${Buffer.from(options.subject).toString('base64')}?=`;
 
-  return Buffer.from(mime)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-}
+    let mime =
+      `From: ${options.from}\r\n` +
+      `To: ${options.to}\r\n` +
+      `Subject: ${encodedSubject}\r\n` +
+      `MIME-Version: 1.0\r\n`;
+
+    if (options.pdfBuffer && options.filename) {
+      mime += `Content-Type: application/pdf; name="${options.filename}"\r\n`;
+      mime += `Content-Transfer-Encoding: base64\r\n`;
+      mime += `Content-Disposition: attachment; filename="${options.filename}"\r\n\r\n`;
+      mime += options.pdfBuffer.toString('base64') + '\r\n';
+    }
+
+    mime += `Content-Type: text/html; charset=UTF-8\r\n\r\n`;
+    mime += options.html;
+
+    return Buffer.from(mime)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  }
 }
