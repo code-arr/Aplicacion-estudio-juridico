@@ -85,7 +85,7 @@ export class AuthRepository {
     const email = profile.emails[0].value;
 
     // 1. Busca si el usuario ya existe en tu base de datos
-    let user = await this.userService.findOneByEmail(email);
+    const user = await this.userService.findOneByEmail(email);
 
     if (!user) {
       throw new BadRequestException('Usuario no registrado');
@@ -138,18 +138,17 @@ export class AuthRepository {
 
   // --- NUEVO: Restablecer la contraseña ---
   async resetPassword(token: string, password: string) {
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const t = await this.resetRepo.findValidByHash(tokenHash);
 
     if (!t || isBefore(t.expiresAt, new Date()) || t.usedAt) {
-      throw new BadRequestException("Token inválido o expirado");
+      throw new BadRequestException('Token inválido o expirado');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     await this.userService.updatePassword(t.userId, hashedPassword);
     await this.resetRepo.markUsed(t.id);
 
-    return { ok: true, message: "Contraseña restablecida correctamente" };
+    return { ok: true, message: 'Contraseña restablecida correctamente' };
   }
-}
 }
