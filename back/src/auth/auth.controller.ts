@@ -23,26 +23,14 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() user: registerUserDto): Promise<Partial<User> | void> {
-    try {
-      return this.authRepository.register(user);
-    } catch (error) {
-      throw new Error(
-        'Error al registrar el usuario en el controlador: ' + error.message,
-      );
-    }
+    return this.authRepository.register(user); // sin try/catch
   }
 
   @Post('login')
   async login(
     @Body() { email, password }: { email: string; password: string },
   ): Promise<{ message: string; token?: string }> {
-    try {
-      return this.authRepository.login(email, password);
-    } catch (error) {
-      throw new Error(
-        'Error al iniciar sesión en el controlador: ' + error.message,
-      );
-    }
+    return this.authRepository.login(email, password); // sin try/catch
   }
 
   @Get('google/connect')

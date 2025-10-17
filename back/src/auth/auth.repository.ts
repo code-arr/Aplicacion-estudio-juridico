@@ -7,8 +7,10 @@ import * as crypto from 'crypto';
 import { isBefore, addMinutes } from 'date-fns';
 import { UserService } from 'src/services/user.service';
 import {
-  BadRequestException,
   Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { SystemMailerService } from 'src/mailer/system-mailer.service'; // ✅ NUEVO
@@ -54,31 +56,43 @@ export class AuthRepository {
   async login(
     email: string,
     password: string,
-  ): Promise<{ message: string; token?: string; userData?: any; user?: any }> {
+  ): Promise<{ message: string; token?: string; user?: any }> {
     try {
-      const Newuser = await this.userService.findOneByEmail(email);
-      const user = {
-        email: Newuser?.email,
-        id: Newuser?.id,
-        role: Newuser?.role,
-        googleEmail: Newuser?.googleEmail ? Newuser.googleEmail : null,
+      const user = await this.userService.findOneByEmail(email);
+
+      // 🔒 No reveles si el usuario existe o si la contraseña está mal.
+      if (!user) {
+        throw new UnauthorizedException('Credenciales inválidas'); // 401
+      }
+
+      const ok = await bcrypt.compare(password, user.password);
+      if (!ok) {
+        throw new UnauthorizedException('Credenciales inválidas'); // 401
+      }
+
+      const token = await this.createJwtToken(user);
+
+      // devolvé sólo lo necesario a front
+      return {
+        message: 'Login exitoso',
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          googleEmail: user.googleEmail ?? null,
+        },
       };
-      if (!Newuser) {
-        throw new BadRequestException('Usuario no encontrado');
+    } catch (e) {
+      // si ya es 401/400, preservalo
+      if (
+        e instanceof UnauthorizedException ||
+        e instanceof BadRequestException
+      ) {
+        throw e;
       }
-
-      const isPasswordValid = await bcrypt.compare(password, Newuser.password);
-      if (!isPasswordValid) {
-        throw new BadRequestException('Contraseña incorrecta');
-      }
-
-      const token = await this.createJwtToken(Newuser);
-      return { message: 'Login exitoso', token, user };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new Error('Error al iniciar sesión: ' + error);
+      // cualquier otra cosa => 500
+      throw new InternalServerErrorException('No se pudo iniciar sesión');
     }
   }
 
