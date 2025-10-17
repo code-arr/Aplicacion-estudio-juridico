@@ -13,16 +13,15 @@ export class UserLoginsService {
   ) {}
 
   private async pruneOlderForDevice(userId: string, deviceId: string) {
-    // Dejar SOLO el más nuevo por (userId, deviceId)
     await this.repo.query(
       `
-    DELETE FROM user_logins ul
-    WHERE ul.user_id = $1
-      AND ul.device_id = $2
-      AND ul.id <> (
-        SELECT id FROM user_logins
-        WHERE user_id = $1 AND device_id = $2
-        ORDER BY created_at DESC
+    DELETE FROM "user_logins" ul
+    WHERE ul."userId" = $1
+      AND ul."deviceId" = $2
+      AND ul."id" <> (
+        SELECT "id" FROM "user_logins"
+        WHERE "userId" = $1 AND "deviceId" = $2
+        ORDER BY "createdAt" DESC
         LIMIT 1
       )
     `,
@@ -66,25 +65,31 @@ export class UserLoginsService {
     excludeDeviceId: string,
     maxDevices = 3,
   ) {
-    // rn = 1 => último login por device (más nuevo)
     const rows = await this.repo.query(
       `
     WITH ranked AS (
       SELECT
-        id, user_id, device_id, user_agent, ip,
-        created_at, city, region, country, country_code,
+        "id", "userId", "deviceId", "userAgent", "ip",
+        "createdAt", "city", "region", "country", "countryCode",
         ROW_NUMBER() OVER (
-          PARTITION BY device_id
-          ORDER BY created_at DESC
+          PARTITION BY "deviceId"
+          ORDER BY "createdAt" DESC
         ) AS rn
-      FROM user_logins
-      WHERE user_id = $1
-        AND ($2 = '' OR device_id <> $2)
+      FROM "user_logins"
+      WHERE "userId" = $1
+        AND ($2 = '' OR "deviceId" <> $2)
     )
     SELECT
-      id, user_id AS "userId", device_id AS "deviceId", user_agent AS "userAgent",
-      ip, created_at AS "createdAt",
-      city, region, country, country_code AS "countryCode"
+      "id",
+      "userId",
+      "deviceId",
+      "userAgent",
+      "ip",
+      "createdAt",
+      "city",
+      "region",
+      "country",
+      "countryCode"
     FROM ranked
     WHERE rn = 1
     ORDER BY "createdAt" DESC
