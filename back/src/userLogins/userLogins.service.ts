@@ -12,6 +12,24 @@ export class UserLoginsService {
     private readonly geo: GeoIpService,
   ) {}
 
+  private async pruneOlderForDevice(userId: string, deviceId: string) {
+    // Dejar SOLO el más nuevo por (userId, deviceId)
+    await this.repo.query(
+      `
+    DELETE FROM user_logins ul
+    WHERE ul.user_id = $1
+      AND ul.device_id = $2
+      AND ul.id <> (
+        SELECT id FROM user_logins
+        WHERE user_id = $1 AND device_id = $2
+        ORDER BY created_at DESC
+        LIMIT 1
+      )
+    `,
+      [userId, deviceId],
+    );
+  }
+
   async create(input: {
     userId: string;
     deviceId: string;
@@ -31,6 +49,11 @@ export class UserLoginsService {
       } catch {}
     })();
 
+    // ⬇️ mantener SOLO el último por (userId, deviceId)
+    try {
+      await this.pruneOlderForDevice(input.userId, input.deviceId);
+    } catch {}
+
     return log;
   }
 
@@ -43,22 +66,33 @@ export class UserLoginsService {
     excludeDeviceId: string,
     maxDevices = 3,
   ) {
-    const raw = await this.repo.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-      take: 60,
-    });
+    // rn = 1 => último login por device (más nuevo)
+    const rows = await this.repo.query(
+      `
+    WITH ranked AS (
+      SELECT
+        id, user_id, device_id, user_agent, ip,
+        created_at, city, region, country, country_code,
+        ROW_NUMBER() OVER (
+          PARTITION BY device_id
+          ORDER BY created_at DESC
+        ) AS rn
+      FROM user_logins
+      WHERE user_id = $1
+        AND ($2 = '' OR device_id <> $2)
+    )
+    SELECT
+      id, user_id AS "userId", device_id AS "deviceId", user_agent AS "userAgent",
+      ip, created_at AS "createdAt",
+      city, region, country, country_code AS "countryCode"
+    FROM ranked
+    WHERE rn = 1
+    ORDER BY "createdAt" DESC
+    LIMIT $3
+    `,
+      [userId, excludeDeviceId || '', maxDevices],
+    );
 
-    const seen = new Set<string>();
-    const result: UserLogin[] = [];
-
-    for (const r of raw) {
-      if (r.deviceId === excludeDeviceId) continue;
-      if (seen.has(r.deviceId)) continue;
-      seen.add(r.deviceId);
-      result.push(r);
-      if (result.length === maxDevices) break;
-    }
-    return result;
+    return rows;
   }
 }
