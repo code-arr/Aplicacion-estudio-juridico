@@ -25,6 +25,7 @@ import { AudienceModule } from './modules/audience.module';
 import { OpenSignModule } from './openSign/openSign.module';
 import { TimeEntriesModule } from './modules/timeEntry.module';
 import { EntryDayModule } from './modules/entryDay.module';
+import { UserLoginsModule } from './userLogins/userLogins.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { EntryDayModule } from './modules/entryDay.module';
     OpenSignModule,
     TimeEntriesModule,
     EntryDayModule,
+    UserLoginsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

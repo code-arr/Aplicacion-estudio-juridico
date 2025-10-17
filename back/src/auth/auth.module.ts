@@ -9,6 +9,7 @@ import { UserRepository } from 'src/repositories/user.repository';
 import { GoogleModule } from './google.module';
 import { SystemMailerModule } from 'src/mailer/system-mailer.module';
 import { PasswordResetTokenModule } from 'src/modules/passwordResetToken.module';
+import { UserLoginsModule } from 'src/userLogins/userLogins.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PasswordResetTokenModule } from 'src/modules/passwordResetToken.module'
     GoogleModule,
     PasswordResetTokenModule,
     SystemMailerModule, // ✅ mails neutrales (reset password)
+    UserLoginsModule, // 👈 NUEVO
   ],
   controllers: [AuthController],
   providers: [AuthRepository, UserService, UserRepository],

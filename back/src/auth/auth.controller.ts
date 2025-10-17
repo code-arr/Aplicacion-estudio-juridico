@@ -28,9 +28,15 @@ export class AuthController {
 
   @Post('login')
   async login(
-    @Body() { email, password }: { email: string; password: string },
-  ): Promise<{ message: string; token?: string }> {
-    return this.authRepository.login(email, password); // sin try/catch
+    @Req() req: Request,
+    @Body()
+    {
+      email,
+      password,
+      deviceId,
+    }: { email: string; password: string; deviceId?: string },
+  ): Promise<{ message: string; token?: string; user?: any }> {
+    return this.authRepository.login(email, password, { req, deviceId }); // sin try/catch
   }
 
   @Get('google/connect')

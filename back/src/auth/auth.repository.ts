@@ -15,6 +15,8 @@ import {
 } from '@nestjs/common';
 import { SystemMailerService } from 'src/mailer/system-mailer.service'; // ✅ NUEVO
 import { PasswordResetRepository } from 'src/repositories/passwordResetToken.repository';
+import { UserLoginsService } from 'src/userLogins/userLogins.service';
+import { Request } from 'express';
 /* import { MyMailerService } from 'src/mailer/mailer.service'; */
 
 @Injectable()
@@ -24,7 +26,7 @@ export class AuthRepository {
     private readonly jwtService: JwtService,
     private readonly systemMailer: SystemMailerService, // ✅ neutral
     private readonly resetRepo: PasswordResetRepository,
-    /* private readonly mailer: MyMailerService, */
+    private readonly userLogins: UserLoginsService, // 👈 NUEVO
   ) {}
 
   async register(user): Promise<Partial<User> | void> {
@@ -56,6 +58,7 @@ export class AuthRepository {
   async login(
     email: string,
     password: string,
+    ctx?: { req?: Request; deviceId?: string }, // 👈 NUEVO
   ): Promise<{ message: string; token?: string; user?: any }> {
     try {
       const user = await this.userService.findOneByEmail(email);
@@ -72,7 +75,29 @@ export class AuthRepository {
 
       const token = await this.createJwtToken(user);
 
-      // devolvé sólo lo necesario a front
+      // 👇👇👇 REGISTRO DEL LOGIN (IP/UA reales desde req)
+      const forwarded = (ctx?.req?.headers['x-forwarded-for'] as string) || '';
+      const ip =
+        forwarded.split(',')[0]?.trim() ||
+        (ctx?.req as any)?.ip ||
+        (ctx?.req as any)?.socket?.remoteAddress ||
+        'unknown';
+
+      const userAgent = ctx?.req?.headers['user-agent'] || 'unknown';
+      const deviceId = ctx?.deviceId || 'unknown';
+
+      // no bloquea el login si falla el save, pero loguea
+      try {
+        await this.userLogins.create({
+          userId: user.id,
+          deviceId,
+          userAgent,
+          ip,
+        });
+      } catch (err) {
+        // podés poner un logger acá si querés
+      }
+
       return {
         message: 'Login exitoso',
         token,
