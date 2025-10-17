@@ -13,9 +13,15 @@ export const getProcessesByClientItem = async (
 
 export const createProcess = async (
   newProcess: Process,
+  clientId: string,
   clientItemId: string
 ): Promise<Process> => {
-  return (await axios.post(`process/create/${clientItemId}`, newProcess)).data;
+  return (
+    await axios.post(`process/create/${clientItemId}`, {
+      ...newProcess,
+      clientId: clientId,
+    })
+  ).data;
 };
 
 export const deleteProcess = async (processId: string): Promise<void> => {

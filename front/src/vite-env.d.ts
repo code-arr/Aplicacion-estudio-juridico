@@ -46,19 +46,6 @@ declare global {
         reason: "idle" | "switch" | "close" | "logout" | "suspend"
       ) => Promise<any>;
     };
-    /*     timerGlobal: {
-      getSnapshot: () => Promise<{
-        dayKey: string;
-        accumSecToday: number;
-        runningSince?: number | null;
-      } | null>;
-      setSnapshot: (snap: {
-        dayKey: string;
-        accumSecToday: number;
-        runningSince?: number | null;
-      }) => Promise<boolean>;
-      clearSnapshot: () => Promise<boolean>;
-    }; */
     electronAPI: {
       send: (channel: string, data?: any) => void;
       on: (
@@ -74,6 +61,9 @@ declare global {
         clear: () => Promise<number>;
         count: () => Promise<number>;
       };
+    };
+    api: {
+      openExternal: (url: string) => Promise<boolean>;
     };
     viewer: {
       open: (payload: {
@@ -99,6 +89,9 @@ declare global {
       onAddDocs: (
         cb: (payload: { audiences: any[]; activeId?: string | null }) => void
       ) => () => void;
+    };
+    authDeepLink?: {
+      onResetLink: (cb: (token: string) => void) => () => void;
     };
   }
 }

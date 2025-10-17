@@ -17,6 +17,7 @@ import DurationPicker from "./DurationPicker";
 import { createProcess } from "@/api/process";
 import { useParams } from "react-router-dom";
 import { useProcessStore } from "@/store/useProcessStore";
+import { useClientStore } from "@/store/useClientStore";
 
 type ProcessFormProps = {
   isDialogOpen: boolean;
@@ -44,6 +45,8 @@ const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
   const [newProcess, setNewProcess] = useState<NewProcess>(initialItemState);
   const [saving, setSaving] = useState(false);
 
+  const clientDetail = useClientStore((s) => s.clientDetail);
+
   const fetchProcessesByClientItemId = useProcessStore(
     (s) => s.fetchProcessesByClientItemId
   );
@@ -69,6 +72,12 @@ const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
     e.preventDefault(); // 🛠️ Ahora sí funciona porque estamos dentro de <form onSubmit>
     setFormError(null);
 
+    const clientId = clientDetail?.id;
+    if (!clientId) {
+      setFormError("No hay cliente activo.");
+      return;
+    }
+
     if (!validate(newProcess)) return;
 
     const startedAtIso = localDateTimeToIsoUtc(newProcess.dateTime)!; // ISO UTC
@@ -76,16 +85,7 @@ const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
     try {
       setSaving(true);
 
-      // 1) Crear el trámite
-      await createProcess(
-        {
-          name: newProcess.name.trim(),
-          dateTime: startedAtIso, // o el campo que tu back espere
-          description: newProcess.description?.trim() || undefined,
-          durationSec: newProcess.durationSec,
-        },
-        clientItemId!
-      );
+      await createProcess(newProcess, clientId, clientItemId!);
 
       await fetchProcessesByClientItemId(clientItemId!);
 

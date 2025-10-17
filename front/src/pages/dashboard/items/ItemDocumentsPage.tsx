@@ -3,13 +3,6 @@ import type { Document } from "@/types/Document";
 import { useDocumentStore } from "@/store/useDocumentStore";
 import DocumentForm from "@/components/documents/DocumentForm";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuRoot,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdownMenu";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -18,9 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Ellipsis, FileIcon, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import DocumentCard from "@/components/documents/DocumentCard";
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
+import RowSkeleton from "@/components/shared/RowSkeleton";
 
 const ItemDocumentsPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
@@ -38,6 +33,9 @@ const ItemDocumentsPage = () => {
   const fetchDocumentsByClientItemId = useDocumentStore(
     (s) => s.fetchDocumentsByClientItemId
   );
+  const setDocumentsByClientItem = useDocumentStore(
+    (s) => s.setDocumentsByClientItem
+  );
 
   useEffect(() => {
     if (!clientItemId) return;
@@ -53,7 +51,10 @@ const ItemDocumentsPage = () => {
         setLoading(false);
       }
     })();
-  }, [clientItemId, fetchDocumentsByClientItemId]);
+    return () => {
+      setDocumentsByClientItem([]);
+    };
+  }, [clientItemId, fetchDocumentsByClientItemId, setDocumentsByClientItem]);
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
@@ -125,10 +126,23 @@ const ItemDocumentsPage = () => {
           </div>
         </div>
         <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200 mt-2">
-          {documentsByClientItem.map((doc) => (
-            <DocumentCard key={doc.id} doc={doc} openInViewer={openInViewer} />
-          ))}
-          {loading && <li className="p-4 text-gray-500">Cargando…</li>}
+          {loading ? (
+            <>
+              <RowSkeleton />
+              <RowSkeleton />
+              <RowSkeleton />
+            </>
+          ) : (
+            <>
+              {documentsByClientItem.map((doc) => (
+                <DocumentCard
+                  key={doc.id}
+                  doc={doc}
+                  openInViewer={openInViewer}
+                />
+              ))}
+            </>
+          )}
         </ul>
       </div>
     </div>

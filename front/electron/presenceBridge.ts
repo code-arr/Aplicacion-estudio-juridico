@@ -27,12 +27,31 @@ export function registerPresenceIpc() {
   app.on("before-quit", () => broadcast("app:shutdown"));
 }
 
+function isAppWindow(w: BrowserWindow): boolean {
+  try {
+    const url = w.webContents.getURL();
+    if (url.startsWith("devtools://")) return false; // 👈 ignora DevTools
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function anyAppWindowVisible(): boolean {
+  return BrowserWindow.getAllWindows().some((w) => {
+    if (!isAppWindow(w)) return false;
+    try {
+      return w.isVisible() && !w.isMinimized();
+    } catch {
+      return false;
+    }
+  });
+}
+
 // Ventanas: llamá esto por CADA BrowserWindow creada
 export function registerWindowVisibility(win: BrowserWindow) {
   const update = () => {
-    const anyVisible = BrowserWindow.getAllWindows().some((w) =>
-      isVisibleNotMinimized(w)
-    );
+    const anyVisible = anyAppWindowVisible();
     broadcast(anyVisible ? "app:restored-any" : "app:minimized-all");
   };
   win.on("minimize", update);
@@ -43,10 +62,10 @@ export function registerWindowVisibility(win: BrowserWindow) {
   setImmediate(update);
 }
 
-function isVisibleNotMinimized(w: BrowserWindow): boolean {
+/* function isVisibleNotMinimized(w: BrowserWindow): boolean {
   try {
     return w.isVisible() && !w.isMinimized();
   } catch {
     return false;
   }
-}
+} */

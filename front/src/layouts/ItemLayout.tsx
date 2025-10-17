@@ -14,29 +14,35 @@ import { useFocusContext } from "@/hooks/useFocusContext";
 
 const ItemLayout = () => {
   const { clientItemId } = useParams();
-  useFocusContext(
-    clientItemId ? { type: "ClientItem", id: clientItemId } : null
-  );
-
   const location = useLocation();
-  const [loading, setLoading] = useState(true);
 
   const setItemDetail = useClientItemStore((s) => s.setClientItemDetail);
-  const setClientDetail = useClientStore((s) => s.setClientDetail);
   const itemDetail = useClientItemStore(selectClientItemDetail);
+  const setClientDetail = useClientStore((s) => s.setClientDetail);
+  const clientDetail = useClientStore((s) => s.clientDetail);
+  const isHydrated = useClientItemStore((s) => s.isHydrated);
+  const [loading, setLoading] = useState(true);
+
+  useFocusContext(
+    clientDetail ? { type: "Client", id: clientDetail.id ?? "" } : null
+  );
 
   useEffect(() => {
     setLoading(true);
+    if (!isHydrated) return;
     if (!clientItemId) return;
     setItemDetail(clientItemId);
     setLoading(false);
-  }, [clientItemId, itemDetail, setItemDetail]);
+  }, [clientItemId, setItemDetail, isHydrated]);
 
   useEffect(() => {
-    if (itemDetail?.clientId) setClientDetail(itemDetail?.clientId);
-  }, [setClientDetail, itemDetail?.clientId]);
+    if (!isHydrated) return;
+    if (itemDetail?.clientId) {
+      setClientDetail(itemDetail.clientId);
+    }
+  }, [isHydrated, itemDetail?.clientId, setClientDetail]);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading || !isHydrated) return <LoadingSpinner />;
 
   if (!itemDetail)
     return <ErrorScreen message="Ocurrió un error al encontrar el item" />;

@@ -245,7 +245,9 @@ function wireSegments() {
       id: randomUUID(),
       trackableType: seg.trackable.type,
       trackableId: seg.trackable.id,
+      clientId: seg.trackable.clientId,
       lawyerId: meta.lawyerId,
+      dayKey: seg.dayKey, // 👈 lo emite el motor, ya alineado a “día de trabajo”
       startedAtUTC: new Date(seg.startMs).toISOString(),
       endedAtUTC: new Date(seg.endMs).toISOString(),
       durationSec: seg.seconds,
@@ -258,7 +260,8 @@ function wireSegments() {
       `${entry.pauseReason?.toUpperCase()} | ${entry.trackableType}:${
         entry.trackableId
       } | ${hms(entry.durationSec)} |`,
-      `${entry.startedAtUTC} → ${entry.endedAtUTC}`
+      `${entry.startedAtUTC} → ${entry.endedAtUTC}`,
+      `ClientID: ${entry.clientId}`
     );
 
     try {

@@ -7,7 +7,6 @@ import { usePdfManagerStore } from "@/store/usePdfManagerStore";
 import { useDocumentStore } from "@/store/useDocumentStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
-import { useTimerUIStore as useTimerStore } from "@/store/useTimerUIStore";
 import PdfTopBar from "@/components/pdf/PdfTopBar";
 import PdfViewerTabs from "@/components/pdf/PdfViewerTabs";
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
@@ -44,6 +43,7 @@ const DocumentViewerPage = () => {
   const [fitMode, setFitMode] = useState<FitMode>("fitPage"); // tamaño original
   const [zoom, setZoom] = useState(1); // 1 = 100%
   const { ids, active } = useDocIdsFromQuery();
+  const idsKey = useMemo(() => ids.join(","), [ids]);
 
   // [C] Stores
   const documentsByClientItem = useDocumentStore(
@@ -52,16 +52,20 @@ const DocumentViewerPage = () => {
   const setPool = useDocumentStore((s) => s.setDocumentsByClientItem);
 
   const open = usePdfManagerStore((s) => s.open);
-  const setActiveDocId = usePdfManagerStore((s) => s.setActiveDocId);
+  const setActiveDoc = usePdfManagerStore((s) => s.setActiveDoc);
   const openDocs = usePdfManagerStore((s) => s.openDocs);
-  const activeDocId = usePdfManagerStore((s) => s.activeDocId);
+  const activeDoc = usePdfManagerStore((s) => s.activeDoc);
 
   // Contexto = Documento activo
   useFocusContext(
-    activeDocId ? ({ type: "Document", id: activeDocId } as Trackable) : null
+    activeDoc?.id
+      ? ({
+          type: "Document",
+          id: activeDoc.id,
+          clientId: activeDoc.clientId,
+        } as Trackable)
+      : null
   );
-
-  const idsKey = useMemo(() => ids.join(","), [ids]);
 
   /* [D] Función única para aplicar cualquier payload entrante (IPC o URL) */
   const applyPayload = (payload: {
@@ -86,12 +90,19 @@ const DocumentViewerPage = () => {
       );
       pdfs
         .filter((d) => !already.has(d.id))
-        .forEach((d) => open({ id: d.id, title: d.name, url: d.fileUrl }));
+        .forEach((d) =>
+          open({
+            id: d.id,
+            title: d.name,
+            url: d.fileUrl,
+            clientId: d.clientId,
+          })
+        );
     }
 
     // D3) Activar pestaña si corresponde y es PDF válido
     if (activeId && pdfs.some((d) => d.id === activeId)) {
-      usePdfManagerStore.getState().setActiveDocId(activeId);
+      setActiveDoc(activeId, null);
     }
   };
 
@@ -140,13 +151,15 @@ const DocumentViewerPage = () => {
     );
     pdfs
       .filter((d) => !alreadyOpen.has(d.id))
-      .forEach((d) => open({ id: d.id, title: d.name, url: d.fileUrl }));
+      .forEach((d) =>
+        open({ id: d.id, title: d.name, url: d.fileUrl, clientId: d.clientId })
+      );
 
     const nextActive =
       (active && pdfs.find((d) => d.id === active)?.id) || pdfs[0]?.id || null;
 
-    const currentActive = usePdfManagerStore.getState().activeDocId;
-    if (nextActive !== currentActive) setActiveDocId(nextActive);
+    const currentActive = usePdfManagerStore.getState().activeDoc?.id;
+    if (nextActive !== currentActive) setActiveDoc(nextActive, null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsKey, active, documentsByClientItem]);
 
@@ -173,16 +186,14 @@ const DocumentViewerPage = () => {
   const resetZoom = () => setZoom(1);
 
   const handleClose = () => {
-    // Si necesitás flushear actividad del doc activo, hacelo acá antes:
-    // usePdfSessionStore.getState().flushRemainder(activeDocId ?? undefined);
     window.close();
   };
 
   return (
     <div className="flex h-screen w-screen flex-col bg-gray-50">
       <PdfTopBar
-        docId={activeDocId ?? null}
-        docName={openDocs.find((doc) => doc.id === activeDocId)?.title ?? null}
+        docId={activeDoc?.id ?? null}
+        docName={openDocs.find((d) => d.id === activeDoc?.id)?.title ?? null}
         onClose={handleClose}
         fitMode={fitMode}
         onFitModeChange={setFitMode}

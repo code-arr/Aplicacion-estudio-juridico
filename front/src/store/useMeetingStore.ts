@@ -1,7 +1,7 @@
 // src/store/useAudienceStore.ts
 import { create } from "zustand";
 import type { Meeting } from "@/types/Meeting";
-import { getMeetingsByClientItem } from "@/api/meeting";
+import { getMeetingsByClientItem, getMeetingsByClient } from "@/api/meeting";
 
 // TTL simple para cache (opcional)
 const TTL_MS = 5 * 60 * 1000;
@@ -47,7 +47,18 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
   },
 
   fetchMeetings: async () => {},
-  fetchMeetingsByClient: async (clientId: string) => {},
+  fetchMeetingsByClient: async (clientId: string) => {
+    set({ isLoading: true, error: undefined });
+    try {
+      const data = await getMeetingsByClient(clientId);
+      set({ meetingsByClient: data, isLoading: false });
+    } catch (e) {
+      set({
+        isLoading: false,
+        error: e?.message ?? "Error al cargar audiencias",
+      });
+    }
+  },
   fetchMeetingsByClientItemId: async (clientItemId: string) => {
     set({ isLoading: true, error: undefined });
     try {

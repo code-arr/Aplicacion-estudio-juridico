@@ -1,5 +1,5 @@
 // electron/preload.ts
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, shell } from "electron";
 import type { TimeEntry } from "../src/types/Timer";
 
 /**
@@ -194,4 +194,54 @@ contextBridge.exposeInMainWorld("audienceViewer", {
       _audViewerSubscriber = null;
     };
   },
+});
+
+/** =============================================================== */
+
+// 🔵 Deep link de reseteo de contraseña
+contextBridge.exposeInMainWorld("authDeepLink", {
+  /**
+   * Te avisa cuando main recibe ibarrayasoc://reset?token=XYZ
+   * Devuelve un unsub para limpiar el listener.
+   */
+  onResetLink: (cb: (token: string) => void) => {
+    const channel = "reset-password:open";
+    const handler = (_: any, token: string) => {
+      if (typeof token === "string" && token.length > 0) cb(token);
+    };
+    ipcRenderer.on(channel, handler);
+    return () => ipcRenderer.off(channel, handler);
+  },
+});
+
+/** =============================================================== */
+
+// Allowlist simple para evitar abrir cualquier cosa
+const ALLOWED_PREFIXES = [
+  "https://meet.google.com/",
+  "https://zoom.us/j/",
+  "https://teams.microsoft.com/l/meetup-join/",
+];
+
+function isAllowedUrl(url: string) {
+  return ALLOWED_PREFIXES.some((prefix) => url.startsWith(prefix));
+}
+
+async function openExternal(url: string): Promise<boolean> {
+  try {
+    if (!url) return false;
+    // Normalización simple (sin protocolos raros)
+    const safeUrl = url.trim();
+    if (!isAllowedUrl(safeUrl)) return false;
+
+    await shell.openExternal(safeUrl);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Exponemos una API mínima y clara
+contextBridge.exposeInMainWorld("api", {
+  openExternal,
 });

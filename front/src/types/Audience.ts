@@ -1,3 +1,4 @@
+//src/types/Audience
 export interface Audience {
   id: string;
   name: string;
@@ -5,6 +6,8 @@ export interface Audience {
   fileUrl: string;
   pages?: number;
   date?: string;
+
+  clientId: string;
 
   updateAt?: Date;
   createAt?: Date;
@@ -17,35 +20,6 @@ export type OpenAud = {
   id: string;
   title: string;
   url: string;
+  clientId: string;
   versionId?: string;
 };
-
-/* export type AudienceType =
-  | "preliminar"
-  | "conciliación"
-  | "prueba"
-  | "sentencia"
-  | "otra";
-
-export type AudienceOutcome =
-  | "pendiente"
-  | "acordada"
-  | "fallida"
-  | "sentencia"
-  | "otra";
-
-export interface ItemAudience {
-  id: string;
-  itemId: string;
-  title: string;
-  date: string; // ISO YYYY-MM-DD
-  pdfUrl: string;
-  pages?: number;
-  court?: string;
-  type?: AudienceType;
-  outcome?: AudienceOutcome;
-  summary?: string;
-  notes?: string;
-  createdAt?: string;
-  updatedAt?: string;
-} */

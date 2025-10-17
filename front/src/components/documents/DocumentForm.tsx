@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useClientStore } from "@/store/useClientStore";
 import { useDocumentStore } from "@/store/useDocumentStore";
 import { use, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -54,6 +55,8 @@ function isAllowedType(file: File) {
 const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
   const [submitting, setSubmitting] = useState(false);
+
+  const clientDetail = useClientStore((s) => s.clientDetail);
 
   const fetchDocumentsByClientItemId = useDocumentStore(
     (s) => s.fetchDocumentsByClientItemId
@@ -104,6 +107,14 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
   async function handleAddDocument() {
     const name = newDocument.name.trim();
     const file = newDocument.file;
+    const clientId = clientDetail?.id;
+    if (!clientId) {
+      setNewDocument((s) => ({
+        ...s,
+        error: "No hay cliente activo.",
+      }));
+      return;
+    }
     if (!name || !file) {
       setNewDocument((s) => ({
         ...s,
@@ -118,6 +129,7 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
     const form = new FormData();
     form.append("name", name);
     form.append("file", file);
+    form.append("clientId", clientId);
 
     try {
       await createDocument(form, clientItemId!);

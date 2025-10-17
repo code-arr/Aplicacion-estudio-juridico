@@ -1,3 +1,4 @@
+// src/components/auth/LoginForm.tsx
 import React, { useState } from "react";
 import type { LoginError } from "@/types/LoginError";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
   DialogTitle,
   DialogContent,
 } from "@/components/ui/dialog";
+import { requestPasswordReset } from "@/api/user";
 import Logo from "@/assets/logos/logo-i&a-2.png";
 
 type LoginFormProps = {
@@ -43,6 +45,11 @@ const LoginForm = ({
   const [isLoading, setIsLoading] = useState(false);
   const [resetPasswordDialog, setResetPasswordDialog] = useState(false);
   const [emailResetPassword, setEmailResetPassword] = useState("");
+  const [resetSending, setResetSending] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  const isEmail = (v: string) => /\S+@\S+\.\S+/.test(v);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,9 +70,21 @@ const LoginForm = ({
     }
   };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
+    if (!isEmail(emailResetPassword)) {
+      setResetError("Ingresá un email válido.");
+      return;
+    }
+    setResetError(null);
+    setResetSending(true);
     try {
-    } catch (error) {}
+      await requestPasswordReset(emailResetPassword); // axios
+      setResetDone(true); // mostramos éxito genérico (sin revelar si existe o no)
+    } catch {
+      setResetError("No pudimos procesar la solicitud. Intentá de nuevo.");
+    } finally {
+      setResetSending(false);
+    }
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,34 +99,90 @@ const LoginForm = ({
 
   return (
     <div>
-      <Dialog open={resetPasswordDialog} onOpenChange={setResetPasswordDialog}>
+      <Dialog
+        open={resetPasswordDialog}
+        onOpenChange={(open) => {
+          setResetPasswordDialog(open);
+          if (!open) {
+            setResetError(null);
+            setResetDone(false);
+            setResetSending(false);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Restablecer contraseña</DialogTitle>
-            <DialogDescription>
-              Por favor ingresa la dirección de correo electrónico asociada a tu
-              cuenta
-            </DialogDescription>
-            <DialogDescription>
-              Te enviaremos un link para restablecer su contraseña. Si no
-              recibes el correo electrónico después de unos minutos, verifica tu
-              carpeta de correo no deseado.
-            </DialogDescription>
+            {!resetDone ? (
+              <>
+                <DialogDescription>
+                  Ingresá el correo asociado a tu cuenta. Si coincide, te
+                  enviaremos un enlace para restablecer tu contraseña.
+                </DialogDescription>
+              </>
+            ) : (
+              <DialogDescription>
+                Si la dirección existe, te enviamos un enlace. Revisá tu correo
+                (y la carpeta de spam).
+              </DialogDescription>
+            )}
           </DialogHeader>
-          <div>
-            <Label htmlFor="emailResetPassword">Email</Label>
-            <Input
-              required
-              id="emailResetPassword"
-              value={emailResetPassword}
-              placeholder="ejemplo@gmail.com"
-              onChange={(e) => setEmailResetPassword(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button type="submit" onClick={handleResetPassword}>
-              Continuar
-            </Button>
+
+          {!resetDone && (
+            <div className="flex flex-col space-y-3">
+              <Label htmlFor="emailResetPassword">Email</Label>
+              <Input
+                id="emailResetPassword"
+                value={emailResetPassword}
+                placeholder="ejemplo@estudio.com"
+                onChange={(e) => {
+                  setEmailResetPassword(e.target.value);
+                  if (resetError) setResetError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "Enter" &&
+                    isEmail(emailResetPassword) &&
+                    !resetSending
+                  ) {
+                    e.preventDefault();
+                    handleResetPassword();
+                  }
+                }}
+              />
+              {resetError && (
+                <p className="text-sm text-red-600">{resetError}</p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            {!resetDone ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setResetPasswordDialog(false)}
+                  disabled={resetSending}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleResetPassword}
+                  disabled={!isEmail(emailResetPassword) || resetSending}
+                >
+                  {resetSending ? "Enviando..." : "Continuar"}
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => setResetPasswordDialog(false)}
+              >
+                Cerrar
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -181,8 +256,13 @@ const LoginForm = ({
                 <Button
                   type="button"
                   variant={"link"}
-                  className="text-[#576175] underline text-sm hover:text-blue-700 transition-colors"
-                  onClick={() => setResetPasswordDialog(true)}
+                  className="text-[#576175] underline text-sm hover:text-blue-700 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setEmailResetPassword(email || ""); // ⬅️ prellenar
+                    setResetError(null);
+                    setResetDone(false);
+                    setResetPasswordDialog(true);
+                  }}
                 >
                   ¿Olvidaste tu contraseña?
                 </Button>

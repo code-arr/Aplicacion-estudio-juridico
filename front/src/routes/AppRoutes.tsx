@@ -1,5 +1,5 @@
 // src/routes/AppRoutes.tsx
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import PrivateRoute from "@/routes/PrivateRoute";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -8,6 +8,7 @@ import DashboardLayout from "@/layouts/DashboardLayout";
 import LoginPage from "@/pages/auth/LoginPage";
 import UnauthorizedAccess from "@/pages/auth/UnauthorizedAccess";
 import NotFoundPage from "@/pages/not-found/NotFoundPage";
+import ResetPassword from "@/pages/auth/ResetPassword";
 
 // Viewers
 import DocumentViewerPage from "@/pages/dashboard/documents/DocumentViewerPage";
@@ -20,7 +21,6 @@ import ClientOverviewPage from "@/pages/dashboard/clients/ClientOverviewPage";
 import ClientCatalogPage from "@/pages/dashboard/clients/ClientCatalogPage";
 import ItemsPage from "@/pages/dashboard/items/ItemsPage";
 import ItemLayout from "@/layouts/ItemLayout";
-import ItemOverviewPage from "@/pages/dashboard/items/ItemOverviewPage";
 import ItemDocumentsPage from "@/pages/dashboard/items/ItemDocumentsPage";
 import ItemAudiencesPage from "@/pages/dashboard/items/ItemAudiencesPage";
 import ItemMeetingsPage from "@/pages/dashboard/items/ItemMeetingsPage";
@@ -37,6 +37,7 @@ import AdminStatsPage from "@/pages/dashboard/admin/AdminStatsPage";
 import LoadingScreen from "@/components/shared/LoadingScreen";
 
 const AppRoutes = () => {
+  const location = useLocation();
   const { isAdmin, isLawyer, isLoadingSession } = useAuthStore();
   if (isLoadingSession) return <LoadingScreen />;
 
@@ -44,6 +45,7 @@ const AppRoutes = () => {
     <Routes>
       {/* Rutas públicas */}
       <Route path="/" element={<LoginPage />} />
+      <Route path="/reset" element={<ResetPassword />} />
       <Route path="/unauthorized" element={<UnauthorizedAccess />} />
 
       {/* Visor PDF top-level, protegido */}
@@ -86,7 +88,13 @@ const AppRoutes = () => {
 
             <Route path="clientItems" element={<ItemsPage />} />
             <Route path="item/:clientItemId" element={<ItemLayout />}>
-              <Route index element={<ItemOverviewPage />} />
+              {/* <Route index element={<ItemOverviewPage />} /> */}
+              <Route
+                index
+                element={
+                  <Navigate to="documents" replace state={location.state} />
+                }
+              />
               <Route path="documents" element={<ItemDocumentsPage />} />
               <Route path="audiences" element={<ItemAudiencesPage />} />
               <Route path="meetings" element={<ItemMeetingsPage />} />

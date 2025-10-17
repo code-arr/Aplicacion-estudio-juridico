@@ -9,6 +9,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useAuthStore } from "@/store/useAuthStore";
+import { verifyPassword, changePassword } from "@/api/user";
 
 interface ChangePasswordDialogProps {
   pwdOpen: boolean;
@@ -19,6 +21,7 @@ const ChangePasswordDialog = ({
   pwdOpen,
   setPwdOpen,
 }: ChangePasswordDialogProps) => {
+  const user = useAuthStore((s) => s.user);
   const [pwdStep, setPwdStep] = useState<"verify" | "set">("verify");
   const [pwdLoading, setPwdLoading] = useState(false);
   const [pwdError, setPwdError] = useState<string | null>(null);
@@ -27,10 +30,16 @@ const ChangePasswordDialog = ({
     try {
       setPwdLoading(true);
       setPwdError(null);
-      /* await api.auth.verifyPassword({ password: current }); */ // 200 si ok
-      setPwdStep("set");
+      const verified = await verifyPassword(current, user?.email ?? ""); // 200 si ok
+      console.log(verified);
+
+      if (verified) {
+        setPwdStep("set");
+      } else {
+        setPwdError("La contraseña actual no es correcta.");
+      }
     } catch {
-      setPwdError("La contraseña actual no es correcta.");
+      setPwdError("Error al verificar la contraseña.");
     } finally {
       setPwdLoading(false);
     }
@@ -45,8 +54,9 @@ const ChangePasswordDialog = ({
     try {
       setPwdLoading(true);
       setPwdError(null);
-      /* await api.auth.changePassword({ newPassword: newPwd }); */
-      // opcional: await api.auth.logoutOthers();
+
+      await changePassword(newPwd, user?.email ?? "");
+
       // toast success
       setPwdOpen(false);
       setPwdStep("verify");

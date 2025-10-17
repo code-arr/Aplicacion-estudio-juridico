@@ -1,67 +1,73 @@
+//src/store/usePdfManagerStore.ts
 import { create } from "zustand";
 import type { OpenDoc } from "@/types/Document";
 
 interface PdfManagerState {
   openDocs: OpenDoc[];
-  activeDocId: string | null;
+  activeDoc: { id: string | null; clientId: string | null } | null;
 
   open: (doc: OpenDoc) => void;
   close: (id: string) => void;
-  setActiveDocId: (id: string | null) => void;
+  setActiveDoc: (id: string | null, clientId: string | null) => void;
 }
 
 export const usePdfManagerStore = create<PdfManagerState>()((set, get) => ({
   openDocs: [],
-  activeDocId: null,
+  activeDoc: null,
 
   open: (doc) => {
-    const { activeDocId, openDocs } = get();
+    const { activeDoc, openDocs } = get();
 
     // Si ya está activo, no hagas nada (evitás renders y llamadas al store de sesión)
-    if (activeDocId === doc.id) return;
+    if (activeDoc?.id === doc.id) return;
 
     const isAlreadyOpen = openDocs.some((d) => d.id === doc.id);
 
     // Un solo set: si existe lo activás; si no, lo agregás y activás
     set((s) =>
       isAlreadyOpen
-        ? { ...s, activeDocId: doc.id }
-        : { openDocs: [...s.openDocs, doc], activeDocId: doc.id }
+        ? { ...s, activeDoc: { id: doc.id, clientId: doc.clientId } }
+        : {
+            openDocs: [...s.openDocs, doc],
+            activeDoc: { id: doc.id, clientId: doc.clientId },
+          }
     );
   },
-  close: (id: string) => {
-    const wasActive = get().activeDocId === id;
-
+  close: (id) => {
+    const wasActive = get().activeDoc?.id === id;
     set((s) => {
       const idx = s.openDocs.findIndex((d) => d.id === id);
-      if (idx === -1) return s; // nada que cerrar
-
+      if (idx === -1) return s;
       const next = s.openDocs.filter((d) => d.id !== id);
-      let newActiveId = s.activeDocId;
 
-      if (wasActive) {
-        // vecino izquierdo si existe, sino el primero de la lista nueva
-        const neighborIndex = Math.max(0, idx - 1);
-        newActiveId = next[neighborIndex]?.id ?? null;
-      }
+      // vecino izquierdo o primero
+      const neighborIndex = Math.max(0, idx - 1);
+      const newActive = next[neighborIndex] ?? null;
 
-      return { openDocs: next, activeDocId: newActiveId };
+      return {
+        openDocs: next,
+        activeDoc: newActive
+          ? { id: newActive.id, clientId: newActive.clientId }
+          : { id: null, clientId: null },
+      };
     });
   },
-  setActiveDocId: (id: string | null) => {
-    const { activeDocId, openDocs } = get();
+  setActiveDoc: (id, clientId) => {
+    const { activeDoc, openDocs } = get();
 
-    // 1) Si no cambia, no hacemos nada
-    if (id === activeDocId) return;
+    // 1) si no cambia, nada
+    if (id === activeDoc?.id) return;
 
-    // 2) Si nos pasan un id que no está abierto, ignoramos (no abrimos acá)
+    // 2) si id no existe en openDocs y no es null, ignorar
     if (id !== null && !openDocs.some((d) => d.id === id)) return;
 
-    // 3) Guardamos el doc (por si queremos pasar versionId al store de sesión)
-    /*     const targetDoc = id ? openDocs.find((d) => d.id === id) : null;
-    const versionId = (targetDoc as any)?.versionId as string | undefined; */
+    // 3) resolver clientId:
+    //    - si viene explícito, se respeta
+    //    - si no viene, se infiere de openDocs (si id != null)
+    const resolvedClientId: string | null =
+      clientId ??
+      (id ? openDocs.find((d) => d.id === id)?.clientId ?? null : null);
 
-    // 4) Un solo set: cambiamos el activo (puede ser null)
-    set({ activeDocId: id });
+    set({ activeDoc: { id, clientId: resolvedClientId } });
   },
 }));

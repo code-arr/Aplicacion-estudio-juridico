@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { createAudience } from "@/api/audience";
 import { useParams } from "react-router-dom";
 import { useAudienceStore } from "@/store/useAudienceStore";
+import { useClientStore } from "@/store/useClientStore";
 
 type AudienceFormProps = {
   isDialogOpen: boolean;
@@ -91,6 +92,8 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
   const [submitting, setSubmitting] = useState(false);
 
+  const clientDetail = useClientStore((s) => s.clientDetail);
+
   const [newAudience, setNewAudience] = useState<NewAudience>(initialItemState);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -133,6 +136,14 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
     const name = newAudience.name.trim();
     const file = newAudience.file;
     const date = newAudience.date;
+    const clientId = clientDetail?.id;
+    if (!clientId) {
+      setNewAudience((s) => ({
+        ...s,
+        error: "No hay cliente activo.",
+      }));
+      return;
+    }
     if (!name || !file || !date) {
       setNewAudience((s) => ({
         ...s,
@@ -169,6 +180,7 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
     form.append("name", name);
     form.append("file", file);
     form.append("date", date);
+    form.append("clientId", clientId);
 
     try {
       await createAudience(form, clientItemId!);

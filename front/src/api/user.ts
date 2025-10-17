@@ -42,16 +42,33 @@ export const getUserById = async (id: string): Promise<User> => {
   }
 };
 
-export const sendEmailForResetPassword = async (
+export const verifyPassword = async (
+  password: string,
   email: string
-): Promise<void> => {
+): Promise<boolean> => {
   try {
-    await axios.post("/auth/sendResetPassword", { email });
+    return (await axios.post("/user/verifyPassword", { password, email })).data;
   } catch (error) {
-    console.error("Error al enviar el email:", error);
+    console.error("Error al verificar la contraseña:", error);
     throw error;
   }
 };
+
+export const changePassword = async (
+  newPassword: string,
+  email: string
+): Promise<void> => {
+  try {
+    await axios.post("/user/newPassword", { newPassword, email });
+  } catch (error) {
+    console.error("Error al cambiar la contraseña", error);
+    throw error;
+  }
+};
+
+export async function requestPasswordReset(email: string) {
+  await axios.post(`/auth/forgot-password`, { email });
+}
 
 export const resetPassword = async (
   token: string,

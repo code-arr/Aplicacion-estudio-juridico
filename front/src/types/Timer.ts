@@ -1,8 +1,9 @@
+// src/types/Timer.ts
 // Dominios y constantes base (compartidos por todo)
 export type TrackableType =
   | "LawyerApp"
   | "Client"
-  | "ClientItem"
+  /*   | "ClientItem" */
   | "Document"
   | "Audience"
   | "Meeting"
@@ -14,6 +15,7 @@ export type TimerStatus = "running" | "paused" | "stopped";
 export type Trackable = {
   type: TrackableType;
   id: string;
+  clientId?: string;
 };
 
 export type TimeEntry = {
@@ -21,6 +23,8 @@ export type TimeEntry = {
   trackableType: TrackableType;
   trackableId: string;
   lawyerId: string;
+  clientId?: string;
+  dayKey: string; //YYYY-MM-DD del inicio
   startedAtUTC: string; // ISO
   endedAtUTC: string; // ISO
   durationSec: number; // redondeado a enteros
@@ -32,7 +36,7 @@ export type TimeEntry = {
 export const IDLE_LIMIT_MS = 90_000 as const;
 export const IDLE_LIMIT_SEC = Math.floor(IDLE_LIMIT_MS / 1000);
 
-export const MIN_SEGMENT_SEC = 3;
+export const MIN_SEGMENT_SEC = 10;
 
 // Payloads/eventos internos (opcional)
 export type StartContextPayload = {

@@ -10,43 +10,6 @@ type PdfPaneProps = {
   zoom: number; // 1 = 100%
 };
 
-/* function useDocumentActivityListeners() {
-  const markActivity = useTimerStore((s) => s.markActivity);
-  const pause = useTimerStore((s) => s.pause);
-  const workStart = useTimerStore((s) => s.workStart);
-
-  useEffect(() => {
-    const onActivity = () => {
-      workStart(); // 🔁 reanuda el GLOBAL inmediatamente
-      markActivity(); // 🔁 reanuda el CONTEXTO si venía de idle
-    };
-    const onVisibility = () => (document.hidden ? pause("idle") : onActivity());
-    const onBlur = () => pause("idle");
-    const onFocus = () => onActivity();
-
-    const events = [
-      "mousemove",
-      "keydown",
-      "click",
-      "scroll",
-      "touchstart",
-    ] as const;
-    events.forEach((ev) =>
-      window.addEventListener(ev, onActivity, { passive: true })
-    );
-    document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("blur", onBlur);
-    window.addEventListener("focus", onFocus);
-
-    return () => {
-      events.forEach((ev) => window.removeEventListener(ev, onActivity));
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("blur", onBlur);
-      window.removeEventListener("focus", onFocus);
-    };
-  }, [markActivity, pause, workStart]);
-} */
-
 const PdfPane = ({ doc, fitMode, zoom }: PdfPaneProps) => {
   // Escucha mouse/teclas/scroll/visibilidad
   /* useDocumentActivityListeners(); */

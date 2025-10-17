@@ -61,7 +61,7 @@ const LawyerSidebar = ({ lawyer, onLogout }: LawyerSidebarProps) => {
   return (
     <StaticSidebar
       className={`sticky top-0 h-screen transition-[max-width] duration-300 ease-in-out border-r border-[hsl(216,12%,15%)] overflow-hidden ${
-        collapsed ? "max-w-[72px] items-center" : "max-w-[260px]"
+        collapsed ? "max-w-[74px] items-center" : "max-w-[265px]"
       }`}
       onTransitionEnd={() => {
         // dispara un único “tick” global sin store
@@ -154,7 +154,7 @@ const LawyerSidebar = ({ lawyer, onLogout }: LawyerSidebarProps) => {
             </Button>
           </>
         ) : (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-x-1">
             <div className="flex items-center space-x-3">
               <Avatar className="h-8 w-8 cursor-pointer">
                 <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] text-sm">

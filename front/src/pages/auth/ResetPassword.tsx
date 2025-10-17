@@ -1,3 +1,4 @@
+// src/pages/auth/ResetPassword.tsx
 import { resetPassword } from "@/api/user";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
@@ -23,13 +24,14 @@ const ResetPassword = () => {
   const [confirmPasswordError, setConfirmPasswordError] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async () => {
-    if (typeof token !== "string") {
-      throw Error("El token no es un string");
-    }
-    if (!passwordError || !confirmPasswordError) {
-      throw Error("Error en el formato de las contraseñas");
-    }
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (typeof token !== "string" || !token) return;
+    if (!password || !confirmPassword) return;
+
+    // si hay errores, NO envíes
+    if (passwordError || confirmPasswordError) return;
+
     try {
       await resetPassword(token, password);
       setSuccess(true);
@@ -37,7 +39,6 @@ const ResetPassword = () => {
       console.log(error);
     }
   };
-
   /* const isValidPassword = (password: string) => {
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
     return regex.test(password);
@@ -138,6 +139,12 @@ const ResetPassword = () => {
               <Button
                 type="submit"
                 className="w-full h-11 mb-2 rounded-md font-medium text-white bg-gradient-to-br from-blue-600 to-blue-800 hover:opacity-90 transition-opacity duration-200 "
+                disabled={
+                  !password ||
+                  !confirmPassword ||
+                  passwordError ||
+                  confirmPasswordError
+                }
               >
                 Continuar
               </Button>

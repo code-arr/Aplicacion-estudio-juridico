@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+// src/pages/dashboard/clients/ClientOverviewPage.tsx
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { type Client, CLIENT_STATUS_MAP } from "@/types/Client";
 import type { ClientItem } from "@/types/ClientItem";
@@ -18,6 +19,10 @@ import googleLogo from "@/assets/logos/google.png";
 import { FileText, Plus, SquarePlus } from "lucide-react";
 import ItemCard from "@/components/items/ItemCard";
 import { ItemsSearchBar } from "@/components/items/ItemSearchBar";
+import EmailDialog from "@/components/clients/EmailDialog";
+import { useJoinMeeting } from "@/hooks/useJoinMeeting";
+import { useMeetingStore } from "@/store/useMeetingStore";
+import { pickNextAndLast } from "@/utils/meetings";
 
 const ClientOverviewPage = () => {
   /*   const { id } = useParams(); */
@@ -30,7 +35,7 @@ const ClientOverviewPage = () => {
     (s) => s.fetchClientItemsByClientId
   );
   const clientItemsByClientId = useClientItemStore(
-    (s) => s.clientItemsByClientId //Despues cambiar por s.clientItemsByClientId
+    (s) => s.clientItemsByClientId
   );
   const recentClientItemsByClientId = useClientItemStore(
     selectRecentClientItemsByClientId
@@ -39,6 +44,7 @@ const ClientOverviewPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEmailOpen, setIsEmailOpen] = useState(false);
 
   const handleOpenCategory = (categoryId: string) => {
     navigate(`category/${categoryId}`, {
@@ -46,10 +52,8 @@ const ClientOverviewPage = () => {
     });
   };
 
-  console.log(location.pathname);
-
   const handleViewDetails = (item: ClientItem) => {
-    navigate(`/dashboard/item/${item.id}`, {
+    navigate(`/dashboard/item/${item.id}/documents`, {
       state: { prevRoute: location.pathname },
     });
   };
@@ -63,7 +67,7 @@ const ClientOverviewPage = () => {
     if (!clientDetail) return;
 
     const fetchData = async () => {
-      await fetchClientItemsByClientId(clientDetail.id);
+      await fetchClientItemsByClientId(clientDetail.id ?? "");
     };
 
     fetchData();
@@ -115,6 +119,74 @@ const ClientOverviewPage = () => {
     return capitalize(formatted);
   }
 
+  // ============
+  // Próxima reunión (URL y fecha)
+  // ============
+  const fetchMeetingsByClient = useMeetingStore((s) => s.fetchMeetingsByClient);
+  const meetingsByClient = useMeetingStore((s) => s.meetingsByClient);
+  const setMeetingsByClient = useMeetingStore((s) => s.setMeetingsByClient);
+
+  useEffect(() => {
+    if (!clientDetail) return;
+    (async () => {
+      try {
+        await fetchMeetingsByClient(clientDetail.id ?? "");
+      } catch (e) {
+        console.log(e);
+      }
+    })();
+    return () => {
+      setMeetingsByClient([]);
+    };
+  }, [fetchMeetingsByClient, clientDetail, setMeetingsByClient]);
+
+  // 👇 NUEVO: Obtenemos la próxima reunión del cliente (ajustá al selector real que tengas)
+  // Si NO tenés store para esto aún, dejalo en null y el botón quedará deshabilitado.
+
+  const { nextUpcoming } = useMemo(
+    () => pickNextAndLast(meetingsByClient),
+    [meetingsByClient]
+  );
+
+  // Si tu entidad tiene otro nombre de campo, ajustá acá: .link / .meetUrl, etc.
+  const nextMeetingUrl: string | null | undefined = nextUpcoming?.link;
+  const nextMeetingStartAt: string | null | undefined = nextUpcoming?.startAt;
+
+  // 👇 NUEVO: Lógica del botón (reusable)
+  const {
+    disabled: joinDisabled,
+    join,
+    copy,
+  } = useJoinMeeting(nextMeetingUrl ?? null, {
+    onInvalidUrl: () => console.warn("Esta reunión no tiene un enlace válido."),
+    onOpenError: () => console.error("No se pudo abrir el enlace."),
+    onOpened: () => console.log("Abriendo reunión en el navegador…"),
+  });
+
+  // Fecha legible (si hay reunión). Si no, mostramos un texto “Sin reunión”
+  const fechaLegible =
+    nextMeetingStartAt != null
+      ? (() => {
+          const d = new Date(nextMeetingStartAt);
+          const dia = new Intl.DateTimeFormat("es-ES", {
+            weekday: "long",
+          }).format(d);
+          const fecha = new Intl.DateTimeFormat("es-ES", {
+            day: "2-digit",
+            month: "short",
+          })
+            .format(d)
+            .replace(".", "");
+          const hora = new Intl.DateTimeFormat("es-ES", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }).format(d);
+          // Ej: "jueves, 28 ago. 10:30"
+          return `${dia}, ${fecha} ${hora}`;
+        })()
+      : "Sin reunión programada";
+
   if (loading) return <LoadingSpinner />;
 
   if (!clientDetail)
@@ -125,6 +197,11 @@ const ClientOverviewPage = () => {
   ) : (
     <div>
       <ItemForm isDialogOpen={isDialogOpen} setIsDialogOpen={setIsDialogOpen} />
+      <EmailDialog
+        isOpen={isEmailOpen}
+        onOpenChange={setIsEmailOpen}
+        toEmail={clientDetail.email ?? ""}
+      />
       <div className="space-y-6">
         {/* CONTENEDOR GENERAL */}
         <div className="bg-white border border-gray-200 rounded-md shadow px-6 max-w-8xl mx-auto">
@@ -180,63 +257,78 @@ const ClientOverviewPage = () => {
                   </p>
                 </div>
               </div>
-            </div>
-
-            {/* Google */}
-            <div className="flex justify-between md:w-1/2">
-              <div>
-                <div className="py-4">
-                  <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
-                    Gmail
-                  </h3>
-                  <Button
-                    variant="outline"
-                    className="font-semibold border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)] cursor-pointer"
-                  >
-                    <img
-                      src={googleLogo}
-                      className="w-5 h-5"
-                      alt="Logo Google"
-                    />
-                    Enviar mail
-                  </Button>
-                </div>
-                <div className="py-3">
-                  <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
-                    Proxima Reunión
-                  </h3>
-                  <Button
-                    variant="outline"
-                    className="flex flex-col h-fit px-4 gap-y-0.5 font-semibold border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)] cursor-pointer"
-                  >
-                    <div className="flex items-center gap-x-2">
-                      <img
-                        src={googleLogo}
-                        className="w-4 h-4"
-                        alt="Logo Google"
-                      />
-                      <p>Meet</p>
-                    </div>
-                    <div>
-                      <p className="font-medium">jueves, 28 ago. 10:30</p>
-                    </div>
-                  </Button>
-                </div>
-              </div>
-              <div className="self-center flex flex-col items-end gap-y-10">
+              <div className="flex flex-col gap-3 items-stretch pb-2">
                 <Button
                   variant="outline"
-                  className="w-full py-5 font-semibold border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)] cursor-pointer"
+                  className="w-full h-11 font-medium border-gray-300 hover:bg-gray-50"
                 >
                   Editar cliente
                 </Button>
 
-                <Button
-                  variant="outline"
-                  className="w-full py-5 font-semibold border-red-500  bg-red-500 hover:bg-red-300 text-white cursor-pointer"
-                >
+                <Button className="w-full h-11 font-medium bg-red-500 hover:bg-red-600 text-white">
                   Eliminar cliente
                 </Button>
+              </div>
+            </div>
+
+            {/* Google */}
+            <div className="md:w-1/2 grid grid-cols-1 gap-7 content-center">
+              <div className="rounded-md border border-gray-200 p-4">
+                <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
+                  Gmail
+                </h3>
+                <Button
+                  variant="outline"
+                  className="w-full h-11 justify-start gap-2 font-medium border-[hsl(210,100%,40%)]
+                  hover:bg-[hsl(210,100%,95%)]"
+                  aria-label="Enviar correo con Gmail"
+                  onClick={() => setIsEmailOpen(true)}
+                >
+                  <img src={googleLogo} className="w-5 h-5" alt="Logo Google" />
+                  Enviar mail
+                </Button>
+              </div>
+              <div className="rounded-md border border-gray-200 p-4">
+                <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
+                  Próxima Reunión
+                </h3>
+
+                <Button
+                  onClick={join}
+                  variant="outline"
+                  disabled={joinDisabled}
+                  title={joinDisabled ? "Sin enlace válido" : "Unirse en Meet"}
+                  className="w-full h-11 items-center justify-between px-4
+                  border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)]
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={
+                    joinDisabled
+                      ? "Sin reunión programada"
+                      : "Unirse a la reunión de Google Meet"
+                  }
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <img
+                      src={googleLogo}
+                      className="w-4 h-4"
+                      alt="Logo Google"
+                    />
+                    <span className="font-medium">Meet</span>
+                  </span>
+                  <span className="text-sm text-[hsl(225,10%,40%)]">
+                    {fechaLegible}
+                  </span>
+                </Button>
+
+                {/* Opcional: copiar enlace */}
+                {/* <Button
+                    variant="ghost"
+                    className="mt-2"
+                    onClick={copy}
+                    disabled={joinDisabled}
+                  >
+                    Copiar enlace
+                  </Button> */}
               </div>
             </div>
           </div>

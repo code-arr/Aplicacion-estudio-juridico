@@ -1,8 +1,8 @@
+// src/pages/dashboard/items/ItemMeetingsPage.tsx
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, User } from "lucide-react";
-import googleLogo from "@/assets/logos/cromoVerde.png";
+import { Search } from "lucide-react";
 import MeetingForm from "@/components/meetings/MeetingForm";
 
 import { useMeetingStore } from "@/store/useMeetingStore";
@@ -12,204 +12,8 @@ import MeetingCard from "@/components/meetings/MeetingCard";
 import { useParams } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
-
-/* const meetings: Meeting[] = [
-  {
-    id: "mtg_101",
-    name: "Seguimiento medidas cautelares",
-    startAt: "2025-08-28T10:30:00-03:00",
-    endAt: "2025-08-28T11:15:00-03:00",
-    participants: [
-      { name: "Dra. Ibarra", email: "dibarra@estudio.com" },
-      { name: "Cliente", email: "cliente@mail.com" },
-    ],
-    type: "google-meet",
-    link: "https://meet.google.com/abc-defg-hij",
-    status: "scheduled",
-    notes: "Repasar documentación enviada por la contraparte.",
-    createAt: "2025-08-20T12:00:00-03:00",
-    updateAt: "2025-08-20T12:00:00-03:00",
-  },
-  {
-    id: "mtg_099",
-    name: "Revisión de estrategia",
-    startAt: "2025-08-22T16:00:00-03:00",
-    endAt: "2025-08-22T16:45:00-03:00",
-    participants: [
-      { name: "Dra. Ibarra", email: "dibarra@estudio.com" },
-      { name: "Asociado", email: "asociado@estudio.com" },
-    ],
-    type: "google-meet",
-    link: "https://meet.google.com/xyz-uvwx-123",
-    status: "completed",
-    notes: "Definir próximos pasos y responsables.",
-    createAt: "2025-08-15T09:20:00-03:00",
-    updateAt: "2025-08-22T17:00:00-03:00",
-  },
-  {
-    id: "mtg_095",
-    name: "Llamada con perito",
-    startAt: "2025-08-18T11:00:00-03:00",
-    endAt: "2025-08-18T11:30:00-03:00",
-    participants: [
-      { name: "Perito", email: "perito@correo.com" },
-      { name: "Cliente", email: "cliente@mail.com" },
-    ],
-    type: "google-meet",
-    link: "https://meet.google.com/meet-perito-11",
-    status: "canceled",
-    notes: "Se reprograma por indisponibilidad del perito.",
-    createAt: "2025-08-10T10:00:00-03:00",
-    updateAt: "2025-08-17T18:10:00-03:00",
-  },
-  {
-    id: "mtg_110",
-    name: "Reunión con cliente en oficina",
-    startAt: "2025-09-02T15:00:00-03:00",
-    endAt: "2025-09-02T16:00:00-03:00",
-    participants: [
-      { name: "Dra. Ibarra", email: "dibarra@estudio.com" },
-      { name: "Cliente", email: "cliente@mail.com" },
-    ],
-    type: "in-person",
-    location: "Oficina central - Sala de reuniones 1",
-    status: "scheduled",
-    notes: "Revisión de contrato de arrendamiento.",
-    createAt: "2025-08-25T12:00:00-03:00",
-    updateAt: "2025-08-25T12:00:00-03:00",
-  },
-  {
-    id: "mtg_111",
-    name: "Cita con testigos",
-    startAt: "2025-08-30T10:00:00-03:00",
-    endAt: "2025-08-30T11:30:00-03:00",
-    participants: [
-      { name: "Asociado", email: "asociado@estudio.com" },
-      { name: "Testigo A", email: "testigoA@mail.com" },
-      { name: "Testigo B", email: "testigoB@mail.com" },
-    ],
-    type: "in-person",
-    location: "Tribunales - Sala de espera piso 3",
-    status: "scheduled",
-    notes: "Preparación de testimonios previos a la audiencia.",
-    createAt: "2025-08-20T09:30:00-03:00",
-    updateAt: "2025-08-20T09:30:00-03:00",
-  },
-  {
-    id: "mtg_112",
-    name: "Mesa de trabajo con perito",
-    startAt: "2025-09-05T09:00:00-03:00",
-    endAt: "2025-09-05T10:30:00-03:00",
-    participants: [
-      { name: "Perito", email: "perito@correo.com" },
-      { name: "Dra. Ibarra", email: "dibarra@estudio.com" },
-    ],
-    type: "in-person",
-    location: "Estudio jurídico - Sala de juntas",
-    status: "scheduled",
-    notes: "Analizar informe técnico y validar pruebas.",
-    createAt: "2025-08-27T14:00:00-03:00",
-    updateAt: "2025-08-27T14:00:00-03:00",
-  },
-  {
-    id: "mtg_113",
-    name: "Consulta inicial con nuevo cliente",
-    startAt: "2025-09-07T09:30:00-03:00",
-    endAt: "2025-09-07T10:15:00-03:00",
-    participants: [
-      { name: "Dr. López", email: "dlopez@estudio.com" },
-      { name: "Cliente Nuevo", email: "nuevo.cliente@mail.com" },
-    ],
-    type: "google-meet",
-    link: "https://meet.google.com/cli-ente-123",
-    status: "scheduled",
-    notes: "Presentación y recopilación de antecedentes.",
-    createAt: "2025-08-28T10:00:00-03:00",
-    updateAt: "2025-08-28T10:00:00-03:00",
-  },
-  {
-    id: "mtg_114",
-    name: "Revisión de documentos societarios",
-    startAt: "2025-09-01T14:00:00-03:00",
-    endAt: "2025-09-01T15:30:00-03:00",
-    participants: [
-      { name: "Dra. Ibarra", email: "dibarra@estudio.com" },
-      { name: "Asociado", email: "asociado@estudio.com" },
-    ],
-    type: "in-person",
-    location: "Oficina central – Sala de juntas 2",
-    status: "completed",
-    notes: "Definición de modificaciones estatutarias.",
-    createAt: "2025-08-22T12:30:00-03:00",
-    updateAt: "2025-09-01T16:00:00-03:00",
-  },
-  {
-    id: "mtg_115",
-    name: "Audiencia preliminar de conciliación",
-    startAt: "2025-09-10T11:00:00-03:00",
-    endAt: "2025-09-10T12:00:00-03:00",
-    participants: [
-      { name: "Cliente", email: "cliente@mail.com" },
-      { name: "Contraparte", email: "contraparte@mail.com" },
-    ],
-    type: "in-person",
-    location: "Tribunales – Sala 4",
-    status: "scheduled",
-    notes: "Verificar disponibilidad de testigos y peritos.",
-    createAt: "2025-08-29T09:00:00-03:00",
-    updateAt: "2025-08-29T09:00:00-03:00",
-  },
-  {
-    id: "mtg_116",
-    name: "Reunión de cierre de contrato",
-    startAt: "2025-08-26T17:00:00-03:00",
-    endAt: "2025-08-26T18:00:00-03:00",
-    participants: [
-      { name: "Dra. Ibarra", email: "dibarra@estudio.com" },
-      { name: "Cliente", email: "cliente@mail.com" },
-    ],
-    type: "google-meet",
-    link: "https://meet.google.com/cie-rre-contrato",
-    status: "completed",
-    notes: "Confirmación de cláusulas y firma digital.",
-    createAt: "2025-08-20T15:00:00-03:00",
-    updateAt: "2025-08-26T18:05:00-03:00",
-  },
-  {
-    id: "mtg_117",
-    name: "Reprogramación con perito técnico",
-    startAt: "2025-08-29T09:00:00-03:00",
-    endAt: "2025-08-29T09:45:00-03:00",
-    participants: [
-      { name: "Perito", email: "perito@correo.com" },
-      { name: "Asociado", email: "asociado@estudio.com" },
-    ],
-    type: "google-meet",
-    link: "https://meet.google.com/per-ito-999",
-    status: "canceled",
-    notes: "Se cancela por imposibilidad de conexión.",
-    createAt: "2025-08-24T10:00:00-03:00",
-    updateAt: "2025-08-28T20:00:00-03:00",
-  },
-]; */
-
-const formatDateShort = (isoString: string) => {
-  const date = new Date(isoString);
-  return new Intl.DateTimeFormat("es-ES", {
-    weekday: "short", // Lun, Mar, Mié...
-    day: "numeric", // 23
-    month: "short", // ago.
-  }).format(date);
-};
-
-const formatTime = (isoString: string) => {
-  const date = new Date(isoString);
-  return new Intl.DateTimeFormat("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false, // 24h
-  }).format(date);
-};
+import MeetingDetailPanel from "@/components/meetings/MeetingDetailPanel";
+import RowSkeleton from "@/components/shared/RowSkeleton";
 
 const ItemMeetingsPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
@@ -221,6 +25,9 @@ const ItemMeetingsPage = () => {
   const meetingsByClientItem = useMeetingStore((s) => s.meetingsByClientItem);
   const fetchMeetingsByClientItemId = useMeetingStore(
     (s) => s.fetchMeetingsByClientItemId
+  );
+  const setMeetingsByClientItem = useMeetingStore(
+    (s) => s.setMeetingsByClientItem
   );
 
   useEffect(() => {
@@ -237,7 +44,10 @@ const ItemMeetingsPage = () => {
         setLoading(false);
       }
     })();
-  }, [clientItemId, fetchMeetingsByClientItemId]);
+    return () => {
+      setMeetingsByClientItem([]);
+    };
+  }, [clientItemId, fetchMeetingsByClientItemId, setMeetingsByClientItem]);
 
   const [openId, setOpenId] = useState<string | null>(null);
   const openMeeting = meetingsByClientItem.find((m) => m.id === openId) || null;
@@ -247,6 +57,11 @@ const ItemMeetingsPage = () => {
 
   const clientItemDetail = useClientItemStore((s) => s.clientItemDetail);
   const clients = useClientStore((s) => s.clientsByLawyer);
+
+  const lawyerFullName = lawyer
+    ? `${lawyer.firstName} ${lawyer.lastName}`
+    : undefined;
+  const lawyerEmail = user?.googleEmail || undefined;
 
   const actualClient = useMemo(() => {
     if (!clientItemDetail) return null;
@@ -268,6 +83,23 @@ const ItemMeetingsPage = () => {
       block: "start",
     });
   }, [openMeeting]);
+
+  const scheduled = useMemo(
+    () => meetingsByClientItem.filter((m) => m.status === "scheduled"),
+    [meetingsByClientItem]
+  );
+  const completed = useMemo(
+    () => meetingsByClientItem.filter((m) => m.status === "completed"),
+    [meetingsByClientItem]
+  );
+  const canceled = useMemo(
+    () => meetingsByClientItem.filter((m) => m.status === "canceled"),
+    [meetingsByClientItem]
+  );
+
+  function EmptyRow({ text }: { text: string }) {
+    return <li className="p-4 text-sm text-gray-500">{text}</li>;
+  }
 
   return (
     <div
@@ -314,52 +146,89 @@ const ItemMeetingsPage = () => {
         <div className="py-4">
           <p className="text-lg text-gray-950 font-medium pb-2">Proximas</p>
           <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
-            {meetingsByClientItem
-              .filter((m) => m.status === "scheduled")
-              .map((m) => (
+            {loading ? (
+              <>
+                <RowSkeleton />
+                <RowSkeleton />
+              </>
+            ) : scheduled.length === 0 ? (
+              <EmptyRow text="No hay próximas" />
+            ) : (
+              scheduled.map((m) => (
                 <MeetingCard
                   key={m.id}
                   m={m}
                   togglePanel={togglePanel}
                   openId={openId}
                 />
-              ))}
+              ))
+            )}
           </ul>
         </div>
         <div className="py-4">
           <p className="text-lg text-gray-950 font-medium pb-2">Finalizadas</p>
           <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
-            {meetingsByClientItem
-              .filter((m) => m.status === "completed")
-              .map((m) => (
+            {loading ? (
+              <>
+                <RowSkeleton />
+                <RowSkeleton />
+              </>
+            ) : completed.length === 0 ? (
+              <EmptyRow text="No hay finalizadas" />
+            ) : (
+              completed.map((m) => (
                 <MeetingCard
                   key={m.id}
                   m={m}
                   togglePanel={togglePanel}
                   openId={openId}
                 />
-              ))}
+              ))
+            )}
           </ul>
         </div>
         <div className="py-4">
           <p className="text-lg text-gray-950 font-medium pb-2">Canceladas</p>
           <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
-            {meetingsByClientItem
-              .filter((m) => m.status === "canceled")
-              .map((m) => (
+            {loading ? (
+              <>
+                <RowSkeleton />
+                <RowSkeleton />
+              </>
+            ) : canceled.length === 0 ? (
+              <EmptyRow text="No hay canceladas" />
+            ) : (
+              canceled.map((m) => (
                 <MeetingCard
                   key={m.id}
                   m={m}
                   togglePanel={togglePanel}
                   openId={openId}
                 />
-              ))}
+              ))
+            )}
           </ul>
         </div>
       </div>
 
-      {/* Overlay opcional para cerrar al hacer click afuera */}
-      <div
+      {/* Panel deslizante separado */}
+      <MeetingDetailPanel
+        meeting={openMeeting}
+        isOpen={Boolean(openMeeting)}
+        onClose={() => setOpenId(null)}
+        lawyerFullName={lawyerFullName}
+        lawyerEmail={lawyerEmail}
+        onEdit={(m) => {
+          // opcional: abrí tu modal de edición o redirigí
+          console.log("Editar", m.id);
+        }}
+        onCancel={(m) => {
+          // opcional: dispará acción para cancelar
+          console.log("Cancelar", m.id);
+        }}
+      />
+
+      {/* <div
         className={`absolute inset-0 z-40 bg-black/30 rounded-sm backdrop-blur-[1px] transition-opacity duration-300 ease-in-out ${
           openMeeting
             ? "opacity-100 pointer-events-auto"
@@ -368,7 +237,6 @@ const ItemMeetingsPage = () => {
         onClick={() => setOpenId(null)}
       />
 
-      {/* Panel deslizante */}
       <aside
         id="meeting-detail-panel"
         className={`absolute z-50 top-0 right-0 h-full w-full md:w-[380px]
@@ -381,7 +249,6 @@ const ItemMeetingsPage = () => {
         aria-modal="true"
         aria-hidden={!openMeeting}
       >
-        {/* Header */}
         <div className="px-5 pt-4 border-b border-gray-200 flex items-start justify-between">
           <div className="min-w-0">
             <h2 className="text-lg font-semibold text-gray-900 truncate">
@@ -391,8 +258,6 @@ const ItemMeetingsPage = () => {
               <p className="pt-1 pb-4 text-sm text-gray-600">
                 {formatDateShort(openMeeting.startAt)} ·{" "}
                 {formatTime(openMeeting.startAt)}
-                {/* {openMeeting.endAt ??
-                  `-${formatTime(openMeeting.endAt ?? openMeeting.startAt)}`} */}
               </p>
             )}
           </div>
@@ -405,7 +270,6 @@ const ItemMeetingsPage = () => {
           </button>
         </div>
 
-        {/* Body */}
         <div
           className={`px-5 py-4 space-y-4 h-[calc(100%-56px)] ${
             openMeeting ? "overflow-visible" : "overflow-y-auto scrollbar-none"
@@ -413,7 +277,6 @@ const ItemMeetingsPage = () => {
         >
           {openMeeting && (
             <>
-              {/* Tipo / ubicación / link */}
               <div className="text-sm text-gray-700">
                 <div className="flex items-center gap-2">
                   {openMeeting.type === "google-meet" ? (
@@ -447,7 +310,6 @@ const ItemMeetingsPage = () => {
                 )}
               </div>
 
-              {/* Participantes */}
               <div>
                 <p className="text-sm font-medium text-gray-900 pb-2">
                   Participantes
@@ -466,7 +328,6 @@ const ItemMeetingsPage = () => {
                 </ul>
               </div>
 
-              {/* Notas */}
               {openMeeting.notes && (
                 <div>
                   <p className="text-sm font-medium text-gray-900 pb-1">
@@ -478,7 +339,6 @@ const ItemMeetingsPage = () => {
                 </div>
               )}
 
-              {/* Acciones mínimas */}
               <div className="pt-2 flex gap-2">
                 <Button className="bg-blue-800">Editar</Button>
                 <Button variant="outline" className="border-gray-300">
@@ -488,7 +348,7 @@ const ItemMeetingsPage = () => {
             </>
           )}
         </div>
-      </aside>
+      </aside> */}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 // electron/sync/syncService.ts
-import type { TimeEntry } from "../../src/types/Timer.js";
+
 import { timeQueueStore, timeQueueEvents } from "../store/timeQueueStore.js";
 import type { SyncApi } from "./syncApi.js";
 

@@ -11,13 +11,26 @@ export const getMeetingsByClientItem = async (
   return (await axios.get(`meeting/getByClientItemId/${itemId}`)).data;
 };
 
+export const getMeetingsByClient = async (
+  clientId: string
+): Promise<Meeting[]> => {
+  const data = await axios.get(`meeting/getByClientId/${clientId}`);
+  return data.data;
+};
+
 export const createMeeting = async (
   newMeeting: any,
+  clientId: string,
   clientItemId: string
 ): Promise<Meeting> => {
   console.log(newMeeting);
 
-  return (await axios.post(`meeting/create/${clientItemId}`, newMeeting)).data;
+  return (
+    await axios.post(`meeting/create/${clientItemId}`, {
+      ...newMeeting,
+      clientId: clientId,
+    })
+  ).data;
 };
 
 export const deleteMeeting = async (meetingId: string): Promise<void> => {

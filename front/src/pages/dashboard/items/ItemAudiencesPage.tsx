@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useParams } from "react-router-dom";
 import AudienceCard from "@/components/audiences/AudienceCard";
+import RowSkeleton from "@/components/shared/RowSkeleton";
 
 const ItemAudiencesPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
@@ -21,6 +22,9 @@ const ItemAudiencesPage = () => {
   );
   const fetchAudiencesByClientItemId = useAudienceStore(
     (s) => s.fetchAudiencesByClientItemId
+  );
+  const setAudiencesByClientItem = useAudienceStore(
+    (s) => s.setAudiencesByClientItem
   );
 
   useEffect(() => {
@@ -37,7 +41,10 @@ const ItemAudiencesPage = () => {
         setLoading(false);
       }
     })();
-  }, [clientItemId, fetchAudiencesByClientItemId]);
+    return () => {
+      setAudiencesByClientItem([]);
+    };
+  }, [clientItemId, fetchAudiencesByClientItemId, setAudiencesByClientItem]);
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
@@ -78,10 +85,23 @@ const ItemAudiencesPage = () => {
           </div>
         </div>
         <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200 mt-2">
-          {audiencesByClientItem.map((aud) => (
-            <AudienceCard key={aud.id} aud={aud} openInViewer={openInViewer} />
-          ))}
-          {loading && <li className="p-4 text-gray-500">Cargando…</li>}
+          {loading ? (
+            <>
+              <RowSkeleton />
+              <RowSkeleton />
+              <RowSkeleton />
+            </>
+          ) : (
+            <>
+              {audiencesByClientItem.map((aud) => (
+                <AudienceCard
+                  key={aud.id}
+                  aud={aud}
+                  openInViewer={openInViewer}
+                />
+              ))}
+            </>
+          )}
         </ul>
       </div>
     </div>

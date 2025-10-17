@@ -6,9 +6,11 @@ import { Theme } from "@radix-ui/themes";
 import { restoreSession, useAuthStore } from "@/store/useAuthStore";
 import LoadingScreen from "@/components/shared/LoadingScreen";
 import { useEffect } from "react";
+import { useResetDeepLink } from "@/hooks/useResetDeepLink";
 
 const RootRouter = () => {
   const { isLoadingSession } = useAuthStore();
+  useResetDeepLink();
 
   useEffect(() => {
     restoreSession();

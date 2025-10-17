@@ -1,3 +1,4 @@
+// src/components/items/ItemHeader.tsx
 import type { ClientItem } from "@/types/ClientItem";
 import { CLIENTITEM_STATUS_MAP } from "@/types/ClientItem";
 import { Badge } from "@/components/ui/badge";
@@ -56,9 +57,13 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
   const setProcessOpen = (open: boolean) => openOnly("processForm", open);
 
   const basePath = `/dashboard/item/${clientItemId}`;
-  const currentTab = pathname.startsWith(`${basePath}/`)
-    ? pathname.slice(basePath.length + 1) // p.ej. "documents"
-    : "index";
+  const currentTab =
+    pathname === basePath
+      ? "documents"
+      : pathname.startsWith(`${basePath}/`)
+      ? pathname.slice(basePath.length + 1) // p.ej. "documents"
+      : "documents";
+
   const clientDetail = useClientStore(selectClientDetail);
   const itemType = useCatalogStore(selectItemType(item?.itemTypeId ?? ""));
   const section = useCatalogStore(
@@ -96,14 +101,14 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
 
   const buildTabs = (categoryName: string | null): Tab[] => {
     const baseTabs: Tab[] = [
-      { value: "index", label: "Resumen" },
+      /* { value: "index", label: "Resumen" }, */
       { value: "documents", label: "Documentos" },
       { value: "meetings", label: "Reuniones" },
       { value: "process", label: "Trámites" },
     ];
 
     if (categoryName === "Judicial") {
-      baseTabs.splice(2, 0, { value: "audiences", label: "Audiencias" });
+      baseTabs.splice(1, 0, { value: "audiences", label: "Audiencias" });
       // ↑ lo meto en la posición 2 (después de "Documentos")
     }
 
@@ -177,20 +182,6 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
 
           <div className="flex items-center gap-x-3 pb-6">
             <Button
-              onClick={() => setDocumentOpen(true)}
-              className="bg-transparent text-gray-900 border text-lg font-normal"
-            >
-              Nuevo documento
-            </Button>
-            {category?.name === "Judicial" && (
-              <Button
-                onClick={() => setAudienceOpen(true)}
-                className="bg-transparent text-gray-900 border text-lg font-normal"
-              >
-                Nueva audiencia
-              </Button>
-            )}
-            <Button
               onClick={() => setProcessOpen(true)}
               className="bg-blue-900 text-lg font-normal"
             >
@@ -198,33 +189,39 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
             </Button>
           </div>
         </div>
+        <div className="px-10 pb-4">
+          <h1 className="text-gray-950 text-lg font-medium mb-1.5">
+            Descripción
+          </h1>
+          <p className="capitalize">{item.description}</p>
+        </div>
         <div className="border-y-[1.6px] border-gray-200">
-          <div className="flex gap-x-2 px-8">
+          <div className="flex gap-x-2 px-4">
             <SegmentedToggle
               className="bg-transparent py-0"
               type="single"
               value={currentTab}
               onValueChange={(next) => {
-                if (next == null) return;
-                navigate(next === "index" ? basePath : `${basePath}/${next}`, {
-                  state: { prevRoute },
-                });
+                if (!next) return;
+                navigate(`${basePath}/${next}`, { state: { prevRoute } });
               }}
               aria-label="Secciones del ítem"
             >
-              {tabs.map((tab) => (
-                <div
-                  className="border-b border-transparent transition-colors duration-150 ease-out has-[button[data-state=on]]:border-b-blue-950 has-[button[data-state=on]]:shadow-[0px_1px_0px_0px_blue] mx-2"
-                  key={tab.value}
-                >
-                  <SegmentedToggleItem
-                    className="bg-transparent! py-2.5 text-lg text-[hsl(225,15%,15%)]/90 transition-colors duration-150 ease-out data-[state=on]:text-black data-[state=on]:font-semibold cursor-pointer"
-                    value={tab.value}
+              <div className="flex gap-x-5">
+                {tabs.map((tab) => (
+                  <div
+                    key={tab.value}
+                    className="border-b border-transparent transition-colors duration-150 ease-out has-[button[data-state=on]]:border-b-blue-950 has-[button[data-state=on]]:shadow-[0px_1px_0px_0px_blue]"
                   >
-                    {tab.label}
-                  </SegmentedToggleItem>
-                </div>
-              ))}
+                    <SegmentedToggleItem
+                      className="bg-transparent! py-2.5 text-lg text-[hsl(225,15%,15%)]/90 transition-colors duration-150 ease-out data-[state=on]:text-black data-[state=on]:font-semibold cursor-pointer"
+                      value={tab.value}
+                    >
+                      {tab.label}
+                    </SegmentedToggleItem>
+                  </div>
+                ))}
+              </div>
             </SegmentedToggle>
           </div>
         </div>

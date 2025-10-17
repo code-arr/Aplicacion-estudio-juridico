@@ -17,6 +17,8 @@ export interface Document {
   size: number;
   fileUrl: string;
 
+  clientId: string;
+
   updateAt?: Date;
   createAt?: Date;
 
@@ -28,5 +30,6 @@ export type OpenDoc = {
   id: string;
   title: string;
   url: string;
+  clientId: string;
   versionId?: string;
 };

@@ -67,7 +67,7 @@ const MeetingCard = ({ m, togglePanel, openId }: MeetingCardProps) => {
         <div className="pr-2">
           <button
             className="cursor-pointer"
-            onClick={() => togglePanel(m.id)}
+            onClick={() => togglePanel(m.id ?? "")}
             aria-expanded={openId === m.id}
             aria-controls="meeting-detail-panel"
           >

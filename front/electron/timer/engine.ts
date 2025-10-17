@@ -8,7 +8,7 @@ import type {
 
 const IDLE_LIMIT_MS = 90_000 as const;
 
-export type Trackable = { type: TrackableType; id: string };
+export type Trackable = { type: TrackableType; id: string; clientId?: string };
 
 export type TimerState = {
   lawyerId?: string | null;
@@ -32,7 +32,7 @@ export type TimerState = {
 };
 
 const IDLE_SEC = Math.floor(IDLE_LIMIT_MS / 1000);
-const MIN_SEGMENT_SEC = 3;
+const MIN_SEGMENT_SEC = 10;
 
 // YYYY-MM-DD local (no TZ especial)
 function dayKeyLocal(d = new Date()): string {

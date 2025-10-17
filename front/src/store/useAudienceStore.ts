@@ -83,5 +83,5 @@ export const useAudienceStore = create<AudienceState>((set, get) => ({
 
 // Adapter útil para el visor (usás el mismo motor de Documentos)
 export function audienceToOpenDoc(a: Audience) {
-  return { id: `aud:${a.id}`, name: a.name, url: a.fileUrl };
+  return { id: `${a.id}`, name: a.name, url: a.fileUrl, clientId: a.clientId };
 }

@@ -61,6 +61,7 @@ const DashboardLayout = () => {
           entry.trackableId
         } | ${hms(entry.durationSec)} |`,
         `${entry.startedAtUTC} → ${entry.endedAtUTC}`,
+        `ClientID: ${entry.clientId} `,
         entry // objeto completo por si querés inspeccionar
       );
     };
@@ -117,7 +118,9 @@ const DashboardLayout = () => {
       isHydratedClients &&
       !itemClientsIsPrefetched
     ) {
-      if (lawyer) hydrateClientItems(lawyer.id);
+      if (lawyer) {
+        hydrateClientItems(lawyer.id);
+      }
     }
   }, [
     isAdmin,

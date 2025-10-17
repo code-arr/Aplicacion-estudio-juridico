@@ -24,6 +24,7 @@ import { createMeeting } from "@/api/meeting";
 import { useParams } from "react-router-dom";
 import { useMeetingStore } from "@/store/useMeetingStore";
 import { localDateTimeToIsoUtc } from "@/utils/dateTime";
+import { useClientStore } from "@/store/useClientStore";
 
 type MeetingFormProps = {
   isDialogOpen: boolean;
@@ -37,7 +38,7 @@ type NewMeeting = {
   startAt: string; // ISO local (del <input type="datetime-local">)
   lawyerEmail: string; // email del abogado
   participants: Participant[]; // mínimo: cliente
-  meetingType: MeetingType;
+  type: MeetingType;
   notes: string;
 };
 
@@ -48,7 +49,7 @@ const initialMeeting: NewMeeting = {
   startAt: "",
   lawyerEmail: "",
   participants: [],
-  meetingType: "google-meet",
+  type: "google-meet",
   notes: "",
 };
 
@@ -65,6 +66,8 @@ const MeetingForm = ({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const clientDetail = useClientStore((s) => s.clientDetail);
 
   const fetchMeetingsByClientItemId = useMeetingStore(
     (s) => s.fetchMeetingsByClientItemId
@@ -97,7 +100,7 @@ const MeetingForm = ({
     const fe: FieldErrors = {};
     if (!formData.name.trim()) fe.name = "El título es obligatorio.";
     if (!formData.startAt) fe.startAt = "La fecha y hora son obligatorias.";
-    if (!formData.meetingType) fe.meetingType = "Seleccioná el tipo.";
+    if (!formData.type) fe.type = "Seleccioná el tipo.";
     if (!formData.lawyerEmail) fe.lawyerEmail = "Falta el email del abogado.";
     if (!formData.participants?.length)
       fe.participants = "Debe haber al menos un participante.";
@@ -114,6 +117,12 @@ const MeetingForm = ({
       return;
     }
 
+    const clientId = clientDetail?.id;
+    if (!clientId) {
+      setFormError("No hay cliente activo.");
+      return;
+    }
+
     if (!validate()) return;
 
     setIsSubmitting(true);
@@ -123,7 +132,7 @@ const MeetingForm = ({
     const startAtIsoUtc = localDateTimeToIsoUtc(formData.startAt);
 
     try {
-      await createMeeting(formData, clientItemId);
+      await createMeeting(formData, clientId, clientItemId);
       await fetchMeetingsByClientItemId(clientItemId);
 
       setIsDialogOpen(false);
@@ -189,8 +198,8 @@ const MeetingForm = ({
           <div className="space-y-1.5">
             <Label>Tipo de reunión</Label>
             <Select
-              value={formData.meetingType}
-              onValueChange={(v) => set("meetingType", v as MeetingType)}
+              value={formData.type}
+              onValueChange={(v) => set("type", v as MeetingType)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar" />
@@ -200,10 +209,10 @@ const MeetingForm = ({
                 <SelectItem value="in-person">Presencial</SelectItem>
               </SelectContent>
             </Select>
-            {fieldErrors.meetingType && (
-              <p className="text-xs text-red-600">{fieldErrors.meetingType}</p>
+            {fieldErrors.type && (
+              <p className="text-xs text-red-600">{fieldErrors.type}</p>
             )}
-            {formData.meetingType === "google-meet" && (
+            {formData.type === "google-meet" && (
               <p className="text-xs text-muted-foreground">
                 Se creará un enlace de Meet si tu cuenta de Google está
                 conectada.

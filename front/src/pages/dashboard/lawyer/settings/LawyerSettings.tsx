@@ -1,3 +1,4 @@
+// pages/dashboard/lawyer/settings/LawyerSettings.tsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -10,6 +11,18 @@ import { Switch } from "@/components/ui/switch";
 import googleLogo from "@/assets/logos/google.png";
 import ChangePasswordDialog from "@/components/lawyer/ChangePasswordDialog";
 import { useFocusContext } from "@/hooks/useFocusContext";
+import {
+  Activity,
+  CheckCircle2,
+  Clock3,
+  Info,
+  KeyRound,
+  Link2,
+  Loader2,
+  LogIn,
+  PauseCircle,
+  Pencil,
+} from "lucide-react";
 
 const Settings = () => {
   useFocusContext({ type: "LawyerApp", id: "main" });
@@ -97,15 +110,15 @@ const Settings = () => {
                     <p>
                       <span className="font-medium">RUT: </span> {lawyer?.rut}
                     </p>
-                    <p className="">
+                    <p className="capitalize">
                       <span className="font-medium">Dirección: </span>
                       {lawyer?.adress}
                     </p>
-                    <p>
+                    <p className="capitalize">
                       <span className="font-medium">Tipo: </span>
                       {lawyer?.type ? lawyer?.type : "No especificado"}
                     </p>
-                    <p>
+                    <p className="capitalize">
                       <span className="font-medium">Seniority: </span>
                       {lawyer?.seniorityLevel}
                     </p>
@@ -202,30 +215,37 @@ const Settings = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="">
-              <div className="flex flex-col border-2 border-gray-200 rounded-lg divide-y divide-gray-200 py-1">
+              <div className="flex flex-col rounded-lg border border-gray-200 bg-white/70 shadow-sm divide-y divide-gray-200">
                 {/* Cambiar contraseña */}
-                <div className="flex items-center justify-between px-3 py-2">
-                  <div>
-                    <button
-                      onClick={() => setPwdOpen(true)}
-                      className="font-normal text-[hsl(210,100%,40%)] hover:underline cursor-pointer"
-                    >
-                      Cambiar contraseña
-                    </button>
-                  </div>
-                </div>
-
-                {/* Último inicio de sesión */}
                 <div className="flex items-center justify-between p-3">
                   <div>
                     <p className="font-medium text-[hsl(225,15%,15%)]">
-                      Último inicio de sesión
+                      Contraseña
                     </p>
                     <p className="text-sm text-gray-500">
-                      Último acceso: 08/08/2025 18:23 desde IP 190.11.22.33
-                      (Mendoza, Argentina)
+                      Recomendación: cambiala cada 90 días.
                     </p>
                   </div>
+
+                  <Button
+                    onClick={() => setPwdOpen(true)}
+                    className="h-9 px-3 font-medium"
+                  >
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Cambiar contraseña
+                  </Button>
+                </div>
+
+                {/* Último inicio de sesión */}
+                <div className="flex items-start gap-2 p-3">
+                  <LogIn className="h-4 w-4 mt-0.5 text-gray-500" />
+                  <p className="text-sm text-gray-600">
+                    Último acceso:{" "}
+                    <span className="font-medium text-gray-700">
+                      08/08/2025 18:23
+                    </span>{" "}
+                    desde IP 190.11.22.33 (Mendoza, Argentina)
+                  </p>
                 </div>
 
                 {/* Verificación en dos pasos */}
@@ -247,6 +267,75 @@ const Settings = () => {
                 </div> */}
               </div>
             </CardContent>
+            <div>
+              <CardHeader className="flex-row justify-between pb-4 pt-1">
+                <CardTitle className="flex items-center gap-2 font-medium tracking-[0.01em] text-[hsl(225,15%,15%)]">
+                  Integración
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent>
+                <div className="flex flex-col w-fit rounded-lg border border-gray-200 bg-white/70 shadow-sm">
+                  {/* Google */}
+                  <div className="flex items-center justify-between gap-4 p-3">
+                    <div className="flex items-center gap-3">
+                      <img src={googleLogo} alt="Google" className="w-5 h-5" />
+                      <div className="flex flex-col">
+                        <span className="font-medium text-slate-800">
+                          Google
+                        </span>
+                        <span className="text-xs text-gray-600">
+                          Calendario/Meet y envíos de correo.
+                        </span>
+                      </div>
+                      {isGoogleConnected ? (
+                        <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                          Conectado
+                        </span>
+                      ) : isLoading ? (
+                        <span className="inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
+                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                          Conectando…
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {!isGoogleConnected && (
+                      <Button
+                        onClick={handleGoogleConnect}
+                        disabled={isLoading}
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Conectando…
+                          </>
+                        ) : (
+                          <>
+                            <Link2 className="h-4 w-4 mr-2" />
+                            Conectar con Google
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Email conectado (solo si hay) */}
+                  {user?.googleEmail && (
+                    <div className="px-3 pb-3 pt-0 text-xs text-gray-600">
+                      Vinculado como{" "}
+                      <span className="font-medium text-gray-800">
+                        {user.googleEmail}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </div>
           </div>
           <div className="flex flex-col min-w-[35%]">
             <div>
@@ -255,51 +344,76 @@ const Settings = () => {
                   Gestión de tiempo
                 </CardTitle>
               </CardHeader>
+
               <CardContent>
-                <div className="flex flex-col w-fit border-2 border-gray-200 rounded-lg divide-y divide-gray-200">
-                  {/* Recordatorios de plazos */}
-                  <div className="flex items-center justify-between p-3 py-2">
-                    <p className="font-normal text-[hsl(225,15%,15%)]">
-                      Valor por hora: $150.000 CLP
-                    </p>
+                <div className="flex flex-col w-fit rounded-lg border border-gray-200 bg-white/70 shadow-sm divide-y divide-gray-200">
+                  {/* Valor por hora + estado */}
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-sm text-gray-500">
+                          Valor por hora
+                        </span>
+                        <span className="text-lg font-semibold text-slate-800">
+                          $150.000 CLP
+                        </span>
+                      </div>
+                      <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                        <Activity className="h-3.5 w-3.5 mr-1" />
+                        Automático: Activo
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex-col items-center justify-between p-3">
-                    <p className="font-medium text-[hsl(225,15%,15%)]">
-                      Registro automático
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Medí el tiempo mientras trabajás.
-                    </p>
+
+                  {/* Descripción breve */}
+                  <div className="flex items-start gap-2 p-3">
+                    <Clock3 className="h-4 w-4 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="font-medium text-[hsl(225,15%,15%)]">
+                        Registro automático
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        El sistema registra tu tiempo de trabajo sin
+                        intervención manual.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </div>
-            <div>
-              <CardHeader className="flex-row justify-between pb-4 pt-1">
-                <CardTitle className="flex items-center gap-2 font-medium tracking-[0.01em] text-[hsl(225,15%,15%)]">
-                  Integración
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col w-fit border-2 border-gray-200 rounded-lg divide-y divide-gray-200">
-                  <button
-                    onClick={handleGoogleConnect}
-                    disabled={isLoading || isGoogleConnected}
-                    className="flex items-center justify-between p-3 py-2 gap-x-2 shadow-sm hover:shadow-md cursor-pointer disabled:cursor-default disabled:shadow-sm"
-                  >
-                    <img
-                      src={googleLogo}
-                      alt="Logo de Google"
-                      className="w-5 h-5"
-                    />
-                    <span className="font-medium text-gray-800">
-                      {!isGoogleConnected
-                        ? isLoading
-                          ? "Conectando..."
-                          : "Conectar con Google"
-                        : "Conectado"}
-                    </span>
-                  </button>
+
+                  {/* Reglas (alineado con tu engine) */}
+                  <div className="grid gap-2 p-3">
+                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                      <Activity className="h-4 w-4 mt-0.5 text-gray-500" />
+                      <span>
+                        Inicia al detectar actividad en la app
+                        (teclado/click/acción relevante).
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                      <PauseCircle className="h-4 w-4 mt-0.5 text-gray-500" />
+                      <span>
+                        Pausa por inactividad &gt; 90 s y se reanuda al volver.
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                      <Info className="h-4 w-4 mt-0.5 text-gray-500" />
+                      <span>
+                        Cambia de contexto al abrir otro cliente/ítem y continúa
+                        el tracking allí.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Métricas breves (si ya las tenés en store, bindéalas) */}
+                  {/* <div className="grid grid-cols-2 gap-4 p-3">
+                    <div>
+                      <p className="text-xs text-gray-500">Hoy trackeado</p>
+                      <p className="font-medium text-slate-800">02:14 h</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Esta semana</p>
+                      <p className="font-medium text-slate-800">12:30 h</p>
+                    </div>
+                  </div> */}
                 </div>
               </CardContent>
             </div>

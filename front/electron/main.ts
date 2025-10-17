@@ -9,7 +9,6 @@ import {
   registerPresenceIpc,
   registerWindowVisibility,
 } from "./presenceBridge.js";
-/* import { registerGlobalTimerHandlers } from "./ipc/globalTimerHandlers.js"; */
 import { createMainSyncService } from "./sync/syncService.js";
 import { createSyncApi } from "./sync/syncApi.js";
 import { registerTimerIpc, timerShutdown } from "./timer/ipc.js";
@@ -18,9 +17,27 @@ import { registerTimeQueueHandlers } from "./ipc/timeQueueHandlers.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-loadEnv({ path: path.resolve(__dirname, "../../.env") });
+const ELECTRON_DIST = __dirname; // .../dist-electron/electron
+const RENDERER_DIST_SIBLING = path.join(ELECTRON_DIST, "..", "..", "dist");
+const RENDERER_DIST_RESOURCES = path.join(process.resourcesPath, "dist"); // por si tu empaquetador mueve a /resources/dist
 
-console.log("DEV_URL:", process.env.VITE_DEV_SERVER_URL);
+function findIndexHtml(): string {
+  const candidates = [
+    path.join(RENDERER_DIST_SIBLING, "index.html"), // patrón más común en dev/build local
+    path.join(RENDERER_DIST_RESOURCES, "index.html"), // patrón común en empaquetado
+    path.join(app.getAppPath(), "dist", "index.html"), // fallback extra
+  ];
+
+  const found = candidates.find((p) => fs.existsSync(p));
+  if (!found) {
+    console.error("[index.html] No se encontró en:", candidates);
+    throw new Error("No se encontró index.html. Verifica tu build del front.");
+  }
+  console.log("[index.html] usando:", found);
+  return found;
+}
+
+loadEnv({ path: path.resolve(__dirname, "../../.env") });
 
 let _authToken: string | null = null;
 
@@ -33,53 +50,73 @@ const syncApi = createSyncApi({
 });
 const syncService = createMainSyncService({ api: syncApi });
 
+let pendingResetToken: string | null = null;
+
+// 🔵 ADD: pequeña utilidad para extraer token desde una URL del protocolo
+function extractTokenFromDeepLink(
+  urlOrArg: string | undefined | null
+): string | null {
+  try {
+    if (!urlOrArg) return null;
+    if (!urlOrArg.startsWith("ibarrayasoc://")) return null;
+    const u = new URL(urlOrArg);
+    return u.searchParams.get("token");
+  } catch {
+    return null;
+  }
+}
+
 // =============================================
 
 let mainWindow: BrowserWindow | null = null;
 
 /** ==================== NUEVO: estado de la ventana del visor de documentos ==================== */
-let viewerWindow: BrowserWindow | null = null;
+let documentViewerWindow: BrowserWindow | null = null;
 
-function createViewerWindow() {
-  if (!mainWindow) return null; // 👈 asegura que haya padre
-
-  if (viewerWindow && !viewerWindow.isDestroyed()) {
-    return viewerWindow;
+function createDocumentViewerWindow() {
+  if (documentViewerWindow && !documentViewerWindow.isDestroyed()) {
+    return documentViewerWindow;
   }
 
-  viewerWindow = new BrowserWindow({
+  documentViewerWindow = new BrowserWindow({
     width: 1600,
     height: 1000,
-    parent: mainWindow,
-    modal: false,
+    skipTaskbar: false, // 👈 aseguralo
+    autoHideMenuBar: true,
     icon: path.join(__dirname, "assets", "logo-iya.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
     },
-    title: "Visor de documentos",
+    title: "Documentos (visor)",
+    show: false,
   });
 
-  registerWindowVisibility(viewerWindow);
+  registerWindowVisibility(documentViewerWindow);
 
   // Carga la app con la ruta del visor
   if (process.env.VITE_DEV_SERVER_URL) {
-    viewerWindow.loadURL(
+    documentViewerWindow.loadURL(
       `${process.env.VITE_DEV_SERVER_URL}#/viewer/documents`
     );
-    viewerWindow.webContents.openDevTools({ mode: "detach" });
+    documentViewerWindow.webContents.openDevTools({ mode: "detach" });
   } else {
-    viewerWindow.loadFile(path.join(__dirname, "../dist/index.html"), {
+    documentViewerWindow.loadFile(findIndexHtml(), {
       hash: "/viewer/documents",
     });
   }
 
-  viewerWindow.on("closed", () => {
-    viewerWindow = null;
+  documentViewerWindow.once("ready-to-show", () => {
+    documentViewerWindow!.show();
+    documentViewerWindow!.focus();
   });
 
-  return viewerWindow;
+  documentViewerWindow.on("closed", () => {
+    documentViewerWindow = null;
+  });
+
+  return documentViewerWindow;
 }
 /** ============================================================================== */
 
@@ -87,8 +124,6 @@ function createViewerWindow() {
 let audienceViewerWindow: BrowserWindow | null = null;
 
 function createAudienceViewerWindow() {
-  if (!mainWindow) return null; // 👈 asegura que haya padre
-
   if (audienceViewerWindow && !audienceViewerWindow.isDestroyed()) {
     return audienceViewerWindow;
   }
@@ -96,8 +131,8 @@ function createAudienceViewerWindow() {
   audienceViewerWindow = new BrowserWindow({
     width: 1600,
     height: 1000,
-    parent: mainWindow,
-    modal: false,
+    skipTaskbar: false, // 👈 aseguralo
+    autoHideMenuBar: true,
     icon: path.join(__dirname, "assets", "logo-iya.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -105,6 +140,7 @@ function createAudienceViewerWindow() {
       nodeIntegration: false,
     },
     title: "Audiencias (visor)",
+    show: false, // 👈 ver punto 2
   });
 
   registerWindowVisibility(audienceViewerWindow);
@@ -116,10 +152,15 @@ function createAudienceViewerWindow() {
     );
     audienceViewerWindow.webContents.openDevTools({ mode: "detach" });
   } else {
-    audienceViewerWindow.loadFile(path.join(__dirname, "../dist/index.html"), {
+    audienceViewerWindow.loadFile(findIndexHtml(), {
       hash: "/viewer/audiences",
     });
   }
+
+  audienceViewerWindow.once("ready-to-show", () => {
+    audienceViewerWindow!.show();
+    audienceViewerWindow!.focus();
+  });
 
   audienceViewerWindow.on("closed", () => {
     audienceViewerWindow = null;
@@ -149,10 +190,8 @@ function getIconPath() {
 
 function createWindow() {
   const iconPath = getIconPath();
-  console.log("[ICON PATH]", iconPath, "exists:", fs.existsSync(iconPath));
 
   const iconImg = nativeImage.createFromPath(iconPath);
-  console.log("[ICON EMPTY?]", iconImg.isEmpty());
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -172,36 +211,91 @@ function createWindow() {
     mainWindow!.show();
   });
 
-  /*   registerGlobalTimerHandlers(); */
   registerPresenceIpc();
   registerWindowVisibility(mainWindow);
 
   // Si estamos en desarrollo, cargamos el servidor de Vite
   if (process.env.VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}`);
+    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
     mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
-    // ⬇️ el index real está en front/dist/index.html
-    const indexHtml = path.join(__dirname, "..", "..", "dist", "index.html");
-    mainWindow.loadFile(indexHtml);
-    mainWindow.webContents.on("did-finish-load", () => {
+    mainWindow.loadFile(findIndexHtml());
+    /* mainWindow.webContents.on("did-finish-load", () => {
       // ajustá a tu ruta por defecto si no querés ir al viewer
       mainWindow!.webContents.executeJavaScript(
         `window.location.hash = '#/viewer'`
       );
-    });
+    }); */
   }
 
-  // (opcional) si querés limpiar refs al cerrarse
+  const sendPendingToken = () => {
+    if (pendingResetToken && mainWindow) {
+      mainWindow.webContents.send("reset-password:open", pendingResetToken);
+      pendingResetToken = null;
+    }
+  };
+
+  if (mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.once("did-finish-load", sendPendingToken);
+  } else {
+    sendPendingToken();
+  }
+
   mainWindow.on("closed", () => {
+    // cerrá visores si viven
+    if (documentViewerWindow && !documentViewerWindow.isDestroyed())
+      documentViewerWindow.close();
+    if (audienceViewerWindow && !audienceViewerWindow.isDestroyed())
+      audienceViewerWindow.close();
     mainWindow = null;
   });
 
   return mainWindow;
 }
 
+// 🔵 ADD: single instance + manejo de argv (Windows/Linux)
+const gotLock = app.requestSingleInstanceLock();
+
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on("second-instance", (_event, argv) => {
+    // En Windows, el deep link llega como argumento tipo: "ibarrayasoc://reset?token=..."
+    const argWithUrl = argv.find(
+      (a) => typeof a === "string" && a.startsWith("ibarrayasoc://")
+    );
+    const token = extractTokenFromDeepLink(argWithUrl || null);
+
+    if (token) {
+      if (mainWindow) {
+        mainWindow.webContents.send("reset-password:open", token);
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+      } else {
+        pendingResetToken = token;
+      }
+    }
+  });
+}
+
 // Evento cuando la app está lista
 app.whenReady().then(() => {
+  if (process.platform === "win32") {
+    // En dev: usar el ejecutable; en build: podés usar tu appId fijo si querés
+    const id = app.isPackaged ? "com.iya.desktop" : process.execPath;
+    app.setAppUserModelId(id);
+  }
+
+  // 🔵 ADD: registrar el protocolo personalizado (dev y prod)
+  try {
+    app.setAsDefaultProtocolClient("ibarrayasoc");
+  } catch (e) {
+    console.warn(
+      "[protocol] No se pudo registrar 'ibarrayasoc' en este entorno:",
+      e
+    );
+  }
+
   registerTimerIpc(); // ✅ ahora el motor y powerMonitor quedan online desde el inicio
   registerTimeQueueHandlers();
 
@@ -217,9 +311,44 @@ app.whenReady().then(() => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+
+  // 🔵 ADD: si la app se inició con el deep link (Windows primera instancia)
+  if (process.platform === "win32") {
+    const urlArg = process.argv.find(
+      (a) => typeof a === "string" && a.startsWith("ibarrayasoc://")
+    );
+    const token = extractTokenFromDeepLink(urlArg || null);
+    if (token) {
+      // si el front aún no cargó, se envía después (ver punto 2)
+      pendingResetToken = token;
+      // intento enviarlo ya por si ya cargó:
+      if (mainWindow && !mainWindow.webContents.isLoading()) {
+        mainWindow.webContents.send("reset-password:open", token);
+        pendingResetToken = null;
+      }
+    }
+  }
+});
+
+// 🔵 ADD: macOS entrega el deep link por este evento
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  const token = extractTokenFromDeepLink(url);
+  if (!token) return;
+
+  if (mainWindow) {
+    mainWindow.webContents.send("reset-password:open", token);
+    mainWindow.focus();
+  } else {
+    pendingResetToken = token;
+  }
 });
 
 app.on("before-quit", () => {
+  if (documentViewerWindow && !documentViewerWindow.isDestroyed())
+    documentViewerWindow.close();
+  if (audienceViewerWindow && !audienceViewerWindow.isDestroyed())
+    audienceViewerWindow.close();
   try {
     timerShutdown();
   } catch (e) {
@@ -250,52 +379,46 @@ ipcMain.on("auth:setToken", (_e, token: string | null) => {
   syncService.onAuthOk();
 });
 ipcMain.on("net:online", () => syncService.onOnline());
+/** ====================================================================== */
 
-/** ==================== NUEVO: API del visor por IPC ==================== */
-ipcMain.handle(
-  "viewer:open",
-  async (_event, payload: { docs: any[]; activeId?: string | null }) => {
-    const win = createViewerWindow();
-    if (!win) return false; // 👈 por si no hay mainWindow
-    if (win.isMinimized()) win.restore();
-    win.show();
+/** ==================== IPC: DOCUMENTS VIEWER ==================== */
+ipcMain.handle("viewer:open", async (_event, payload) => {
+  const win = createDocumentViewerWindow();
+  if (!win) return false;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+  win.moveTop?.();
 
-    const send = () => win.webContents.send("viewer:addDocs", payload);
-    if (win.webContents.isLoading()) {
-      win.webContents.once("did-finish-load", send);
-    } else {
-      send();
-    }
+  const send = () => win.webContents.send("viewer:addDocs", payload);
+  if (win.webContents.isLoading())
+    win.webContents.once("did-finish-load", send);
+  else send();
+  return true;
+});
 
-    return true;
-  }
-);
+ipcMain.on("viewer:addDocs", (_event, payload) => {
+  const win = createDocumentViewerWindow();
+  if (!win) return false;
+  if (win.isMinimized()) win.restore();
+  win.show(); // 👈 faltaba
+  win.focus(); // 👈 faltaba
+  win.moveTop?.(); // 👈 sugerido
 
-ipcMain.on(
-  "viewer:addDocs",
-  (_event, payload: { docs: any[]; activeId?: string | null }) => {
-    const win = createViewerWindow();
-    if (!win) return false; // 👈 por si no hay mainWindow
-    if (win.isMinimized()) win.restore();
-    win.focus();
-
-    const send = () => win.webContents.send("viewer:addDocs", payload);
-    if (win.webContents.isLoading()) {
-      win.webContents.once("did-finish-load", send);
-    } else {
-      send();
-    }
-  }
-);
+  const send = () => win.webContents.send("viewer:addDocs", payload);
+  if (win.webContents.isLoading())
+    win.webContents.once("did-finish-load", send);
+  else send();
+});
 
 ipcMain.on("viewer:close", () => {
-  if (viewerWindow && !viewerWindow.isDestroyed()) {
-    viewerWindow.close();
+  if (documentViewerWindow && !documentViewerWindow.isDestroyed()) {
+    documentViewerWindow.close();
   }
 });
 /** ====================================================================== */
 
-// ===== IPC: AUDIENCES VIEWER =====
+/** ==================== IPC: AUDIENCES VIEWER ==================== */
 ipcMain.handle(
   "viewer:audience:open",
   async (_event, payload: { audiences: any[]; activeId?: string | null }) => {
@@ -303,6 +426,8 @@ ipcMain.handle(
     if (!win) return false; // 👈 por si no hay mainWindow
     if (win.isMinimized()) win.restore();
     win.show();
+    win.focus(); // 👈 faltaba
+    win.moveTop?.(); // 👈 sugerido
 
     const send = () => win.webContents.send("viewer:audience:addDocs", payload);
     if (win.webContents.isLoading()) {
@@ -320,7 +445,9 @@ ipcMain.on(
     const win = createAudienceViewerWindow();
     if (!win) return false; // 👈 por si no hay mainWindow
     if (win.isMinimized()) win.restore();
+    win.show(); // 👈 faltaba
     win.focus();
+    win.moveTop?.(); // 👈 sugerido
 
     const send = () => win.webContents.send("viewer:audience:addDocs", payload);
     if (win.webContents.isLoading()) {

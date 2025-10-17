@@ -8,7 +8,6 @@ import { usePdfManagerStore } from "@/store/usePdfManagerStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import { useAudienceStore } from "@/store/useAudienceStore";
 import { audienceToOpenDoc } from "@/store/useAudienceStore";
-import { useTimerUIStore } from "@/store/useTimerUIStore";
 import PdfTopBar from "@/components/pdf/PdfTopBar";
 import PdfViewerTabs from "@/components/pdf/PdfViewerTabs";
 import { useTimeSyncInit } from "@/hooks/useTimeSyncInit";
@@ -50,13 +49,19 @@ export default function AudienceViewerPage() {
     (s) => s.audiencesByClientItem
   );
   const open = usePdfManagerStore((s) => s.open);
-  const setActiveDocId = usePdfManagerStore((s) => s.setActiveDocId);
+  const setActiveDoc = usePdfManagerStore((s) => s.setActiveDoc);
   const openDocs = usePdfManagerStore((s) => s.openDocs);
-  const activeDocId = usePdfManagerStore((s) => s.activeDocId);
+  const activeDoc = usePdfManagerStore((s) => s.activeDoc);
 
   // Contexto = Audiencia activo
   useFocusContext(
-    activeDocId ? ({ type: "Audience", id: activeDocId } as Trackable) : null
+    activeDoc?.id
+      ? ({
+          type: "Audience",
+          id: activeDoc.id,
+          clientId: activeDoc.clientId,
+        } as Trackable)
+      : null
   );
 
   // --- IPC applyPayload: { audiences, activeId } ---
@@ -73,10 +78,11 @@ export default function AudienceViewerPage() {
     audiences
       .map(audienceToOpenDoc)
       .filter((d) => !already.has(d.id))
-      .forEach((d) => open({ id: d.id, title: d.name, url: d.url }));
+      .forEach((d) =>
+        open({ id: d.id, title: d.name, url: d.url, clientId: d.clientId })
+      );
 
-    if (activeId)
-      usePdfManagerStore.getState().setActiveDocId(`aud:${activeId}`);
+    if (activeId) setActiveDoc(activeId, null);
   };
 
   // --- Suscripción a IPC propio de audiencias ---
@@ -110,15 +116,17 @@ export default function AudienceViewerPage() {
     resolved
       .map(audienceToOpenDoc)
       .filter((d) => !alreadyOpen.has(d.id))
-      .forEach((d) => open({ id: d.id, title: d.name, url: d.url }));
+      .forEach((d) =>
+        open({ id: d.id, title: d.name, url: d.url, clientId: d.clientId })
+      );
 
     const nextActive =
       (active && `aud:${active}`) ||
       (resolved[0] ? `aud:${resolved[0].id}` : null);
-    const currentActive = usePdfManagerStore.getState().activeDocId;
-    if (nextActive !== currentActive) setActiveDocId(nextActive);
+    const currentActive = usePdfManagerStore.getState().activeDoc?.id;
+    if (nextActive !== currentActive) setActiveDoc(nextActive, null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsKey, active, audiencesByClientItem, open, setActiveDocId]);
+  }, [idsKey, active, audiencesByClientItem, open, setActiveDoc]);
 
   // --- Cerrar ventana si no quedan tabs ---
   useEffect(() => {
@@ -145,8 +153,8 @@ export default function AudienceViewerPage() {
   return (
     <div className="flex h-screen w-screen flex-col bg-gray-50">
       <PdfTopBar
-        docId={activeDocId ?? null}
-        docName={openDocs.find((d) => d.id === activeDocId)?.title ?? null}
+        docId={activeDoc?.id ?? null}
+        docName={openDocs.find((d) => d.id === activeDoc?.id)?.title ?? null}
         onClose={handleClose}
         fitMode={fitMode}
         onFitModeChange={setFitMode}

@@ -10,7 +10,7 @@ const ErrorScreen = ({
   onRetry,
 }: ErrorScreenProps) => {
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full text-red-500">
+    <div className="flex flex-col items-center justify-center w-full h-screen text-red-500">
       <AlertTriangle className="w-12 h-12 mb-3 opacity-80" />
       <p className="text-lg font-semibold mb-4">{message}</p>
       {onRetry && (

@@ -1,22 +1,25 @@
+// src/pages/dashboard/items/ItemOverviewPage.tsx
 import InfoCard from "@/components/ui/infoCard";
 import {
   selectClientItemDetail,
   useClientItemStore,
 } from "@/store/useClientItemStore";
 import { selectClientDetail, useClientStore } from "@/store/useClientStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import {
   selectCategory,
   selectItemType,
   selectSection,
   useCatalogStore,
 } from "@/store/useCatalogStore";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import MeetingForm from "@/components/meetings/MeetingForm";
+import MeetingsOverviewCard from "@/components/meetings/MeetingOverviewCard";
 
 const ItemOverviewPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const user = useAuthStore((s) => s.user);
   const item = useClientItemStore(selectClientItemDetail);
   const clientDetail = useClientStore(selectClientDetail);
   const itemType = useCatalogStore(selectItemType(item?.itemTypeId ?? ""));
@@ -46,12 +49,29 @@ const ItemOverviewPage = () => {
         }`.trim()
       : clientDetail?.companyName ?? "";
 
+  const clientItemDetail = useClientItemStore((s) => s.clientItemDetail);
+  const clients = useClientStore((s) => s.clientsByLawyer);
+
+  const actualClient = useMemo(() => {
+    if (!clientItemDetail) return null;
+    return clients?.find((c) => c.id === clientItemDetail.clientId) || null;
+  }, [clientItemDetail, clients]);
+
   return (
     <div className="flex px-3 gap-x-6">
       <MeetingForm
         isDialogOpen={isDialogOpen}
         setIsDialogOpen={setIsDialogOpen}
-        defaultParticipants={[{ name: "adasdsa", email: "afadsas" }]}
+        lawyerEmail={user?.googleEmail || ""}
+        defaultParticipants={[
+          {
+            name:
+              actualClient?.type === "Fisica"
+                ? `${actualClient?.firstName}  ${actualClient?.lastName}`
+                : actualClient?.companyName || "Cliente",
+            email: actualClient?.email || "",
+          },
+        ]}
       />
       <div className="flex flex-col w-3/4 min-w-0 gap-y-5">
         <InfoCard title="Descripción" titleSize="xl">
@@ -60,16 +80,21 @@ const ItemOverviewPage = () => {
         <div className="flex gap-x-4">
           <InfoCard title="Plazos" className="w-[70%]"></InfoCard>
 
-          <InfoCard title="Reuniones" className="w-[30%]">
-            <p className="mb-1.5">Próxima:</p>
-            <p>Última:</p>
-            <Button
-              onClick={() => setIsDialogOpen(true)}
-              className="self-center h-8 mt-3 w-32"
-            >
-              Agendar reunión
-            </Button>
-          </InfoCard>
+          <div className="w-[30%]">
+            <MeetingsOverviewCard
+              itemId={item?.id}
+              lawyerEmail={user?.googleEmail || ""}
+              defaultParticipants={[
+                {
+                  name:
+                    actualClient?.type === "Fisica"
+                      ? `${actualClient?.firstName}  ${actualClient?.lastName}`
+                      : actualClient?.companyName || "Cliente",
+                  email: actualClient?.email || "",
+                },
+              ]}
+            />
+          </div>
         </div>
         <InfoCard title="Tiempo y Honorarios" className="w-[69%]"></InfoCard>
       </div>

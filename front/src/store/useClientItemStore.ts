@@ -93,7 +93,6 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
       const prevRecent = s.recentClientItemsByClientId ?? [];
 
       const nextRecent = topNRecent(nextFull, 3);
-      console.log("nextRecent", nextRecent);
 
       // armamos un patch mínimo para no disparar renders al cohete
       const patch: Partial<ClientItemState> = {};
