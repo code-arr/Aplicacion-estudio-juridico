@@ -7,6 +7,10 @@ export {};
 
 declare global {
   interface Window {
+    device?: {
+      getId: () => Promise<string>;
+      ua?: string;
+    };
     presence?: {
       subscribe: (
         cb: (

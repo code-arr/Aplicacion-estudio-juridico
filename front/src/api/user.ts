@@ -1,5 +1,6 @@
 import type { User } from "@/types/User";
 import axios from "./axios";
+import type { LoginEntry } from "@/types/LoginEntry";
 
 type LoginResponse = {
   user: User;
@@ -11,9 +12,11 @@ export const loginUser = async (
   password: string
 ): Promise<LoginResponse> => {
   try {
+    const deviceId = (await window.device?.getId?.()) ?? "unknown"; // ⬅️ ahora es async
     const response = await axios.post("/auth/login", {
       email,
       password,
+      deviceId, // ⬅️ NUEVO
     });
     return response.data;
   } catch (error) {
@@ -21,6 +24,13 @@ export const loginUser = async (
     throw error;
   }
 };
+
+export async function getRecentLogins(token: string): Promise<LoginEntry[]> {
+  const { data } = await axios.get("/me/logins", {
+    headers: { Authorization: `Bearer ${token}` }, // si ya tenés interceptor, podés quitar esto
+  });
+  return Array.isArray(data) ? data : [];
+}
 
 export const getUserFromToken = async (token: string): Promise<User> => {
   try {

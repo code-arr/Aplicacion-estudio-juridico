@@ -1,3 +1,4 @@
+// src/types/AuthState.ts
 import type { User } from "./User";
 
 export interface AuthState {

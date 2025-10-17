@@ -13,6 +13,19 @@ import { createMainSyncService } from "./sync/syncService.js";
 import { createSyncApi } from "./sync/syncApi.js";
 import { registerTimerIpc, timerShutdown } from "./timer/ipc.js";
 import { registerTimeQueueHandlers } from "./ipc/timeQueueHandlers.js";
+import { createHash } from "crypto";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const { machineIdSync } = require("node-machine-id"); // ✅ CJS en ESM
+
+const _rawMachineId = machineIdSync(); // estable por equipo
+const _deviceId = createHash("sha256")
+  .update(_rawMachineId)
+  .digest("hex")
+  .slice(0, 64);
+
+// ✅ REGISTRAR EL HANDLER *ANTES* DE CREAR VENTANAS
+ipcMain.handle("device:getId", () => _deviceId);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

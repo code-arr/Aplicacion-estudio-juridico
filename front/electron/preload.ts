@@ -12,6 +12,11 @@ import type { TimeEntry } from "../src/types/Timer";
  * - Usar el buffer local de tiempo (timeBuffer.*) SIN tocar la red desde Electron
  */
 
+contextBridge.exposeInMainWorld("device", {
+  getId: () => ipcRenderer.invoke("device:getId"), // Promise<string>
+  ua: navigator.userAgent,
+});
+
 // ⬇️ NUEVO: API de presencia del SO
 contextBridge.exposeInMainWorld("presence", {
   subscribe: (

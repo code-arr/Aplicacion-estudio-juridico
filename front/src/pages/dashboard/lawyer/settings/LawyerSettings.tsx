@@ -3,11 +3,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
-import { googleConnect } from "@/api/user";
+import { getRecentLogins, googleConnect } from "@/api/user";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import googleLogo from "@/assets/logos/google.png";
 import ChangePasswordDialog from "@/components/lawyer/ChangePasswordDialog";
 import { useFocusContext } from "@/hooks/useFocusContext";
@@ -23,6 +22,15 @@ import {
   PauseCircle,
   Pencil,
 } from "lucide-react";
+import type { LoginEntry } from "@/types/LoginEntry";
+
+function parseUA(ua?: string) {
+  if (!ua) return "Dispositivo";
+  if (/Windows/i.test(ua)) return "Windows";
+  if (/Macintosh|Mac OS/i.test(ua)) return "macOS";
+  if (/Linux/i.test(ua)) return "Linux";
+  return "Dispositivo";
+}
 
 const Settings = () => {
   useFocusContext({ type: "LawyerApp", id: "main" });
@@ -34,9 +42,38 @@ const Settings = () => {
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [recentLogins, setRecentLogins] = useState<LoginEntry[]>([]);
+  const [loginsLoading, setLoginsLoading] = useState(false);
+  const [loginsError, setLoginsError] = useState<string | null>(null);
+
+  console.log(recentLogins);
+
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const lawyer = useLawyerStore((s) => s.lawyer);
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoginsLoading(true);
+        setLoginsError(null);
+
+        if (!token) {
+          setRecentLogins([]);
+          return;
+        }
+
+        const data = await getRecentLogins(token);
+        setRecentLogins(data);
+      } catch {
+        setLoginsError("No se pudieron cargar los inicios recientes");
+        setRecentLogins([]);
+      } finally {
+        setLoginsLoading(false);
+      }
+    };
+    run();
+  }, [token]);
 
   useEffect(() => {
     if (user?.googleEmail) setIsGoogleConnected(true);
@@ -217,7 +254,7 @@ const Settings = () => {
             <CardContent className="">
               <div className="flex flex-col rounded-lg border border-gray-200 bg-white/70 shadow-sm divide-y divide-gray-200">
                 {/* Cambiar contraseña */}
-                <div className="flex items-center justify-between p-3">
+                <div className="flex items-center justify-between gap-x-2 p-3">
                   <div>
                     <p className="font-medium text-[hsl(225,15%,15%)]">
                       Contraseña
@@ -236,16 +273,53 @@ const Settings = () => {
                   </Button>
                 </div>
 
-                {/* Último inicio de sesión */}
-                <div className="flex items-start gap-2 p-3">
-                  <LogIn className="h-4 w-4 mt-0.5 text-gray-500" />
-                  <p className="text-sm text-gray-600">
-                    Último acceso:{" "}
-                    <span className="font-medium text-gray-700">
-                      08/08/2025 18:23
-                    </span>{" "}
-                    desde IP 190.11.22.33 (Mendoza, Argentina)
-                  </p>
+                {/* Accesos anteriores desde otros dispositivos (0..3) */}
+                <div className="p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <LogIn className="h-4 w-4 text-gray-500" />
+                    <p className="font-medium text-[hsl(225,15%,15%)]">
+                      Inicios de sesión recientes
+                    </p>
+                  </div>
+
+                  {loginsLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 pl-6">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Cargando…
+                    </div>
+                  ) : loginsError ? (
+                    <div className="pl-6 text-sm text-red-600">
+                      {loginsError}
+                    </div>
+                  ) : recentLogins.length === 0 ? (
+                    <div className="pl-6 text-sm text-gray-600">
+                      No hay accesos anteriores desde otros dispositivos.
+                    </div>
+                  ) : (
+                    <ul className="pl-6 space-y-1">
+                      {recentLogins.map((l) => (
+                        <li key={l.id} className="text-sm text-gray-600">
+                          <span className="font-medium text-gray-700">
+                            {new Date(l.createdAt).toLocaleString()}
+                          </span>{" "}
+                          — IP {l.ip} — {parseUA(l.userAgent)}
+                          {(l.city ||
+                            l.region ||
+                            l.country ||
+                            l.countryCode) && (
+                            <>
+                              {" "}
+                              (
+                              {[l.city, l.region, l.country ?? l.countryCode]
+                                .filter(Boolean)
+                                .join(", ")}
+                              )
+                            </>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 {/* Verificación en dos pasos */}
@@ -397,8 +471,8 @@ const Settings = () => {
                     <div className="flex items-start gap-2 text-sm text-gray-600">
                       <Info className="h-4 w-4 mt-0.5 text-gray-500" />
                       <span>
-                        Cambia de contexto al abrir otro cliente/ítem y continúa
-                        el tracking allí.
+                        Cambia de contexto al abrir otro cliente y continúa el
+                        tracking allí.
                       </span>
                     </div>
                   </div>
