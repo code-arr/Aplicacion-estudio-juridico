@@ -1,22 +1,22 @@
+// src/auth/google.module.ts
 import { Module } from '@nestjs/common';
-import { GoogleStrategy } from './google.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { GoogleStrategy } from './google.strategy';
 import { User } from '../entities/user.entity';
-import { AuthRepository } from './auth.repository';
 import { UserService } from 'src/services/user.service';
 import { UserRepository } from 'src/repositories/user.repository';
-/* import { MyMailerModule } from 'src/mailer/mailer.module';
-import { PasswordResetRepository } from 'src/repositories/passwordResetToken.repository';
-import { PasswordResetToken } from 'src/entities/passwordResetToken.entity';
-import { PasswordResetTokenModule } from 'src/modules/passwordResetToken.module'; */
 
 @Module({
-  imports: [
-    // Aquí importamos el repositorio de usuarios
-    // para que la estrategia y el servicio puedan acceder a la base de datos
-    TypeOrmModule.forFeature([User]),
+  imports: [TypeOrmModule.forFeature([User])],
+  providers: [
+    GoogleStrategy,
+    UserService,
+    UserRepository,
+    // ⛔️ NO pongas AuthRepository acá
   ],
-  providers: [GoogleStrategy, AuthRepository, UserService, UserRepository],
-  exports: [GoogleStrategy, AuthRepository, UserService],
+  exports: [
+    GoogleStrategy,
+    // ⛔️ No exportes AuthRepository
+  ],
 })
 export class GoogleModule {}

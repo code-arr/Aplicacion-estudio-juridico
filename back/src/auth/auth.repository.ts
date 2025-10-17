@@ -1,3 +1,4 @@
+// src/auth/auth.repository.ts
 import { registerUserDto } from 'src/dtos/user.dto';
 import { User } from 'src/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
