@@ -3,24 +3,25 @@ import { User } from 'src/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { isBefore , addMinutes} from 'date-fns';
-
+import { isBefore, addMinutes } from 'date-fns';
 import { UserService } from 'src/services/user.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MyMailerService } from 'src/mailer/mailer.service';
+import { SystemMailerService } from 'src/mailer/system-mailer.service'; // ✅ NUEVO
 import { PasswordResetRepository } from 'src/repositories/passwordResetToken.repository';
+/* import { MyMailerService } from 'src/mailer/mailer.service'; */
 
 @Injectable()
 export class AuthRepository {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
-    private readonly mailer: MyMailerService,
+    private readonly systemMailer: SystemMailerService, // ✅ neutral
     private readonly resetRepo: PasswordResetRepository,
+    /* private readonly mailer: MyMailerService, */
   ) {}
 
   async register(user): Promise<Partial<User> | void> {
@@ -110,6 +111,7 @@ export class AuthRepository {
 
     return user;
   }
+
   async forgotPassword(email: string) {
     const user = await this.userService.findOneByEmail(email);
 
@@ -127,8 +129,8 @@ export class AuthRepository {
         expiresAt,
       });
 
-      
-      await this.mailer.sendResetPasswordEmail(email, token);
+      // ✅ usar el mail neutral del sistema
+      await this.systemMailer.sendPasswordReset(email, token);
     }
 
     return { message: 'Si existe, te enviamos un correo' };
@@ -136,17 +138,18 @@ export class AuthRepository {
 
   // --- NUEVO: Restablecer la contraseña ---
   async resetPassword(token: string, password: string) {
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const t = await this.resetRepo.findValidByHash(tokenHash);
 
     if (!t || isBefore(t.expiresAt, new Date()) || t.usedAt) {
-      throw new BadRequestException('Token inválido o expirado');
+      throw new BadRequestException("Token inválido o expirado");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     await this.userService.updatePassword(t.userId, hashedPassword);
     await this.resetRepo.markUsed(t.id);
 
-    return { ok: true, message: 'Contraseña restablecida correctamente' };
+    return { ok: true, message: "Contraseña restablecida correctamente" };
   }
+}
 }
