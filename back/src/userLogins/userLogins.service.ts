@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserLogin } from 'src/userLogins/userLogin.entity';
+import { GeoIpService } from './geoip.service';
 
 @Injectable()
 export class UserLoginsService {
   constructor(
     @InjectRepository(UserLogin)
     private readonly repo: Repository<UserLogin>,
+    private readonly geo: GeoIpService,
   ) {}
 
   async create(input: {
@@ -18,6 +20,17 @@ export class UserLoginsService {
   }) {
     const log = this.repo.create(input);
     await this.repo.save(log);
+
+    // Enriquecimiento asincrónico, sin bloquear la respuesta de /auth/login
+    (async () => {
+      try {
+        const g = await this.geo.lookup(input.ip);
+        if (g && (g.city || g.region || g.country || g.countryCode)) {
+          await this.repo.update(log.id, g);
+        }
+      } catch {}
+    })();
+
     return log;
   }
 

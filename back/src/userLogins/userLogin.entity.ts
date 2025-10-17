@@ -25,6 +25,18 @@ export class UserLogin {
   @Column({ length: 64 })
   ip: string;
 
+  @Column({ nullable: true })
+  city?: string;
+
+  @Column({ nullable: true })
+  region?: string;
+
+  @Column({ nullable: true })
+  country?: string;
+
+  @Column({ nullable: true })
+  countryCode?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }
