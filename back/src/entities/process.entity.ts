@@ -31,6 +31,9 @@ export class Process {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   dateTime: Date;
 
+  @Column({ type: 'uuid' })
+  clientId: string;
+
   @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
   createdAt!: Date;
 
