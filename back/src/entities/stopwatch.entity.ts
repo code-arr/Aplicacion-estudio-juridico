@@ -7,6 +7,8 @@ import {
   JoinColumn,
   BeforeInsert,
   BeforeUpdate,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm'; // Asegúrate de que JoinColumn esté aquí
 import { IsUUID } from 'class-validator';
 import { v4 as uuid } from 'uuid';
@@ -35,22 +37,11 @@ export class StopWatch {
   @ManyToOne(() => Lawyer, (lawyer) => lawyer.stopWatch)
   lawyer: Lawyer;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createAt: Date;
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  createdAt!: Date;
 
-  // La columna ya no necesita "onUpdate"
-  @Column({ type: 'timestamp', nullable: true })
-  updateAt: Date;
-
-  @BeforeInsert()
-  setCreateAt() {
-    this.createAt = moment().tz('America/Santiago').toDate();
-  }
-
-  @BeforeUpdate()
-  setUpdateAt() {
-    this.updateAt = moment().tz('America/Santiago').toDate();
-  }
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  updatedAt!: Date;
 
   // Relación OneToOne con Caso: Un cronómetro está asociado a un único caso (y viceversa)
   //@OneToOne(() => Caso, (caso) => caso.cronometro)

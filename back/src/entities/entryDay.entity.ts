@@ -1,26 +1,39 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, ManyToOne } from 'typeorm';
-
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  OneToMany,
+  ManyToOne,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('EntryDay')
 export class EntryDay {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-  
-  @Column()
-  day : Date;
 
   @Column()
-  durationSec : number;
+  day: Date;
 
   @Column()
-  trackableId : string;
+  durationSec: number;
 
   @Column()
-  lawyerId : string;
+  trackableId: string;
 
   @Column()
-  clientId : string;
+  lawyerId: string;
 
   @Column()
-  type : string;
+  clientId: string;
+
+  @Column()
+  type: string;
+
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  updatedAt!: Date;
 }

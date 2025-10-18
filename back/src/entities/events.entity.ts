@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  OneToMany,
+  ManyToOne,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Lawyer } from './lawyer.entity';
 
 @Entity('event')
@@ -18,8 +26,11 @@ export class Event {
   @Column()
   action: string; // Ej: CREATED, UPDATED, DELETED
 
-  @CreateDateColumn({nullable: true})
-  createdAt: Date;
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  updatedAt!: Date;
 
   @ManyToOne(() => Lawyer, (lawyer) => lawyer.events)
   lawyer: Lawyer;

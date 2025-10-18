@@ -37,6 +37,6 @@ export class UserLogin {
   @Column({ nullable: true })
   countryCode?: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
   createdAt: Date;
 }

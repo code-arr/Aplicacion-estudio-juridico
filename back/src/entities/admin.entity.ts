@@ -1,4 +1,12 @@
-import { Entity, JoinColumn, OneToOne, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryColumn,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { IsUUID } from 'class-validator';
 import { User } from './user.entity';
 
@@ -9,8 +17,14 @@ export class Admin {
   id: string;
 
   //relacion con usuario
-   
-  @OneToOne(() => User, user => user.admin, { onDelete: 'CASCADE' })
-  @JoinColumn() 
+
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  updatedAt!: Date;
+
+  @OneToOne(() => User, (user) => user.admin, { onDelete: 'CASCADE' })
+  @JoinColumn()
   user: User;
 }

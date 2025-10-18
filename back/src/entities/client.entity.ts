@@ -9,6 +9,8 @@ import {
   JoinColumn,
   BeforeInsert,
   BeforeUpdate,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { IsUUID } from 'class-validator'; // Importar IsUUID para validación
 import { v4 as uuid } from 'uuid'; // Importar uuid para la generación del ID
@@ -36,10 +38,10 @@ export class Client {
   @IsUUID()
   id: string = uuid();
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   firstName: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   lastName: string;
 
   @Column()
@@ -63,29 +65,17 @@ export class Client {
   @Column({ type: 'int', default: 0 })
   activeTime: number;
 
-  @Column({type : 'varchar', nullable: true , unique : true})
-  companyName : string;
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  companyName: string;
 
-  @Column({type : 'varchar', nullable: true})
-  legalRepresentative : string;
+  @Column({ type: 'varchar', nullable: true })
+  legalRepresentative: string;
 
-  // La columna ya no necesita el "default" ya que lo asignas en el código
-  @Column({ type: 'timestamp' })
-  createAt: Date;
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  createdAt!: Date;
 
-  // La columna ya no necesita "onUpdate"
-  @Column({ type: 'timestamp', nullable: true })
-  updateAt: Date;
-
-  @BeforeInsert()
-  setCreateAt() {
-    this.createAt = moment().tz('America/Santiago').toDate();
-  }
-
-  @BeforeUpdate()
-  setUpdateAt() {
-    this.updateAt = moment().tz('America/Santiago').toDate();
-  }
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  updatedAt!: Date;
 
   @ManyToMany(() => Lawyer, (lawyer) => lawyer.clients)
   lawyers: Lawyer[];
