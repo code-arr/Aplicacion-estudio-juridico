@@ -2,7 +2,11 @@ import { ClientItemService } from '../services/clientItem.service';
 import { ProcessDto } from '../dtos/process.dto';
 import { Process } from '../entities/process.entity';
 import { Repository } from 'typeorm';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as moment from 'moment-timezone';
 
