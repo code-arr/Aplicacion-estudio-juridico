@@ -6,6 +6,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { registerUserDto } from 'src/dtos/user.dto';
@@ -46,6 +47,9 @@ export class AuthController {
   @Get('me')
   async me(@Req() req) {
     const user = await this.userService.getOneById(req.user.id);
+    if (!user) {
+      throw new UnauthorizedException('User not found for this token');
+    }
     return {
       id: user.id,
       email: user.email,
