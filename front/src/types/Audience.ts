@@ -9,8 +9,8 @@ export interface Audience {
 
   clientId: string;
 
-  updateAt?: Date;
-  createAt?: Date;
+  updatedAt?: Date;
+  createdAt?: Date;
 
   tags?: string[];
   status?: "draft" | "final" | "archived";

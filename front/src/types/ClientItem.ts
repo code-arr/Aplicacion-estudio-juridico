@@ -30,6 +30,6 @@ export interface ClientItem {
   description?: string;
   status?: ClientItemStatus;
 
-  createAt?: string; // ISO date string
+  createdAt?: string; // ISO date string
   updatedAt?: string; // ISO date string
 }

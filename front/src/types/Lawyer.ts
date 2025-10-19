@@ -14,8 +14,8 @@ export interface Lawyer {
   seniorityLevel: string;
   workedHours: number;
 
-  createAt: string;
-  updateAt: string;
+  createdAt: string;
+  updatedAt: string;
 
   user?: User;
   clients?: Client[];

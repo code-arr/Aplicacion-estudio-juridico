@@ -43,7 +43,7 @@ export default function AdminLawyersPage() {
           type: l.type,
           seniorityLevel: l.seniorityLevel,
           workedHours: l.workedHours,
-          updatedAt: l.updateAt ?? l.createAt,
+          updatedAt: l.updatedAt ?? l.createdAt,
         }));
 
         setRows(mapped);

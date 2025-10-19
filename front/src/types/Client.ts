@@ -41,8 +41,8 @@ export interface Client {
   companyName?: string;
   legalRepresentative?: string;
 
-  createAt?: string; // ISO date string
-  updateAt?: string;
+  createdAt?: string; // ISO date string
+  updatedAt?: string;
 
   // Jerarquía
   motherId?: string; // Para corporaciones dependientes de otra

@@ -8,6 +8,9 @@ import { selectClientDetail, useClientStore } from "@/store/useClientStore";
 import {
   useClientItemStore,
   selectRecentClientItemsByClientId,
+  selectIsClientItemsLoading,
+  selectClientItemsBusy,
+  selectClientItemsByClientId,
 } from "@/store/useClientItemStore";
 import ItemForm from "@/components/items/ItemForm";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
@@ -23,6 +26,7 @@ import EmailDialog from "@/components/clients/EmailDialog";
 import { useJoinMeeting } from "@/hooks/useJoinMeeting";
 import { useMeetingStore } from "@/store/useMeetingStore";
 import { pickNextAndLast } from "@/utils/meetings";
+import { formatDateChileShort } from "@/lib/formatDate";
 
 const ClientOverviewPage = () => {
   /*   const { id } = useParams(); */
@@ -34,12 +38,12 @@ const ClientOverviewPage = () => {
   const fetchClientItemsByClientId = useClientItemStore(
     (s) => s.fetchClientItemsByClientId
   );
-  const clientItemsByClientId = useClientItemStore(
+  /*   const clientItemsByClientId = useClientItemStore(
     (s) => s.clientItemsByClientId
-  );
-  const recentClientItemsByClientId = useClientItemStore(
-    selectRecentClientItemsByClientId
-  );
+  ); */
+  const all = useClientItemStore(selectClientItemsByClientId);
+  const isLoadingItems = useClientItemStore(selectIsClientItemsLoading);
+  const recent = useClientItemStore(selectRecentClientItemsByClientId);
 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -96,28 +100,6 @@ const ClientOverviewPage = () => {
       <span className="text-yellow-600 font-medium">En revisión</span>
     ),
   };
-
-  function capitalize(str: string): string {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  }
-
-  function formatDate(isoString: string): string {
-    const date = new Date(isoString);
-
-    const options: Intl.DateTimeFormatOptions = {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    };
-
-    const formatted = date
-      .toLocaleDateString("es-ES", options)
-      .replace(",", "");
-    return capitalize(formatted);
-  }
 
   // ============
   // Próxima reunión (URL y fecha)
@@ -227,14 +209,10 @@ const ClientOverviewPage = () => {
                   </p>
 
                   <p className="text-sm text-[hsl(225,10%,50%)]">
-                    Última Actualización
+                    Fecha de creación
                   </p>
                   <p className="font-bold mb-2 text-[hsl(225,15%,15%)]">
-                    {formatDate(
-                      clientDetail.updateAt
-                        ? clientDetail.updateAt
-                        : clientDetail.createAt!
-                    )}
+                    {formatDateChileShort(clientDetail.createdAt!)}
                   </p>
 
                   <p className="text-sm text-[hsl(225,10%,50%)]">Estado</p>
@@ -344,7 +322,7 @@ const ClientOverviewPage = () => {
             <div className="flex w-1/2 gap-5">
               <div className="relative flex-1">
                 <ItemsSearchBar
-                  items={clientItemsByClientId} // tu lista completa del cliente
+                  items={all}
                   limit={4}
                   onSelect={(item) => {
                     // navegar al detalle o completar el input
@@ -401,17 +379,46 @@ const ClientOverviewPage = () => {
               <h3 className="font-semibold text-[1.1rem] text-[hsl(225,15%,15%)] mb-3">
                 Items Recientes
               </h3>
-              <div className="grid grid-cols-1 pr-10 gap-4">
-                {recentClientItemsByClientId?.map((item) => {
-                  return (
+              {isLoadingItems ? (
+                // Loader pequeño en línea
+                <div className="py-6 flex items-center gap-3 text-[hsl(225,10%,50%)]">
+                  <LoadingSpinner />
+                  Cargando ítems del cliente…
+                </div>
+              ) : all.length === 0 ? (
+                // Empty state lindo con CTA
+                <div className="py-6 rounded-md border border-dashed border-gray-300 bg-gray-50">
+                  <div className="text-center px-6">
+                    <p className="text-[hsl(225,15%,15%)] font-medium">
+                      Aún no hay ítems para este cliente
+                    </p>
+                    <p className="text-sm text-[hsl(225,10%,45%)]">
+                      Creá el primero para empezar a trabajar
+                    </p>
+                    <Button
+                      onClick={() => setIsDialogOpen(true)}
+                      className="mt-3 bg-[#f3b600] hover:bg-[#ffbf00]/80"
+                    >
+                      <SquarePlus className="mr-2" /> Agregar Item
+                    </Button>
+                  </div>
+                </div>
+              ) : recent.length === 0 ? (
+                // Tiene ítems pero ninguno “reciente” según tu regla (raro, pero contemplado)
+                <div className="py-4 text-sm text-[hsl(225,10%,45%)]">
+                  No hay movimientos recientes.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 pr-10 gap-4">
+                  {recent.map((item) => (
                     <ItemCard
                       key={item.id}
                       item={item}
                       onViewDetails={handleViewDetails}
                     />
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -432,13 +439,13 @@ const ClientOverviewPage = () => {
               <div>
                 <p className="text-[hsl(225,10%,50%)]">Ítems Registrados</p>
                 <p className="font-semibold text-[hsl(225,15%,15%)]">
-                  {clientItemsByClientId?.length}
+                  {all?.length}
                 </p>
               </div>
               <div>
-                <p className="text-[hsl(225,10%,50%)]">Último Movimiento</p>
+                <p className="text-[hsl(225,10%,50%)]">Última Actualización</p>
                 <p className="font-semibold text-[hsl(225,15%,15%)]">
-                  Sin actividad
+                  {formatDateChileShort(clientDetail.updatedAt!)}
                 </p>
               </div>
               <div>

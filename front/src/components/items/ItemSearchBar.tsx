@@ -1,3 +1,4 @@
+// src/components/items/ItemSearchBar.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClientItem } from "@/types/ClientItem";
 import { Search } from "lucide-react";
@@ -15,6 +16,8 @@ export function ItemsSearchBar({
   placeholder = "Buscar por ítem…",
   limit = 4,
 }: Props) {
+  const data = useMemo(() => items ?? [], [items]);
+
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -29,16 +32,16 @@ export function ItemsSearchBar({
 
   const results = useMemo(() => {
     if (!debounced) return [];
-    return items
+    return data
       .filter((it) => it.title?.toLowerCase().includes(debounced))
       .slice(0, limit);
-  }, [debounced, items, limit]);
+  }, [debounced, data, limit]);
 
   // abrir/cerrar
   useEffect(() => {
-    setOpen(Boolean(debounced) && results.length > 0);
+    setOpen(Boolean(debounced) && (results.length > 0 || data.length === 0));
     setActive(0);
-  }, [debounced, results.length]);
+  }, [debounced, results.length, data.length]);
 
   // click afuera
   useEffect(() => {
@@ -87,47 +90,52 @@ export function ItemsSearchBar({
 
       {/* dropdown: mismo ancho que el input */}
       {open && (
-        <div
-          role="listbox"
-          className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-md overflow-hidden"
-        >
+        <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-md overflow-hidden">
           <ul className="max-h-80 overflow-auto">
-            {results.map((it, i) => (
-              <li key={it.id}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={i === active}
-                  onMouseEnter={() => setActive(i)}
-                  // onMouseDown para no perder el focus del input antes del click
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    onSelect(it);
-                    setOpen(false);
-                  }}
-                  className={`block w-full text-left px-3 py-2 hover:bg-gray-50 ${
-                    i === active ? "bg-gray-50" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-medium text-[hsl(225,15%,15%)] capitalize">
-                      {it.title}
-                    </span>
-                    {/* meta opcional */}
-                    {it.status && (
-                      <span className="ml-auto text-xs text-gray-500 capitalize">
-                        {it.status}
-                      </span>
-                    )}
-                  </div>
-                  {it.description && (
-                    <p className="text-xs text-gray-500 truncate capitalize">
-                      {it.description}
-                    </p>
-                  )}
-                </button>
+            {data.length === 0 && debounced ? (
+              <li className="px-3 py-2 text-sm text-gray-500">
+                Aún no hay ítems para este cliente
               </li>
-            ))}
+            ) : results.length === 0 && debounced ? (
+              <li className="px-3 py-2 text-sm text-gray-500">
+                Sin resultados
+              </li>
+            ) : (
+              results.map((it, i) => (
+                <li key={it.id}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={i === active}
+                    onMouseEnter={() => setActive(i)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      onSelect(it);
+                      setOpen(false);
+                    }}
+                    className={`block w-full text-left px-3 py-2 hover:bg-gray-50 ${
+                      i === active ? "bg-gray-50" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-medium text-[hsl(225,15%,15%)] capitalize">
+                        {it.title}
+                      </span>
+                      {it.status && (
+                        <span className="ml-auto text-xs text-gray-500 capitalize">
+                          {it.status}
+                        </span>
+                      )}
+                    </div>
+                    {it.description && (
+                      <p className="text-xs text-gray-500 truncate capitalize">
+                        {it.description}
+                      </p>
+                    )}
+                  </button>
+                </li>
+              ))
+            )}
           </ul>
         </div>
       )}

@@ -10,6 +10,6 @@ export interface User {
   lawyerId?: string;
   adminId?: string;
 
-  createAt: Date;
-  updateAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }

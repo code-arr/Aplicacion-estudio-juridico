@@ -5,6 +5,6 @@ export interface Process {
   durationSec: null | number;
   dateTime: string; // ISO 8601
 
-  updateAt?: string;
-  createAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

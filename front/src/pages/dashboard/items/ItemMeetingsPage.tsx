@@ -84,17 +84,48 @@ const ItemMeetingsPage = () => {
     });
   }, [openMeeting]);
 
+  // 1) Helpers arriba del componente (mantenelos cerca del resto)
+  const normalize = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  const filtered = useMemo(() => {
+    const q = normalize(searchTerm.trim());
+    if (!q) return meetingsByClientItem;
+
+    const tokens = q.split(/\s+/).filter(Boolean);
+
+    return meetingsByClientItem.filter((m) => {
+      const fields: Array<string | undefined> = [
+        m.name,
+        m.status,
+        m.type === "google-meet" ? "google meet" : "presencial",
+        m.location,
+        m.notes,
+        m.startAt,
+        m.endAt,
+        // participantes: nombre y email
+        ...(m.participants?.flatMap((p) => [p.name, p.email]) ?? []),
+      ];
+
+      const haystack = normalize(fields.filter(Boolean).join(" "));
+      return tokens.every((t) => haystack.includes(t));
+    });
+  }, [searchTerm, meetingsByClientItem]);
+
   const scheduled = useMemo(
-    () => meetingsByClientItem.filter((m) => m.status === "scheduled"),
-    [meetingsByClientItem]
+    () => filtered.filter((m) => m.status === "scheduled"),
+    [filtered]
   );
   const completed = useMemo(
-    () => meetingsByClientItem.filter((m) => m.status === "completed"),
-    [meetingsByClientItem]
+    () => filtered.filter((m) => m.status === "completed"),
+    [filtered]
   );
   const canceled = useMemo(
-    () => meetingsByClientItem.filter((m) => m.status === "canceled"),
-    [meetingsByClientItem]
+    () => filtered.filter((m) => m.status === "canceled"),
+    [filtered]
   );
 
   function EmptyRow({ text }: { text: string }) {
@@ -227,128 +258,6 @@ const ItemMeetingsPage = () => {
           console.log("Cancelar", m.id);
         }}
       />
-
-      {/* <div
-        className={`absolute inset-0 z-40 bg-black/30 rounded-sm backdrop-blur-[1px] transition-opacity duration-300 ease-in-out ${
-          openMeeting
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => setOpenId(null)}
-      />
-
-      <aside
-        id="meeting-detail-panel"
-        className={`absolute z-50 top-0 right-0 h-full w-full md:w-[380px]
-      bg-white border-l border-gray-200 
-        transform transition-transform duration-300 ease-in-out will-change-transform
-        ${
-          openMeeting ? "translate-x-0" : "translate-x-full pointer-events-none"
-        }`}
-        role="dialog"
-        aria-modal="true"
-        aria-hidden={!openMeeting}
-      >
-        <div className="px-5 pt-4 border-b border-gray-200 flex items-start justify-between">
-          <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-gray-900 truncate">
-              {openMeeting?.name ?? "Reunión"}
-            </h2>
-            {openMeeting && (
-              <p className="pt-1 pb-4 text-sm text-gray-600">
-                {formatDateShort(openMeeting.startAt)} ·{" "}
-                {formatTime(openMeeting.startAt)}
-              </p>
-            )}
-          </div>
-          <button
-            className="ml-3 text-gray-500 hover:text-gray-700"
-            onClick={() => setOpenId(null)}
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div
-          className={`px-5 py-4 space-y-4 h-[calc(100%-56px)] ${
-            openMeeting ? "overflow-visible" : "overflow-y-auto scrollbar-none"
-          }`}
-        >
-          {openMeeting && (
-            <>
-              <div className="text-sm text-gray-700">
-                <div className="flex items-center gap-2">
-                  {openMeeting.type === "google-meet" ? (
-                    <>
-                      <img src={googleLogo} alt="Google" className="h-4 w-4" />
-                      <span className="font-medium">Google Meet</span>
-                    </>
-                  ) : (
-                    <>
-                      <User className="h-4 w-4" />
-                      <span className="font-medium">Presencial</span>
-                    </>
-                  )}
-                </div>
-
-                {openMeeting.link && (
-                  <div className="pt-2">
-                    <a
-                      href={openMeeting.link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-700 underline break-all"
-                    >
-                      {openMeeting.link}
-                    </a>
-                  </div>
-                )}
-
-                {openMeeting.location && (
-                  <p className="pt-2">📍 {openMeeting.location}</p>
-                )}
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-gray-900 pb-2">
-                  Participantes
-                </p>
-                <ul className="flex flex-col gap-y-1">
-                  {openMeeting.participants.map((p) => (
-                    <li key={p.email} className="text-sm text-gray-700">
-                      {p.name ? `${p.name} · ` : ""}
-                      {p.email}
-                    </li>
-                  ))}
-                  <li className="text-sm text-gray-700">
-                    {`${lawyer?.firstName}  ${lawyer?.lastName} · `}
-                    {user?.googleEmail}
-                  </li>
-                </ul>
-              </div>
-
-              {openMeeting.notes && (
-                <div>
-                  <p className="text-sm font-medium text-gray-900 pb-1">
-                    Notas internas
-                  </p>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                    {openMeeting.notes}
-                  </p>
-                </div>
-              )}
-
-              <div className="pt-2 flex gap-2">
-                <Button className="bg-blue-800">Editar</Button>
-                <Button variant="outline" className="border-gray-300">
-                  Cancelar reunión
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
-      </aside> */}
     </div>
   );
 };

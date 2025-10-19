@@ -1,7 +1,7 @@
 import type { ClientItem } from "@/types/ClientItem";
 
 const pickMillis = (it: ClientItem) =>
-  new Date(it.updatedAt ?? it.createAt ?? 0).getTime();
+  new Date(it.updatedAt ?? it.createdAt ?? 0).getTime();
 
 const compareRecentDesc = (a: ClientItem, b: ClientItem) => {
   const diff = pickMillis(b) - pickMillis(a);

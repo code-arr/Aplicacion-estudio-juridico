@@ -82,10 +82,12 @@ const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
 
     const startedAtIso = localDateTimeToIsoUtc(newProcess.dateTime)!; // ISO UTC
 
+    const payload = { ...newProcess, dateTime: startedAtIso };
+
     try {
       setSaving(true);
 
-      await createProcess(newProcess, clientId, clientItemId!);
+      await createProcess(payload, clientId, clientItemId!);
 
       await fetchProcessesByClientItemId(clientItemId!);
 

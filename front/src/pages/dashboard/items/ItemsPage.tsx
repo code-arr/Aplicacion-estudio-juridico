@@ -38,7 +38,7 @@ const ORDER_CMP: Record<SortKey, (a: ClientItem, b: ClientItem) => number> = {
     cmp(safeDate(b.updatedAt) - safeDate(a.updatedAt)) ||
     cmpStr(a.title, b.title),
   creation: (a, b) =>
-    cmp(safeDate(b.createAt) - safeDate(a.createAt)) ||
+    cmp(safeDate(b.createdAt) - safeDate(a.createdAt)) ||
     cmpStr(a.title, b.title),
   A_Z: (a, b) => cmpStr(a.title, b.title),
   /* elements: (a, b) =>

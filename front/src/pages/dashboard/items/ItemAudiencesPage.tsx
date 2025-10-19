@@ -4,10 +4,24 @@ import { useAudienceStore } from "@/store/useAudienceStore";
 import AudienceForm from "@/components/audiences/AudienceForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { FilePlus2, Search } from "lucide-react";
 import { useParams } from "react-router-dom";
 import AudienceCard from "@/components/audiences/AudienceCard";
 import RowSkeleton from "@/components/shared/RowSkeleton";
+
+function EmptyItemAudiences() {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 text-center">
+      <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[hsl(210,100%,95%)] mb-4">
+        <FilePlus2 className="w-8 h-8 text-[hsl(210,100%,40%)]" />
+      </div>
+
+      <h3 className="text-lg font-semibold text-[hsl(225,15%,15%)]">
+        No se encontraron audiencias.
+      </h3>
+    </div>
+  );
+}
 
 const ItemAudiencesPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
@@ -57,6 +71,22 @@ const ItemAudiencesPage = () => {
     });
   }
 
+  const isEmpty =
+    !loading &&
+    !error &&
+    Array.isArray(audiencesByClientItem) &&
+    audiencesByClientItem.length === 0;
+
+  const filteredAudiences = Array.isArray(audiencesByClientItem)
+    ? audiencesByClientItem.filter((aud) => {
+        const matchesSearch = aud.name
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase());
+
+        return matchesSearch;
+      })
+    : [];
+
   return (
     <div>
       <AudienceForm
@@ -90,16 +120,27 @@ const ItemAudiencesPage = () => {
               <RowSkeleton />
               <RowSkeleton />
               <RowSkeleton />
+              <RowSkeleton />
             </>
+          ) : error ? (
+            <li className="p-6 text-[hsl(0,70%,40%)]">{error}</li>
+          ) : isEmpty ? (
+            <li className="p-2">
+              <EmptyItemAudiences />
+            </li>
           ) : (
             <>
-              {audiencesByClientItem.map((aud) => (
-                <AudienceCard
-                  key={aud.id}
-                  aud={aud}
-                  openInViewer={openInViewer}
-                />
-              ))}
+              {filteredAudiences.length > 0 ? (
+                filteredAudiences.map((aud) => (
+                  <AudienceCard
+                    key={aud.id}
+                    aud={aud}
+                    openInViewer={openInViewer}
+                  />
+                ))
+              ) : (
+                <EmptyItemAudiences />
+              )}
             </>
           )}
         </ul>

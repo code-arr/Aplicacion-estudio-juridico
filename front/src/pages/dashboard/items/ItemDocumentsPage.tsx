@@ -11,11 +11,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { FilePlus2, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import DocumentCard from "@/components/documents/DocumentCard";
-import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import RowSkeleton from "@/components/shared/RowSkeleton";
+
+function EmptyItemDocuments() {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 text-center">
+      <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[hsl(210,100%,95%)] mb-4">
+        <FilePlus2 className="w-8 h-8 text-[hsl(210,100%,40%)]" />
+      </div>
+
+      <h3 className="text-lg font-semibold text-[hsl(225,15%,15%)]">
+        No se encontraron documentos.
+      </h3>
+    </div>
+  );
+}
 
 const ItemDocumentsPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
@@ -63,6 +76,26 @@ const ItemDocumentsPage = () => {
   function openInViewer(docs: Document[], activeId?: string) {
     window.viewer?.open?.({ docs, activeId: activeId ?? null });
   }
+
+  const isEmpty =
+    !loading &&
+    !error &&
+    Array.isArray(documentsByClientItem) &&
+    documentsByClientItem.length === 0;
+
+  const filteredDocuments = Array.isArray(documentsByClientItem)
+    ? documentsByClientItem.filter((doc) => {
+        const matchesSearch =
+          doc.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          doc.tags?.some((t) =>
+            t.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+
+        const matchesType = typeFilter ? doc.type === typeFilter : true;
+
+        return matchesSearch && matchesType;
+      })
+    : [];
 
   return (
     <div>
@@ -131,16 +164,27 @@ const ItemDocumentsPage = () => {
               <RowSkeleton />
               <RowSkeleton />
               <RowSkeleton />
+              <RowSkeleton />
             </>
+          ) : error ? (
+            <li className="p-6 text-[hsl(0,70%,40%)]">{error}</li>
+          ) : isEmpty ? (
+            <li className="p-2">
+              <EmptyItemDocuments />
+            </li>
           ) : (
             <>
-              {documentsByClientItem.map((doc) => (
-                <DocumentCard
-                  key={doc.id}
-                  doc={doc}
-                  openInViewer={openInViewer}
-                />
-              ))}
+              {filteredDocuments.length > 0 ? (
+                filteredDocuments.map((doc) => (
+                  <DocumentCard
+                    key={doc.id}
+                    doc={doc}
+                    openInViewer={openInViewer}
+                  />
+                ))
+              ) : (
+                <EmptyItemDocuments />
+              )}
             </>
           )}
         </ul>

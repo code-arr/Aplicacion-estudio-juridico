@@ -14,6 +14,6 @@ export interface Meeting {
   endAt?: string; // ISO 8601
   durationSec?: number; // en segundos
   status: MeetingStatus;
-  createAt: string; // ISO 8601
-  updateAt: string; // ISO 8601
+  createdAt: string; // ISO 8601
+  updatedAt: string; // ISO 8601
 }

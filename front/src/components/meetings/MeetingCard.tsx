@@ -1,30 +1,13 @@
 import type { Meeting } from "@/types/Meeting";
 import { ChevronRight, User } from "lucide-react";
 import googleLogo from "@/assets/logos/cromoVerde.png";
+import { formatDateWeekdayShort, formatTimeChile } from "@/lib/formatDate";
 
 interface MeetingCardProps {
   m: Meeting;
   togglePanel: (id: string) => void;
   openId?: string | null;
 }
-
-const formatDateShort = (isoString: string) => {
-  const date = new Date(isoString);
-  return new Intl.DateTimeFormat("es-ES", {
-    weekday: "short", // Lun, Mar, Mié...
-    day: "numeric", // 23
-    month: "short", // ago.
-  }).format(date);
-};
-
-const formatTime = (isoString: string) => {
-  const date = new Date(isoString);
-  return new Intl.DateTimeFormat("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false, // 24h
-  }).format(date);
-};
 
 const MeetingCard = ({ m, togglePanel, openId }: MeetingCardProps) => {
   return (
@@ -34,9 +17,11 @@ const MeetingCard = ({ m, togglePanel, openId }: MeetingCardProps) => {
         {/* fecha */}
         <div className="w-24 shrink-0 text-gray-500 flex flex-col items-center">
           <span className="text-sm font-medium">
-            {`${formatDateShort(m.startAt)}.`}
+            {`${formatDateWeekdayShort(m.startAt)}.`}
           </span>
-          <span className="text-sm font-medium">{formatTime(m.startAt)}</span>
+          <span className="text-sm font-medium">
+            {formatTimeChile(m.startAt)}
+          </span>
         </div>
 
         {/* contenido */}

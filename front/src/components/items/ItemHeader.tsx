@@ -20,6 +20,7 @@ import { useState } from "react";
 import DocumentForm from "@/components/documents/DocumentForm";
 import AudienceForm from "@/components/audiences/AudienceForm";
 import ProcessForm from "@/components/processes/ProcessForm";
+import { formatDateChileShort } from "@/lib/formatDate";
 
 type Tab = {
   value: string;
@@ -176,7 +177,9 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
                 {"Cliente: "}
                 <span className="cursor-pointer text-blue-950">{fullName}</span>
               </p>
-              <p>{`Última actualización: ${item.updatedAt}`}</p>
+              <p>{`Última actualización: ${formatDateChileShort(
+                item.updatedAt!
+              )}`}</p>
             </div>
           </div>
 

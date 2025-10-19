@@ -1,5 +1,4 @@
 // src/utils/datetime.ts
-
 export const formatTimeFromSeconds = (time: any) => {
   console.log(time);
 };

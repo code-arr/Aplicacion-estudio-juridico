@@ -39,7 +39,7 @@ export default function AdminClientsPage() {
           email: c.email,
           phone: c.phone,
           status: c.status,
-          updatedAt: c.updateAt ?? c.createAt,
+          updatedAt: c.updatedAt ?? c.createdAt,
         }));
 
         setRows(mapped);

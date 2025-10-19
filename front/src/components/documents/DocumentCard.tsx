@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdownMenu";
 import type { Document } from "@/types/Document";
+import { formatDateChileNumeric } from "@/lib/formatDate";
 
 interface DocumentCardProps {
   doc: Document;
@@ -20,16 +21,6 @@ const DocumentCard = ({ doc, openInViewer }: DocumentCardProps) => {
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-  }
-
-  function formatDate(input: string | Date | null | undefined): string {
-    if (!input) return "";
-    const date = typeof input === "string" ? new Date(input) : input; // si ya es Date, lo usamos directo
-    return new Intl.DateTimeFormat("es-AR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
   }
 
   return (
@@ -51,7 +42,7 @@ const DocumentCard = ({ doc, openInViewer }: DocumentCardProps) => {
               {formatSize(doc.size)}
             </span>
             <span className="justify-self-end tabular-nums">
-              {formatDate(doc.createAt)}
+              {formatDateChileNumeric(doc.createdAt!)}
             </span>
           </div>
         </div>

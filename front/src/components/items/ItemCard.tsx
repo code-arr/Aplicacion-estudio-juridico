@@ -168,7 +168,7 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
             <p className="text-sm text-gray-500">
               {/* {item.updatedAt
                 ? `Última actualización: ${item.updatedAt}`
-                : `Creado: ${item.createAt}`} */}
+                : `Creado: ${item.createdAt}`} */}
               01/09/2025
             </p>
           </div>

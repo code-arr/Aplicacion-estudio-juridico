@@ -23,6 +23,7 @@ import {
   Pencil,
 } from "lucide-react";
 import type { LoginEntry } from "@/types/LoginEntry";
+import { formatDateChileNumeric } from "@/lib/formatDate";
 
 function parseUA(ua?: string) {
   if (!ua) return "Dispositivo";
@@ -45,8 +46,6 @@ const Settings = () => {
   const [recentLogins, setRecentLogins] = useState<LoginEntry[]>([]);
   const [loginsLoading, setLoginsLoading] = useState(false);
   const [loginsError, setLoginsError] = useState<string | null>(null);
-
-  console.log(recentLogins);
 
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
@@ -300,7 +299,7 @@ const Settings = () => {
                       {recentLogins.map((l) => (
                         <li key={l.id} className="text-sm text-gray-600">
                           <span className="font-medium text-gray-700">
-                            {new Date(l.createdAt).toLocaleString()}
+                            {formatDateChileNumeric(l.createdAt)}
                           </span>{" "}
                           — IP {l.ip} — {parseUA(l.userAgent)}
                           {(l.city ||

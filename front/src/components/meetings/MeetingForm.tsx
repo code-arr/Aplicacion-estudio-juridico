@@ -131,8 +131,10 @@ const MeetingForm = ({
     // 🛠️ Consistencia de fechas: convertimos datetime-local a ISO UTC
     const startAtIsoUtc = localDateTimeToIsoUtc(formData.startAt);
 
+    const payload = { ...formData, startAt: startAtIsoUtc };
+
     try {
-      await createMeeting(formData, clientId, clientItemId);
+      await createMeeting(payload, clientId, clientItemId);
       await fetchMeetingsByClientItemId(clientItemId);
 
       setIsDialogOpen(false);

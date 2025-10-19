@@ -19,8 +19,8 @@ export interface Document {
 
   clientId: string;
 
-  updateAt?: Date;
-  createAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 
   tags?: string[];
   status?: "draft" | "final" | "archived";

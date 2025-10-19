@@ -9,7 +9,7 @@ import {
 } from "@/api/clientItem";
 import { sameIds, topNRecent } from "@/utils/clientItems";
 
-const EMPTY_CLIENT_ITEMS = Object.freeze([]);
+const EMPTY_CLIENT_ITEMS: ClientItem[] = [];
 const ttlMs = 900000;
 
 interface ClientItemState {
@@ -92,10 +92,10 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
       const prevFull = s.clientItemsByClientId ?? [];
       const prevRecent = s.recentClientItemsByClientId ?? [];
 
-      const nextRecent = topNRecent(nextFull, 3);
+      const nextRecent = topNRecent(nextFull, 4);
 
       // armamos un patch mínimo para no disparar renders al cohete
-      const patch: Partial<ClientItemState> = {};
+      const patch: Partial<ClientItemState> = { error: null };
 
       if (!sameIds(prevFull, nextFull)) {
         patch.clientItemsByClientId = nextFull;
@@ -103,9 +103,9 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
       if (!sameIds(prevRecent, nextRecent)) {
         patch.recentClientItemsByClientId = nextRecent;
       }
-      s.error = null;
-      // si nada cambió, devolvemos el estado tal cual
-      return Object.keys(patch).length ? patch : s;
+      return Object.keys(patch).length > 1 // (>1 porque siempre trae error:null)
+        ? (patch as ClientItemState)
+        : s;
     }),
 
   setClientItemDetail: (clientItemId: string) => {
@@ -142,9 +142,6 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await getClientItemsByClientId(clientId);
-      if (!data.length)
-        throw Error("ClientItems no tiene datos para ese cliente");
-
       get().setClientItemsByClientId(data);
     } catch (error) {
       console.error(error);

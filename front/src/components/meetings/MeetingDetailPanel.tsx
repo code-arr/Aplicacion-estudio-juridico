@@ -4,6 +4,7 @@ import { User as UserIcon } from "lucide-react";
 import googleLogo from "@/assets/logos/cromoVerde.png";
 import type { Meeting } from "@/types/Meeting";
 import { useJoinMeeting } from "@/hooks/useJoinMeeting";
+import { formatDateWeekdayShort, formatTimeChile } from "@/lib/formatDate";
 
 type MeetingDetailPanelProps = {
   meeting: Meeting | null;
@@ -17,24 +18,6 @@ type MeetingDetailPanelProps = {
   // Opcional: callbacks para acciones
   onEdit?: (m: Meeting) => void;
   onCancel?: (m: Meeting) => void;
-};
-
-const formatDateShort = (isoString: string) => {
-  const date = new Date(isoString);
-  return new Intl.DateTimeFormat("es-ES", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  }).format(date);
-};
-
-const formatTime = (isoString: string) => {
-  const date = new Date(isoString);
-  return new Intl.DateTimeFormat("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(date);
 };
 
 export default function MeetingDetailPanel({
@@ -93,8 +76,8 @@ export default function MeetingDetailPanel({
             </h2>
             {meeting && (
               <p className="pt-1 pb-4 text-sm text-gray-600">
-                {formatDateShort(meeting.startAt)} ·{" "}
-                {formatTime(meeting.startAt)}
+                {formatDateWeekdayShort(meeting.startAt)} ·{" "}
+                {formatTimeChile(meeting.startAt)}
               </p>
             )}
           </div>

@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Building2, ChevronRight } from "lucide-react";
 import type { Client } from "@/types/Client";
+import { formatDateChileShort } from "@/lib/formatDate";
 
 interface ClientCardProps {
   client: Client;
@@ -118,7 +119,7 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
           <div>
             <p className="text-xs text-gray-500 mb-1">Última actividad</p>
             <p className="text-sm text-gray-700 font-medium">
-              {client.updateAt}
+              {formatDateChileShort(client.updatedAt!)}
             </p>
           </div>
           <Button
