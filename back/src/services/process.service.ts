@@ -7,15 +7,17 @@ import { ProcessRepository } from '../repositories/process.repository';
 export class ProcessService {
   constructor(private readonly processRepository: ProcessRepository) {}
 
-  async createProcess(
+  createProcess(
     processDto: ProcessDto,
     clientItemId: string,
     clientId: string,
-  ): Promise<Process> {
+  ) {
     const payload: Partial<Process> = {
-      ...processDto,
-      // El front ya manda ISO UTC (localDateTimeToIsoUtc), así que esto es seguro
+      name: processDto.name,
+      description: processDto.description?.trim() || null,
+      durationSec: processDto.durationSec ?? 0,
       dateTime: new Date(processDto.dateTime),
+      clientId,
     };
     return this.processRepository.createProcess(
       payload,
@@ -38,18 +40,18 @@ export class ProcessService {
         : {}),
     };
 
-    return this.processRepo.updateProcess(id, payload);
+    return this.processRepository.updateProcess(id, payload);
   }
 
   deleteProcess(id: string) {
     return this.processRepository.deleteProcess(id);
   }
 
-  async getProcessById(id: string): Promise<Process> {
+  getProcessById(id: string) {
     return this.processRepository.getProcessById(id);
   }
 
-  async getProcessesByClientItemId(clientItemId: string): Promise<Process[]> {
+  getProcessesByClientItemId(clientItemId: string) {
     return this.processRepository.getProcessesByClientItemId(clientItemId);
   }
 }

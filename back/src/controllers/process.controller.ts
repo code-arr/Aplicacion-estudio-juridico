@@ -25,7 +25,7 @@ export class ProcessController {
   }
 
   @Put('update/:id')
-  update(@Param('id') id: string, @Body() data: Partial<Process>) {
+  update(@Param('id') id: string, @Body() data: Partial<ProcessDto>) {
     return this.processService.updateProcess(id, data);
   }
 
