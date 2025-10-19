@@ -1,7 +1,7 @@
 import { ClientItemService } from '../services/clientItem.service';
 import { ProcessDto } from '../dtos/process.dto';
 import { Process } from '../entities/process.entity';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import {
   Injectable,
   InternalServerErrorException,
@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as moment from 'moment-timezone';
+import { ParentTouchService } from 'src/services/parent-touch.service';
 
 @Injectable()
 export class ProcessRepository {
@@ -16,41 +17,99 @@ export class ProcessRepository {
     @InjectRepository(Process)
     private readonly processRepository: Repository<Process>,
     private readonly clientItemService: ClientItemService,
+    private readonly dataSource: DataSource,
+    private readonly parentTouch: ParentTouchService,
   ) {}
 
   async createProcess(
-    process: ProcessDto,
+    data: Partial<Process>,
     clientItemId: string,
     clientId: string,
   ): Promise<Process> {
-    try {
-      const clientItem =
-        await this.clientItemService.getClientItemById(clientItemId);
-      const { dateTime, name, description, durationSec } = process;
-      if (!clientItem) {
-        throw new NotFoundException('Client item not found');
+    return this.dataSource.transaction(async (manager) => {
+      try {
+        const clientItem =
+          await this.clientItemService.getClientItemById(clientItemId);
+        if (!clientItem) throw new NotFoundException('ClientItem not found');
+
+        const repo = manager.getRepository(Process);
+        const proc = repo.create(data);
+        proc.clientItem = clientItem;
+        proc.clientId = clientId;
+
+        const saved = await repo.save(proc);
+
+        await this.parentTouch.touchClientItem(manager, clientItemId);
+        await this.parentTouch.touchClient(manager, clientId);
+
+        return saved;
+      } catch (e) {
+        console.error('Error creating process:', e);
+        throw new InternalServerErrorException('Error creating process');
       }
-
-      const date = new Date(dateTime);
-      if (isNaN(date.getTime())) {
-        throw new Error('Invalid date format');
-      }
-
-      const newProcess = this.processRepository.create({
-        name: name,
-        description: description,
-        durationSec: durationSec,
-        dateTime: date,
-        clientItem: clientItem,
-        clientId: clientId,
-      });
-
-      return await this.processRepository.save(newProcess);
-    } catch (error) {
-      if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Error creating process');
-    }
+    });
   }
+
+  async updateProcess(id: string, data: Partial<Process>): Promise<Process> {
+    return this.dataSource.transaction(async (manager) => {
+      try {
+        const repo = manager.getRepository(Process);
+        const current = await repo.findOne({
+          where: { id },
+          relations: ['clientItem'],
+        });
+        if (!current) throw new NotFoundException('Process not found');
+
+        const clientItemId = current.clientItem?.id;
+        const clientId = current.clientId;
+
+        await repo.update(id, data);
+        const updated = await repo.findOne({
+          where: { id },
+          relations: ['clientItem'],
+        });
+        if (!updated)
+          throw new InternalServerErrorException('Process not updated');
+
+        if (clientItemId)
+          await this.parentTouch.touchClientItem(manager, clientItemId);
+        if (clientId) await this.parentTouch.touchClient(manager, clientId);
+
+        return updated;
+      } catch (e) {
+        console.error('Error updating process:', e);
+        throw new InternalServerErrorException('Error updating process');
+      }
+    });
+  }
+
+  async deleteProcess(id: string): Promise<Process> {
+    return this.dataSource.transaction(async (manager) => {
+      try {
+        const repo = manager.getRepository(Process);
+        const proc = await repo.findOne({
+          where: { id },
+          relations: ['clientItem'],
+        });
+        if (!proc) throw new NotFoundException('Process not found');
+
+        const clientItemId = proc.clientItem?.id;
+        const clientId = proc.clientId;
+
+        await repo.remove(proc);
+
+        if (clientItemId)
+          await this.parentTouch.touchClientItem(manager, clientItemId);
+        if (clientId) await this.parentTouch.touchClient(manager, clientId);
+
+        return proc;
+      } catch (e) {
+        console.error('Error deleting process:', e);
+        throw new InternalServerErrorException('Error deleting process');
+      }
+    });
+  }
+
   async getProcessById(id: string): Promise<Process> {
     try {
       const process = await this.processRepository.findOne({

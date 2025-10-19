@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -35,8 +36,21 @@ export class AudienceController {
       originalFileName,
       name,
       mimetype,
-      lawyerId ,
-      clientId
+      lawyerId,
+      clientId,
+    );
+  }
+
+  @Delete('/delete/:audienceId')
+  async deleteAudienceByUrl(
+    @Body('fileUrl') fileUrl: string,
+    @Param('audienceId') audienceId: string,
+    @Query('lawyerId') lawyerId: string,
+  ): Promise<Audience> {
+    return this.audienceService.deleteAudienceByUrl(
+      fileUrl,
+      audienceId,
+      lawyerId,
     );
   }
 
@@ -46,7 +60,9 @@ export class AudienceController {
   }
 
   @Get('getByClientItemId/:clientItemId')
-  async getByClientItemId(@Param('clientItemId') clientItemId: string): Promise<Audience[]> {
+  async getByClientItemId(
+    @Param('clientItemId') clientItemId: string,
+  ): Promise<Audience[]> {
     return this.audienceService.getByClientItemId(clientItemId);
   }
 

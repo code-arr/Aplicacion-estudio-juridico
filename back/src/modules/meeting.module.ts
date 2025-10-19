@@ -15,10 +15,22 @@ import { UsersModule } from './users.module';
 import { clientItemModule } from './clientItem.module';
 import { EventModule } from './event.module';
 import { AbogadoModule } from './abogado.module';
+import { ParentTouchService } from 'src/services/parent-touch.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Meeting]) , UsersModule , clientItemModule , EventModule , AbogadoModule],
+  imports: [
+    TypeOrmModule.forFeature([Meeting]),
+    UsersModule,
+    clientItemModule,
+    EventModule,
+    AbogadoModule,
+  ],
   controllers: [MeetingsController],
-  providers: [MeetingService, GoogleCalendarService, MeetingRepository],
+  providers: [
+    MeetingService,
+    GoogleCalendarService,
+    MeetingRepository,
+    ParentTouchService,
+  ],
 })
 export class MeetingModule {}

@@ -10,7 +10,8 @@ import { EventDto } from 'src/dtos/event.dto';
 import { Audience } from 'src/entities/audience.entity';
 import { ClientItemService } from 'src/services/clientItem.service';
 import { EventService } from 'src/services/event.service';
-import { Repository } from 'typeorm';
+import { ParentTouchService } from 'src/services/parent-touch.service';
+import { DataSource, Repository } from 'typeorm';
 
 @Injectable()
 export class AudiencieRepository {
@@ -20,6 +21,8 @@ export class AudiencieRepository {
     private readonly clientItemService: ClientItemService,
     private readonly awsS3Service: AwsS3Service,
     private readonly eventService: EventService,
+    private readonly dataSource: DataSource, // 👈 inyectar
+    private readonly parentTouch: ParentTouchService, // 👈 inyectar
   ) {}
 
   async createAudience(
@@ -29,45 +32,106 @@ export class AudiencieRepository {
     dbName: string,
     mimetype: string,
     lawyerId: string,
-    clientId: string
+    clientId: string,
   ): Promise<Audience> {
-    try {
-      const clientItem =
-        await this.clientItemService.getClientItemById(clientItemId);
+    return this.dataSource.transaction(async (manager) => {
+      // 👈 TX
+      try {
+        // 1) Validar ClientItem
+        const clientItem =
+          await this.clientItemService.getClientItemById(clientItemId);
+        if (!clientItem) throw new NotFoundException('ClientItem not found');
 
-      if (!clientItem) {
-        throw new NotFoundException('ClientItem not found');
+        // 2) Preparar entidad con el manager de la TX
+        const audienceRepo = manager.getRepository(Audience);
+        const audience = audienceRepo.create();
+
+        // 3) Subir a S3
+        const fileExtension = path.extname(originalFileName);
+        const safeS3Key = `${Date.now()}-${dbName.replace(/\s/g, '_')}${fileExtension}`;
+        const s3Url = await this.awsS3Service.uploadDocument(
+          fileBuffer,
+          safeS3Key,
+          mimetype,
+          clientItemId,
+          audience.id, // id generado por create()
+        );
+
+        // 4) Completar campos y persistir
+        audience.name = dbName;
+        audience.fileUrl = s3Url;
+        audience.clientItem = clientItem;
+        audience.clientId = clientId;
+
+        const saved = await audienceRepo.save(audience);
+
+        // 5) Evento
+        const eventData: EventDto = {
+          action: 'create',
+          entityName: saved.name,
+          entityId: saved.id,
+          entityType: 'Audience',
+          lawyerId,
+        };
+        await this.eventService.createEvent(eventData);
+
+        // 6) TOCAR padres (solo si todo lo anterior salió bien)
+        await this.parentTouch.touchClientItem(manager, clientItemId);
+        await this.parentTouch.touchClient(manager, clientId);
+
+        return saved;
+      } catch (error) {
+        console.error('Error creating audience:', error);
+        throw new InternalServerErrorException('Error creating audience');
       }
-      const audience = this.audiencieRepository.create();
+    });
+  }
 
-      const fileExtension = path.extname(originalFileName);
-      const safeS3Key = `${Date.now()}-${dbName.replace(/\s/g, '_')}${fileExtension}`;
+  async deleteAudienceByUrl(
+    fileUrl: string,
+    audienceId: string,
+    lawyerId: string,
+  ): Promise<Audience> {
+    return this.dataSource.transaction(async (manager) => {
+      try {
+        const audienceRepo = manager.getRepository(Audience);
 
-      // Pasa el mimetype a la función de AWS
-      const s3Url = await this.awsS3Service.uploadDocument(
-        fileBuffer,
-        safeS3Key,
-        mimetype,
-        clientItemId,
-        audience.id,
-      );
-      audience.name = dbName;
-      audience.fileUrl = s3Url;
-      audience.clientItem = clientItem;
-      audience.clientId = clientId; // Asigna el clientId a la audiencia
-      const eventData: EventDto = {
-        action: 'create',
-        entityName: audience.name,
-        entityId: audience.id,
-        entityType: 'Audience',
-        lawyerId: lawyerId,
-      };
-      await this.eventService.createEvent(eventData);
-      return await this.audiencieRepository.save(audience);
-    } catch (error) {
-      console.error('Error creating document:', error);
-      throw new InternalServerErrorException('Error creating document');
-    }
+        const audience = await audienceRepo.findOne({
+          where: { id: audienceId },
+          relations: ['clientItem'],
+        });
+        if (!audience) throw new NotFoundException('Audience not found');
+
+        const clientItemId = audience.clientItem?.id;
+        const clientId = audience.clientId;
+
+        // 1) Eliminar archivo en S3
+        await this.awsS3Service.deleteDocumentByUrl(fileUrl);
+
+        // 2) Eliminar registro en DB
+        await audienceRepo.remove(audience);
+
+        // 3) Evento (opcional; si usás eventos de delete)
+        const eventData: EventDto = {
+          action: 'delete',
+          entityName: audience.name,
+          entityId: audience.id,
+          entityType: 'Audience',
+          lawyerId,
+        };
+        await this.eventService.createEvent(eventData);
+
+        // 4) TOCAR padres
+        if (clientItemId)
+          await this.parentTouch.touchClientItem(manager, clientItemId);
+        if (clientId) await this.parentTouch.touchClient(manager, clientId);
+
+        return audience;
+      } catch (error) {
+        console.error('Error deleting audience by URL:', error);
+        throw new InternalServerErrorException('Error deleting audience');
+      }
+    });
   }
 
   async getAllAudiences(): Promise<Audience[]> {

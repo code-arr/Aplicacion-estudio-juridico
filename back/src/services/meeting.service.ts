@@ -23,7 +23,7 @@ export class MeetingService {
     meetingData: MeetingDto,
     clientItemId: string,
     lawyerEmail: string,
-    clientId: string
+    clientId: string,
   ): Promise<Meeting | null | void> {
     const { startAt, endAt, name, type, participants } = meetingData;
 
@@ -37,7 +37,8 @@ export class MeetingService {
         // 1️⃣ Crear registro inicial en la base de datos
         const newMeeting = await this.meetingRepository.createMeeting(
           { ...meetingData, startAt: startDate, endAt: endDate },
-          clientItemId,clientId
+          clientItemId,
+          clientId,
         );
 
         // 2️⃣ Crear el evento en Google Calendar
@@ -48,8 +49,8 @@ export class MeetingService {
           participants, // participantes adicionales (opcional)
           'America/Santiago', // zona horaria
         );
-        console.log("LELGA ACA 2");
-        
+        console.log('LELGA ACA 2');
+
         // 3️⃣ Obtener el link del Meet
         const link = googleEvent?.hangoutLink || googleEvent?.htmlLink;
         if (!link) {
@@ -68,7 +69,6 @@ export class MeetingService {
         const meeting = await this.meetingRepository.updateMeeting(
           newMeeting.id,
           { link, eventId },
-          
         );
         if (!meeting) {
           throw new InternalServerErrorException(
@@ -91,7 +91,7 @@ export class MeetingService {
           entityType: 'MEETING',
           lawyerId: lawyer.id,
         });
-        
+
         return meeting;
       } catch (error) {
         console.error('Error creando reunión en Google Meet:', error);
@@ -104,7 +104,8 @@ export class MeetingService {
         // Reunión presencial
         return this.meetingRepository.createMeeting(
           { ...meetingData, startAt: startDate, endAt: endDate },
-          clientItemId,clientId
+          clientItemId,
+          clientId,
         );
       } catch (error) {
         console.error('Error creando reunión en persona:', error);
@@ -115,6 +116,21 @@ export class MeetingService {
     }
   }
 
+  async updateMeeting(
+    id: string,
+    payload: Partial<Meeting>,
+  ): Promise<Meeting | null> {
+    return this.meetingRepository.updateMeeting(id, payload);
+  }
+
+  async deleteMeeting(id: string): Promise<Meeting> {
+    // Si más adelante querés cancelar el evento en Google Calendar, acá podrías:
+    // 1) leer la meeting por id (para obtener eventId y organizer),
+    // 2) llamar a googleCalendarService para cancelar,
+    // 3) recién ahí repo.deleteMeeting(id).
+    return this.meetingRepository.deleteMeeting(id);
+  }
+
   async getAllMeetings(): Promise<Meeting[]> {
     return this.meetingRepository.getAllMeetings();
   }
@@ -123,7 +139,7 @@ export class MeetingService {
     return this.meetingRepository.getByClientItemId(clientItemId);
   }
 
-  async getByClientId(clientId: string , lawyerId: string): Promise<Meeting[]> {
+  async getByClientId(clientId: string, lawyerId: string): Promise<Meeting[]> {
     return this.meetingRepository.getByClientId(clientId, lawyerId);
   }
 }

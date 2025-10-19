@@ -9,10 +9,11 @@ import { Document } from '../entities/document.entity';
 import { ClientItemService } from '../services/clientItem.service';
 import * as path from 'path';
 
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { AwsS3Service } from 'src/aws/aws.service';
 import { EventService } from 'src/services/event.service';
 import { EventDto } from 'src/dtos/event.dto';
+import { ParentTouchService } from 'src/services/parent-touch.service';
 
 @Injectable()
 export class DocumentRepository {
@@ -21,7 +22,9 @@ export class DocumentRepository {
     private documentRepository: Repository<Document>,
     private readonly clientItemService: ClientItemService,
     private readonly awsS3Service: AwsS3Service,
-    private readonly eventService: EventService, // <-- Inyectamos el servicio de eventos
+    private readonly eventService: EventService,
+    private readonly dataSource: DataSource, // <--- inyectá DataSource
+    private readonly parentTouch: ParentTouchService, // <--- inyectá el helper
   ) {}
 
   async createDocument(
@@ -31,58 +34,67 @@ export class DocumentRepository {
     dbName: string,
     mimetype: string,
     lawyerId: string,
-    clientId: string
+    clientId: string,
   ): Promise<Document> {
-    try {
-      const clientItem =
-        await this.clientItemService.getClientItemById(clientItemId);
+    return this.dataSource.transaction(async (manager) => {
+      try {
+        // 1) Validación de ClientItem (si no lo tenés con relaciones, no importa)
+        const clientItem =
+          await this.clientItemService.getClientItemById(clientItemId);
+        if (!clientItem) {
+          throw new NotFoundException('ClientItem not found');
+        }
 
-      if (!clientItem) {
-        throw new NotFoundException('ClientItem not found');
+        // 2) Subida a S3 (fuera de TypeORM está ok, pero si falla, se aborta la transacción)
+        const fileExtension = path.extname(originalFileName);
+        const safeS3Key = `${Date.now()}-${dbName.replace(/\s/g, '_')}${fileExtension}`;
+
+        // Ojo: creamos entidad Document con el manager de la TX
+        const documentRepo = manager.getRepository(Document);
+        const doc = documentRepo.create();
+
+        const s3Url = await this.awsS3Service.uploadDocument(
+          fileBuffer,
+          safeS3Key,
+          mimetype,
+          clientItemId,
+          doc.id, // id ya está generado por create()
+        );
+
+        const type = mimetype.split('/').pop();
+        if (!type) throw new InternalServerErrorException('Invalid file type');
+
+        doc.name = dbName;
+        doc.fileUrl = s3Url;
+        doc.clientItem = clientItem; // relación
+        doc.clientId = clientId; // campo directo
+        doc.type = type;
+        doc.size = fileBuffer.length;
+
+        // 3) Guardamos el documento
+        const saved = await documentRepo.save(doc);
+
+        // 4) Log de evento (si falla, también aborta)
+        const eventData: EventDto = {
+          action: 'create',
+          entityName: saved.name,
+          entityId: saved.id,
+          entityType: saved.type,
+          lawyerId: lawyerId,
+        };
+        await this.eventService.createEvent({ ...eventData });
+
+        // 5) TOCAR padres (dentro de la MISMA transacción)
+        await this.parentTouch.touchClientItem(manager, clientItemId);
+        await this.parentTouch.touchClient(manager, clientId);
+
+        return saved;
+      } catch (error) {
+        console.error('Error creating document:', error);
+        // cualquier throw acá revierte la TX
+        throw new InternalServerErrorException('Error creating document');
       }
-
-      const fileExtension = path.extname(originalFileName);
-      const safeS3Key = `${Date.now()}-${dbName.replace(/\s/g, '_')}${fileExtension}`;
-      let document = this.documentRepository.create();
-
-      // Pasa el mimetype a la función de AWS
-      const s3Url = await this.awsS3Service.uploadDocument(
-        fileBuffer,
-        safeS3Key,
-        mimetype,
-        clientItemId,
-        document.id,
-      );
-
-      document.name = dbName;
-      document.fileUrl = s3Url;
-      document.clientItem = clientItem;
-      document.clientId = clientId; // Asigna el clientId al documento
-      const type = mimetype.split('/').pop(); // Guarda el tipo de documento (mimetype)
-      if (!type) {
-        throw new InternalServerErrorException('Invalid file type');
-      }
-      document.type = type;
-      document.size = fileBuffer.length;
-      console.log('tamaño : ' + fileBuffer.length);
-
-      const eventData : EventDto = {
-        action: 'create',
-        entityName: document.name,
-        entityId: document.id,
-        entityType: document.type,
-        lawyerId: lawyerId,
-      };
-
-      await this.eventService.createEvent({
-        ...eventData
-      });
-
-      return await this.documentRepository.save(document);
-    } catch (error) {
-      console.error('Error creating document:', error);
-      throw new InternalServerErrorException('Error creating document');
-    }
+    });
   }
 
   async getAllDocuments(): Promise<Document[]> {
@@ -106,27 +118,45 @@ export class DocumentRepository {
     }
   }
 
-  async deleteDocumentByUrl(fileUrl: string, documentId: string): Promise<any> {
-    try {
-      const document = await this.documentRepository.findOne({
-        where: { id: documentId },
-      });
+  async deleteDocumentByUrl(
+    fileUrl: string,
+    documentId: string,
+  ): Promise<Document> {
+    return this.dataSource.transaction(async (manager) => {
+      try {
+        const documentRepo = manager.getRepository(Document);
 
-      if (!document) {
-        throw new NotFoundException('Document not found');
+        // Traemos doc + clientItem (para tener el clientItemId)
+        const document = await documentRepo.findOne({
+          where: { id: documentId },
+          relations: ['clientItem'],
+        });
+
+        if (!document) throw new NotFoundException('Document not found');
+
+        const clientItemId = document.clientItem?.id;
+        const clientId = document.clientId; // ya lo guardás en la entidad
+
+        // 1) Eliminar archivo de S3 (si falla, aborta TX)
+        await this.awsS3Service.deleteDocumentByUrl(fileUrl);
+
+        // 2) Eliminar registro en DB
+        await documentRepo.remove(document);
+
+        // 3) TOCAR padres
+        if (clientItemId) {
+          await this.parentTouch.touchClientItem(manager, clientItemId);
+        }
+        if (clientId) {
+          await this.parentTouch.touchClient(manager, clientId);
+        }
+
+        return document;
+      } catch (error) {
+        console.error('Error deleting document by URL:', error);
+        throw new InternalServerErrorException('Error deleting document');
       }
-
-      // Primero elimina el archivo de S3
-      await this.awsS3Service.deleteDocumentByUrl(fileUrl);
-
-      // Luego elimina el registro de la base de datos
-      await this.documentRepository.remove(document);
-
-      return document;
-    } catch (error) {
-      console.error('Error deleting document by URL:', error);
-      throw new InternalServerErrorException('Error deleting document');
-    }
+    });
   }
 
   async getDocumentsByClientItemId(clientItemId: string): Promise<Document[]> {
