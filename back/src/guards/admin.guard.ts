@@ -7,16 +7,15 @@ import {
 import { Reflector } from '@nestjs/core';
 import { UserRole } from 'src/entities/user.entity';
 
-
 @Injectable()
 export class AdminGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
   canActivate(context: ExecutionContext): boolean {
     try {
-      const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>('roles', [
-        context.getHandler(),
-        context.getClass(),
-      ]);
+      const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
+        'roles',
+        [context.getHandler(), context.getClass()],
+      );
 
       const request = context.switchToHttp().getRequest();
 
@@ -26,13 +25,13 @@ export class AdminGuard implements CanActivate {
         requiredRoles.some((role) => user.role?.includes(role));
 
       const valid: boolean = user && user.role && hasRole();
-      console.log("estamos en admin guard");
-      
+      console.log('estamos en admin guard');
+
       if (!valid) throw new ForbiddenException('Unauthorized');
-    
+
       return true;
     } catch (error) {
-     throw new ForbiddenException('Unauthorized');
+      throw new ForbiddenException('Unauthorized');
     }
   }
 }

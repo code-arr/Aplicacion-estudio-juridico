@@ -66,7 +66,7 @@ export class MeetingsController {
     return this.meetingService.getByClientItemId(clientItemId);
   }
 
-  @Get('GetAll')
+  @Get('getAll')
   async getAllMeetings() {
     return this.meetingService.getAllMeetings();
   }

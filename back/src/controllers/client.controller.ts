@@ -32,7 +32,7 @@ export class ClienteController {
     return this.clienteService.createCliente(clienteData, abogadoId);
   }
 
-  @Post('/send-document')
+  @Post('/sendDocument')
   @UseInterceptors(FileInterceptor('contractFile'))
   async sendDocument(
     @UploadedFile() file: Express.Multer.File,
@@ -57,8 +57,10 @@ export class ClienteController {
   }
 
   @Post('create')
-  async createClient(@Body() createClientDto: CreateClienteDto, @Query('lawyerId') lawyerId: string): Promise<any> {
-    
+  async createClient(
+    @Body() createClientDto: CreateClienteDto,
+    @Query('lawyerId') lawyerId: string,
+  ): Promise<any> {
     return this.clienteService.createClient(createClientDto, lawyerId);
   }
 

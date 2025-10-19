@@ -19,20 +19,20 @@ export class AbogadoController {
   async getAllLawyers() {
     return this.abogadoService.getAllLawyers();
   }
-  
-  @Get("getByEmail/:email")
- // @UseGuards(AuthGuard)
-  async getAbogadoByEmail(@Param("email") email : string) :Promise<Lawyer | null>{
-    
-    const response = this.abogadoService.getAbogadoByEmail(email)
+
+  @Get('getByEmail/:email')
+  // @UseGuards(AuthGuard)
+  async getAbogadoByEmail(
+    @Param('email') email: string,
+  ): Promise<Lawyer | null> {
+    const response = this.abogadoService.getAbogadoByEmail(email);
     console.log(response);
-    
-    return this.abogadoService.getAbogadoByEmail(email)
+
+    return this.abogadoService.getAbogadoByEmail(email);
   }
   @Get(':id')
   @UseGuards(AuthGuard)
   async getAbogadoById(@Param('id') id: string) {
     return this.abogadoService.getAbogadoById(id);
   }
-
 }

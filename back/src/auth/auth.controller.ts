@@ -19,7 +19,10 @@ import { UserService } from 'src/services/user.service';
 import { buffer } from 'stream/consumers';
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authRepository: AuthRepository) {}
+  constructor(
+    private readonly authRepository: AuthRepository,
+    private readonly userService: UserService,
+  ) {}
 
   @Post('register')
   async register(@Body() user: registerUserDto): Promise<Partial<User> | void> {
@@ -37,6 +40,18 @@ export class AuthController {
     }: { email: string; password: string; deviceId?: string },
   ): Promise<{ message: string; token?: string; user?: any }> {
     return this.authRepository.login(email, password, { req, deviceId }); // sin try/catch
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('me')
+  async me(@Req() req) {
+    const user = await this.userService.getOneById(req.user.id);
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      googleEmail: user.googleEmail ?? null,
+    };
   }
 
   @Get('google/connect')
@@ -88,12 +103,12 @@ export class AuthController {
     }
   }
 
-  @Post('forgot-password')
+  @Post('forgotPassword')
   async forgotPassword(@Body('email') email: string) {
     return this.authRepository.forgotPassword(email);
   }
 
-  @Post('reset-password')
+  @Post('resetPassword')
   async resetPassword(@Body() body: { token: string; password: string }) {
     return this.authRepository.resetPassword(body.token, body.password);
   }

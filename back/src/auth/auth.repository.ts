@@ -49,6 +49,9 @@ export class AuthRepository {
 
       return this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET,
+        expiresIn: '8h', // <- clave
+        issuer: 'legal-app',
+        audience: 'desktop',
       });
     } catch (error) {
       throw new Error('Error al crear el token JWT: ' + error.message);
