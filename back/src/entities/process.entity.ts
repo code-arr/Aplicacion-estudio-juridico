@@ -28,7 +28,7 @@ export class Process {
   @Column({ type: 'integer', default: 0 })
   durationSec: number; // Duración del trabajo en segundos
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   dateTime: Date;
 
   @Column({ type: 'uuid' })

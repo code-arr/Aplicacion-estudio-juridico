@@ -1,7 +1,7 @@
-import { Injectable } from "@nestjs/common";
-import { DocumentDto } from "../dtos/document.dto";
-import { Document } from "../entities/document.entity";
-import { DocumentRepository } from "../repositories/document.repository";
+import { Injectable } from '@nestjs/common';
+import { DocumentDto } from '../dtos/document.dto';
+import { Document } from '../entities/document.entity';
+import { DocumentRepository } from '../repositories/document.repository';
 
 @Injectable()
 export class DocumentService {
@@ -12,9 +12,9 @@ export class DocumentService {
     fileBuffer: Buffer,
     originalFileName: string,
     dbName: string,
-    mimetype: string ,
+    mimetype: string,
     lawyerId: string,
-    clientId: string
+    clientId: string,
   ): Promise<Document> {
     return this.documentRepository.createDocument(
       clientItemId,
@@ -23,7 +23,7 @@ export class DocumentService {
       dbName,
       mimetype,
       lawyerId,
-      clientId
+      clientId,
     );
   }
   async getAllDocuments(): Promise<Document[]> {
@@ -34,8 +34,11 @@ export class DocumentService {
     return this.documentRepository.getDocumentByUrl(fileUrl);
   }
 
-  async deleteDocumentByUrl(fileUrl: string, documentId: string): Promise<void> {
-    return this.documentRepository.deleteDocumentByUrl(fileUrl , documentId);
+  async deleteDocumentByUrl(
+    fileUrl: string,
+    documentId: string,
+  ): Promise<Document> {
+    return this.documentRepository.deleteDocumentByUrl(fileUrl, documentId);
   }
 
   async getDocumentsByClientItemId(clientItemId: string): Promise<Document[]> {

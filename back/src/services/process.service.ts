@@ -12,15 +12,33 @@ export class ProcessService {
     clientItemId: string,
     clientId: string,
   ): Promise<Process> {
+    const payload: Partial<Process> = {
+      ...processDto,
+      // El front ya manda ISO UTC (localDateTimeToIsoUtc), así que esto es seguro
+      dateTime: new Date(processDto.dateTime),
+    };
     return this.processRepository.createProcess(
-      processDto,
+      payload,
       clientItemId,
       clientId,
     );
   }
 
-  updateProcess(id: string, data: Partial<Process>) {
-    return this.processRepository.updateProcess(id, data);
+  updateProcess(id: string, processDto: Partial<ProcessDto>) {
+    const payload: Partial<Process> = {
+      ...(processDto.name !== undefined ? { name: processDto.name } : {}),
+      ...(processDto.description !== undefined
+        ? { description: processDto.description?.trim() || null }
+        : {}),
+      ...(processDto.durationSec !== undefined
+        ? { durationSec: processDto.durationSec ?? 0 }
+        : {}),
+      ...(processDto.dateTime
+        ? { dateTime: new Date(processDto.dateTime) }
+        : {}),
+    };
+
+    return this.processRepo.updateProcess(id, payload);
   }
 
   deleteProcess(id: string) {
