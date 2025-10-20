@@ -132,15 +132,15 @@ export class EntryDayRepository {
     return top10;
   }
 
-  async getClientDetails(clientId: string): Promise<Client | null> {
-    const client = await this.clientRepo.findOne({ where: { id: clientId } });
+  // async getClientDetails(clientId: string): Promise<Client | null> {
+  //   const client = await this.clientRepo.findOne({ where: { id: clientId } });
     
-    let details : ["totalTime": number ,   ] = [];
+  //   let details : ["totalTime": number ,   ] = [];
 
 
 
     
 
 
-  }
+  // }
 }
