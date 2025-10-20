@@ -9,4 +9,9 @@ export class EntryDayController {
   async getByClientId(lawyerId: string, clientId: string) {
     return this.service.getByClientId(lawyerId, clientId);
   }
+
+  @Get('getTop10ByLawyerId/:lawyerId')
+  async getTop10ByLawyerId(lawyerId: string) {
+    return this.service.getTop10ByLawyerId(lawyerId);
+  }
 }

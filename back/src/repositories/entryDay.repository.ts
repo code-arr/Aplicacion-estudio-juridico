@@ -1,14 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateTimeEntryDto } from 'src/dtos/timeEntry.dto';
+import { Client } from 'src/entities/client.entity';
 import { EntryDay } from 'src/entities/entryDay.entity';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 @Injectable()
 export class EntryDayRepository {
   constructor(
     @InjectRepository(EntryDay)
     private repo: Repository<EntryDay>,
+    @InjectRepository(Client)
+    private clientRepo: Repository<Client>,
   ) {}
 
   async createEntryDay(entryDay: Partial<EntryDay>): Promise<EntryDay> {
@@ -68,6 +71,22 @@ export class EntryDayRepository {
       console.log('🟡 Se actualiza el entry day existente');
     }
 
+    for (const entry of updatedEntryDays) {
+      this.clientRepo
+        .findOne({ where: { id: entry.clientId } })
+        .then((client) => {
+          if (client) {
+            client.activeTime += entry.durationSec;
+            this.clientRepo.save(client);
+            console.log(`🟡 Se actualiza el tiempo activo del cliente ${client.id} tiempo total del cliente : ${client.activeTime}`);
+            
+          }
+        });
+    }
+
+  
+    
+
     return updatedEntryDays;
   }
 
@@ -88,7 +107,7 @@ export class EntryDayRepository {
         totalAudienceTime += entryDay.durationSec;
       } else if (entryDay.type === 'Client') {
         totalClientTime += entryDay.durationSec;
-      }else if(entryDay.type === 'Process'){
+      } else if (entryDay.type === 'Process') {
         totalProcessTime += entryDay.durationSec;
       }
     }
@@ -98,5 +117,18 @@ export class EntryDayRepository {
     totalStats.push({ type: 'Client', durationSec: totalClientTime });
     totalStats.push({ type: 'Process', durationSec: totalProcessTime });
     return totalStats;
+  }
+
+  async getTop10ByLawyerId(lawyerId: string) {
+    const clients : Client[] = await this.clientRepo.find({where : {lawyers: {id: lawyerId}}});
+    if (!clients) {
+      return [];
+    }
+
+    let top10 : Client[] = [];
+
+    top10 = clients.sort((a, b) => b.activeTime - a.activeTime).slice(0, 10);
+
+    return top10;
   }
 }

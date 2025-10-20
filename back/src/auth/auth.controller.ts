@@ -31,19 +31,19 @@ export class AuthController {
     return this.authRepository.register(user); // sin try/catch
   }
 
-  @Public()
-  @Post('login')
-  async login(
-    @Req() req: Request,
-    @Body()
-    {
-      email,
-      password,
-      deviceId,
-    }: { email: string; password: string; deviceId?: string },
-  ): Promise<{ message: string; token?: string; user?: any }> {
-    return this.authRepository.login(email, password, { req, deviceId }); // sin try/catch
-  }
+  // @Public()
+  // @Post('login')
+  // async login(
+  //   @Req() req: Request,
+  //   @Body()
+  //   {
+  //     email,
+  //     password,
+  //     deviceId,
+  //   }: { email: string; password: string; deviceId?: string },
+  // ): Promise<{ message: string; token?: string; user?: any }> {
+  //   return this.authRepository.login(email, password, { req, deviceId }); // sin try/catch
+  // }
 
   @Get('me')
   async me(@Req() req) {
