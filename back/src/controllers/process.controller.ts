@@ -1,6 +1,15 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { ProcessService } from '../services/process.service';
 import { ProcessDto } from 'src/dtos/process.dto';
+import { Process } from 'src/entities/process.entity';
 
 @Controller('process')
 export class ProcessController {
@@ -12,7 +21,17 @@ export class ProcessController {
     @Body() process: ProcessDto,
     @Body('clientId') clientId: string,
   ) {
-    return this.processService.createProcess(process, clientItemId , clientId);
+    return this.processService.createProcess(process, clientItemId, clientId);
+  }
+
+  @Put('update/:id')
+  update(@Param('id') id: string, @Body() data: Partial<ProcessDto>) {
+    return this.processService.updateProcess(id, data);
+  }
+
+  @Delete('delete/:id')
+  delete(@Param('id') id: string) {
+    return this.processService.deleteProcess(id);
   }
 
   @Get('getById/:id')

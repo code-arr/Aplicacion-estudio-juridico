@@ -6,7 +6,7 @@ import { clientItemModule } from './clientItem.module';
 import { ProcessController } from '../controllers/process.controller';
 import { ProcessService } from '../services/process.service';
 import { ProcessRepository } from '../repositories/process.repository';
-
+import { ParentTouchService } from 'src/services/parent-touch.service';
 
 @Module({
   imports: [
@@ -14,9 +14,7 @@ import { ProcessRepository } from '../repositories/process.repository';
     clientItemModule, // Este módulo debe exportar ClientItemService
   ],
   controllers: [ProcessController],
-  providers: [
-    ProcessService, 
-    ProcessRepository // Ahora NestJS puede resolver sus dependencias
-  ],
+  providers: [ProcessService, ProcessRepository, ParentTouchService],
+  exports: [ProcessService],
 })
 export class ProcessModule {}

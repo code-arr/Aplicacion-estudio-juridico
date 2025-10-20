@@ -1,18 +1,13 @@
+// src/auth/google.strategy.ts
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth2';
 import { StrategyOptions } from 'passport-google-oauth2';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthRepository } from './auth.repository';
-import { User } from 'src/entities/user.entity';
 import { UserService } from 'src/services/user.service';
-import { STATUS_CODES } from 'http';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
-  constructor(
-    private authRepository: AuthRepository,
-    private userService: UserService,
-  ) {
+  constructor(private userService: UserService) {
     super({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -26,7 +21,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       accessType: 'offline',
       prompt: 'consent',
       passReqToCallback: true,
-    } as StrategyOptions); // Añadimos la aserción de tipo aquí
+    } as StrategyOptions);
   }
 
   async validate(
@@ -38,11 +33,11 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   ): Promise<any> {
     const { email } = profile;
 
+    // Recupero el email "de BD" que venía en state
     const rawState = req.query.state as string;
     const state = JSON.parse(
       Buffer.from(rawState, 'base64url').toString('utf-8'),
     ) as { email: string };
-    console.log('DB EMAIL - ' + state.email);
 
     const user = await this.userService.findOneByEmail(state.email);
     if (!user) {
@@ -51,31 +46,18 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         false,
       );
     }
-    user.googleEmail = email;
 
-    await this.userService.updateUser(user.id, user);
+    // Persisto email de Google y refresh token directamente con UserService
+    await this.userService.updateUser(user.id, {
+      googleEmail: email,
+      googleRefreshToken: refreshToken,
+    });
 
-    if (!user) {
-      return done(
-        new UnauthorizedException('Usuario no autenticado con JWT.'),
-        false,
-      );
-    }
+    const combinedUser = {
+      user: { ...user, googleEmail: email }, // opcional, para que el caller tenga el email linkeado
+      googleTokens: { accessToken, refreshToken },
+    };
 
-    try {
-      // Usamos el servicio para vincular la cuenta de Google al usuario existente
-      const updatedUser = await this.authRepository.linkGoogleAccount(user.id, {
-        googleRefreshToken: refreshToken,
-      });
-
-      const combinedUser = {
-        user: updatedUser,
-        googleTokens: { accessToken, refreshToken },
-      };
-
-      done(null, combinedUser);
-    } catch (error) {
-      done(error, false);
-    }
+    return done(null, combinedUser);
   }
 }

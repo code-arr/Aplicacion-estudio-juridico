@@ -2,11 +2,13 @@ import {
   BeforeInsert,
   BeforeUpdate,
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   OneToOne,
   PrimaryColumn,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { IsUUID } from 'class-validator';
 import { Admin } from './admin.entity';
@@ -35,7 +37,6 @@ export class User {
   @Column({ type: 'varchar', length: 300, default: '' })
   googleRefreshToken: string;
 
-
   @Column({
     type: 'enum',
     enum: UserRole,
@@ -43,22 +44,11 @@ export class User {
   })
   role: UserRole;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createAt: Date;
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  createdAt!: Date;
 
-  // La columna ya no necesita "onUpdate"
-  @Column({ type: 'timestamp', nullable: true })
-  updateAt: Date;
-
-  @BeforeInsert()
-  setCreateAt() {
-    this.createAt = moment().tz('America/Santiago').toDate();
-  }
-
-  @BeforeUpdate()
-  setUpdateAt() {
-    this.updateAt = moment().tz('America/Santiago').toDate();
-  }
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  updatedAt!: Date;
 
   //relacion con admin
   @OneToOne(() => Admin, (admin) => admin.user)

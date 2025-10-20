@@ -3,9 +3,11 @@ import {
   BeforeInsert,
   BeforeUpdate,
   Column,
+  CreateDateColumn,
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { ClientItem } from './clientItem.entity';
@@ -53,7 +55,7 @@ export class Meeting {
   location: string; // Ubicación física si es una reunión en persona
   @Column({
     type: 'enum',
-    enum: ['scheduled', 'completed'],
+    enum: ['scheduled', 'completed', 'canceled'],
     default: 'scheduled',
   })
   status: 'scheduled' | 'completed' | 'canceled';
@@ -64,22 +66,11 @@ export class Meeting {
   @Column({ type: 'uuid' })
   clientId: string;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createAt: Date;
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  createdAt!: Date;
 
-  // La columna ya no necesita "onUpdate"
-  @Column({ type: 'timestamp', nullable: true })
-  updateAt: Date;
-
-  @BeforeInsert()
-  setCreateAt() {
-    this.createAt = moment().tz('America/Santiago').toDate();
-  }
-
-  @BeforeUpdate()
-  setUpdateAt() {
-    this.updateAt = moment().tz('America/Santiago').toDate();
-  }
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  updatedAt!: Date;
 
   @ManyToOne(() => Client, (client) => client.meetings)
   client: Client;

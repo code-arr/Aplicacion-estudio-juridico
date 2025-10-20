@@ -1,5 +1,14 @@
 import { IsUUID } from 'class-validator';
-import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  BeforeInsert,
+  BeforeUpdate,
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { ClientItem } from './clientItem.entity';
 import * as moment from 'moment-timezone';
@@ -19,28 +28,17 @@ export class Process {
   @Column({ type: 'integer', default: 0 })
   durationSec: number; // Duración del trabajo en segundos
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   dateTime: Date;
-
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createAt: Date;
-
-  // La columna ya no necesita "onUpdate"
-  @Column({ type: 'timestamp', nullable: true })
-  updateAt: Date;
 
   @Column({ type: 'uuid' })
   clientId: string;
 
-  @BeforeInsert()
-  setCreateAt() {
-    this.createAt = moment().tz('America/Santiago').toDate();
-  }
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  createdAt!: Date;
 
-  @BeforeUpdate()
-  setUpdateAt() {
-    this.updateAt = moment().tz('America/Santiago').toDate();
-  }
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  updatedAt!: Date;
 
   @ManyToOne(() => ClientItem, (clientItem) => clientItem.processes)
   clientItem: ClientItem;

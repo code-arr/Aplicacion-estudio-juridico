@@ -3,24 +3,29 @@ import { User } from '../entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { isBefore , addMinutes} from 'date-fns';
+import { isBefore, addMinutes } from 'date-fns';
 
 import { UserService } from '../services/user.service';
 import {
-  BadRequestException,
   Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { MyMailerService } from '../mailer/mailer.service';
 import { PasswordResetRepository } from '../repositories/passwordResetToken.repository';
+import { SystemMailerService } from 'src/mailer/system-mailer.service';
+import { UserLoginsService } from 'src/userLogins/userLogins.service';
 
 @Injectable()
 export class AuthRepository {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
-    private readonly mailer: MyMailerService,
+    private readonly systemMailer: SystemMailerService, // ✅ neutral
     private readonly resetRepo: PasswordResetRepository,
+    private readonly userLogins: UserLoginsService, // 👈 NUEVO
   ) {}
 
   async register(user): Promise<Partial<User> | void> {
@@ -43,6 +48,9 @@ export class AuthRepository {
 
       return this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET,
+        expiresIn: '8h', // <- clave
+        issuer: 'legal-app',
+        audience: 'desktop',
       });
     } catch (error) {
       throw new Error('Error al crear el token JWT: ' + error.message);
@@ -52,31 +60,66 @@ export class AuthRepository {
   async login(
     email: string,
     password: string,
-  ): Promise<{ message: string; token?: string; userData?: any; user?: any }> {
+    ctx?: { req?: Request; deviceId?: string }, // 👈 NUEVO
+  ): Promise<{ message: string; token?: string; user?: any }> {
     try {
-      const Newuser = await this.userService.findOneByEmail(email);
-      const user = {
-        email: Newuser?.email,
-        id: Newuser?.id,
-        role: Newuser?.role,
-        googleEmail: Newuser?.googleEmail ? Newuser.googleEmail : null,
+      const user = await this.userService.findOneByEmail(email);
+
+      // 🔒 No reveles si el usuario existe o si la contraseña está mal.
+      if (!user) {
+        throw new UnauthorizedException('Credenciales inválidas'); // 401
+      }
+
+      const ok = await bcrypt.compare(password, user.password);
+      if (!ok) {
+        throw new UnauthorizedException('Credenciales inválidas'); // 401
+      }
+
+      const token = await this.createJwtToken(user);
+
+      // 👇👇👇 REGISTRO DEL LOGIN (IP/UA reales desde req)
+      const forwarded = (ctx?.req?.headers['x-forwarded-for'] as string) || '';
+      const ip =
+        forwarded.split(',')[0]?.trim() ||
+        (ctx?.req as any)?.ip ||
+        (ctx?.req as any)?.socket?.remoteAddress ||
+        'unknown';
+
+      const userAgent = ctx?.req?.headers['user-agent'] || 'unknown';
+      const deviceId = ctx?.deviceId || 'unknown';
+
+      // no bloquea el login si falla el save, pero loguea
+      try {
+        await this.userLogins.create({
+          userId: user.id,
+          deviceId,
+          userAgent,
+          ip,
+        });
+      } catch (err) {
+        // podés poner un logger acá si querés
+      }
+
+      return {
+        message: 'Login exitoso',
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          googleEmail: user.googleEmail ?? null,
+        },
       };
-      if (!Newuser) {
-        throw new BadRequestException('Usuario no encontrado');
+    } catch (e) {
+      // si ya es 401/400, preservalo
+      if (
+        e instanceof UnauthorizedException ||
+        e instanceof BadRequestException
+      ) {
+        throw e;
       }
-
-      const isPasswordValid = await bcrypt.compare(password, Newuser.password);
-      if (!isPasswordValid) {
-        throw new BadRequestException('Contraseña incorrecta');
-      }
-
-      const token = await this.createJwtToken(Newuser);
-      return { message: 'Login exitoso', token, user };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new Error('Error al iniciar sesión: ' + error);
+      // cualquier otra cosa => 500
+      throw new InternalServerErrorException('No se pudo iniciar sesión');
     }
   }
 
@@ -84,7 +127,7 @@ export class AuthRepository {
     const email = profile.emails[0].value;
 
     // 1. Busca si el usuario ya existe en tu base de datos
-    let user = await this.userService.findOneByEmail(email);
+    const user = await this.userService.findOneByEmail(email);
 
     if (!user) {
       throw new BadRequestException('Usuario no registrado');
@@ -110,6 +153,7 @@ export class AuthRepository {
 
     return user;
   }
+
   async forgotPassword(email: string) {
     const user = await this.userService.findOneByEmail(email);
 
@@ -127,8 +171,8 @@ export class AuthRepository {
         expiresAt,
       });
 
-      
-      await this.mailer.sendResetPasswordEmail(email, token);
+      // ✅ usar el mail neutral del sistema
+      await this.systemMailer.sendPasswordReset(email, token);
     }
 
     return { message: 'Si existe, te enviamos un correo' };

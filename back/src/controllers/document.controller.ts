@@ -37,15 +37,15 @@ export class DocumentController {
       originalFileName,
       name,
       mimetype,
-      lawyerId ,
-      clientId
+      lawyerId,
+      clientId,
     );
   }
   @Delete('/delete/:documentId')
   async deleteDocumentByUrl(
     @Body('fileUrl') fileUrl: string,
     @Param('documentId') documentId: string,
-  ): Promise<void> {
+  ): Promise<Document> {
     return this.documentService.deleteDocumentByUrl(fileUrl, documentId);
   }
 

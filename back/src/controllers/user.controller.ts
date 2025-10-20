@@ -18,13 +18,19 @@ export class UserController {
   async getUserById(@Param('id') id: string): Promise<User | null> {
     return this.userService.getOneById(id);
   }
-  @Post("verifyPassword")
-  async verifyPassword(@Body("email") email: string, @Body("password") password: string): Promise<boolean> {
+  @Post('verifyPassword')
+  async verifyPassword(
+    @Body('email') email: string,
+    @Body('password') password: string,
+  ): Promise<boolean> {
     return this.userService.verifyPassword(email, password);
   }
 
-  @Post("newPassword")
-  async changePassword(@Body("email") email: string, @Body("newPassword") newPassword: string): Promise<string | void> {
+  @Post('newPassword')
+  async changePassword(
+    @Body('email') email: string,
+    @Body('newPassword') newPassword: string,
+  ): Promise<string | void> {
     return this.userService.changePassword(email, newPassword);
   }
 }

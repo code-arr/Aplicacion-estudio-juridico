@@ -12,7 +12,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateClienteDto } from '../dtos/cliente';
 import { AdminGuard } from '../guards/admin.guard';
-import { AuthGuard } from '../guards/auth.guard';
 import { MyMailerService } from '../mailer/mailer.service';
 import { ClienteService } from '../services/cliente.service';
 
@@ -24,7 +23,6 @@ export class ClienteController {
   ) {}
 
   @Post()
-  @UseGuards(AuthGuard)
   async createCliente(
     @Body() clienteData: CreateClienteDto,
     @Body('abogadoId') abogadoId: string,
@@ -32,7 +30,7 @@ export class ClienteController {
     return this.clienteService.createCliente(clienteData, abogadoId);
   }
 
-  @Post('/send-document')
+  @Post('/sendDocument')
   @UseInterceptors(FileInterceptor('contractFile'))
   async sendDocument(
     @UploadedFile() file: Express.Multer.File,
@@ -57,8 +55,10 @@ export class ClienteController {
   }
 
   @Post('create')
-  async createClient(@Body() createClientDto: CreateClienteDto, @Query('lawyerId') lawyerId: string): Promise<any> {
-    
+  async createClient(
+    @Body() createClientDto: CreateClienteDto,
+    @Query('lawyerId') lawyerId: string,
+  ): Promise<any> {
     return this.clienteService.createClient(createClientDto, lawyerId);
   }
 

@@ -3,12 +3,14 @@ import {
   BeforeInsert,
   BeforeUpdate,
   Column,
+  CreateDateColumn,
   Entity,
   JoinTable,
   ManyToMany,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { User } from './user.entity';
@@ -68,22 +70,11 @@ export class Lawyer {
   @Column({ type: 'int', default: 0 })
   workedHours: number;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createAt: Date;
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  createdAt!: Date;
 
-  // La columna ya no necesita "onUpdate"
-  @Column({ type: 'timestamp', nullable: true })
-  updateAt: Date;
-
-  @BeforeInsert()
-  setCreateAt() {
-    this.createAt = moment().tz('America/Santiago').toDate();
-  }
-
-  @BeforeUpdate()
-  setUpdateAt() {
-    this.updateAt = moment().tz('America/Santiago').toDate();
-  }
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  updatedAt!: Date;
 
   //relacion con usuario
   @OneToOne(() => User, (usuario) => usuario.lawyer)

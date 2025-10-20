@@ -70,7 +70,9 @@ export class ClientItemRepository implements OnModuleInit {
       // Manejar el caso en que itemTypeId no está definido
       throw new NotFoundException('itemTypeId es requerido');
     }
-    const itemType = await this.itemTypeService.getItemTypeById(clientItem.itemTypeId);
+    const itemType = await this.itemTypeService.getItemTypeById(
+      clientItem.itemTypeId,
+    );
     const client = await this.clientService.getClienteById(clientItem.clientId);
     const lawyer = await this.lawyerService.getAbogadoById(lawyerId);
     if (!itemType) {
@@ -175,65 +177,64 @@ export class ClientItemRepository implements OnModuleInit {
     return await this.clientItemRepository.save(newClientItem);
   }
 
-
   async getByClientId(clientId: string): Promise<any[]> {
-  const rows = await this.clientItemRepository
-    .createQueryBuilder('clientItem')
-    .leftJoin('clientItem.itemType', 'itemType')
-    .leftJoin('clientItem.client', 'client')
-    .leftJoin('clientItem.lawyer', 'lawyer')
-    .leftJoin('clientItem.category', 'category')
-    .leftJoin('clientItem.section', 'section')
-    .leftJoin('clientItem.documents', 'documents')
-    .select([
-      'clientItem.id AS id',
-      'clientItem.title AS title',
-      'clientItem.description AS description',
-      'clientItem.createAt AS createAt',
-      'clientItem.updateAt AS updateAt',
-      'clientItem.activeTime AS activeTime',
-    ])
-    .addSelect('itemType.id', 'itemTypeId')
-    .addSelect('client.id', 'clientId')
-    .addSelect('lawyer.id', 'lawyerId')
-    .addSelect('clientItem.status', 'status')
-    .addSelect('category.id', 'categoryId')
-    .addSelect('section.id', 'sectionId')
-    .addSelect('documents.id', 'documentId')
-    .where('client.id = :clientId', { clientId }) // 🔹 filtro por client
-    .getRawMany();
+    const rows = await this.clientItemRepository
+      .createQueryBuilder('clientItem')
+      .leftJoin('clientItem.itemType', 'itemType')
+      .leftJoin('clientItem.client', 'client')
+      .leftJoin('clientItem.lawyer', 'lawyer')
+      .leftJoin('clientItem.category', 'category')
+      .leftJoin('clientItem.section', 'section')
+      .leftJoin('clientItem.documents', 'documents')
+      .select([
+        'clientItem.id AS id',
+        'clientItem.title AS title',
+        'clientItem.description AS description',
+        'clientItem.createdAt AS createdAt',
+        'clientItem.updatedAt AS updatedAt',
+        'clientItem.activeTime AS activeTime',
+      ])
+      .addSelect('itemType.id', 'itemTypeId')
+      .addSelect('client.id', 'clientId')
+      .addSelect('lawyer.id', 'lawyerId')
+      .addSelect('clientItem.status', 'status')
+      .addSelect('category.id', 'categoryId')
+      .addSelect('section.id', 'sectionId')
+      .addSelect('documents.id', 'documentId')
+      .where('client.id = :clientId', { clientId }) // 🔹 filtro por client
+      .getRawMany();
 
-  // 🔹 Agrupamos para evitar duplicados
-  const result = Object.values(
-    rows.reduce((acc, row) => {
-      if (!acc[row.id]) {
-        acc[row.id] = {
-          id: row.id,
-          title: row.title,
-          description: row.description,
-          createAt: row.createAt,
-          updateAt: row.updateAt,
-          activeTime: row.activeTime,
-          itemTypeId: row.itemTypeId,
-          clientId: row.clientId,
-          lawyerId: row.lawyerId,
-          status: row.status,
-          categoryId: row.categoryId,
-          sectionId: row.sectionId,
-          documents: [],
-        };
-      }
+    // 🔹 Agrupamos para evitar duplicados
+    const result = Object.values(
+      rows.reduce((acc, row) => {
+        if (!acc[row.id]) {
+          acc[row.id] = {
+            id: row.id,
+            title: row.title,
+            description: row.description,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
+            activeTime: row.activeTime,
+            itemTypeId: row.itemTypeId,
+            clientId: row.clientId,
+            lawyerId: row.lawyerId,
+            status: row.status,
+            categoryId: row.categoryId,
+            sectionId: row.sectionId,
+            documents: [],
+          };
+        }
 
-      if (row.documentId) {
-        acc[row.id].documents.push({ id: row.documentId });
-      }
+        if (row.documentId) {
+          acc[row.id].documents.push({ id: row.documentId });
+        }
 
-      return acc;
-    }, {}),
-  );
+        return acc;
+      }, {}),
+    );
 
-  return result;
-}
+    return result;
+  }
 
   async getAllClientItems(): Promise<any[]> {
     const rows = await this.clientItemRepository
@@ -247,8 +248,8 @@ export class ClientItemRepository implements OnModuleInit {
       .select('clientItem.id', 'id')
       .addSelect('clientItem.title', 'title')
       .addSelect('clientItem.description', 'description')
-      .addSelect('clientItem.createAt', 'createAt')
-      .addSelect('clientItem.updateAt', 'updateAt')
+      .addSelect('clientItem.createdAt', 'createdAt')
+      .addSelect('clientItem.updatedAt', 'updatedAt')
       .addSelect('clientItem.activeTime', 'activeTime')
       .addSelect('itemType.id', 'itemTypeId')
       .addSelect('client.id', 'clientId')
@@ -267,8 +268,8 @@ export class ClientItemRepository implements OnModuleInit {
             id: row.id,
             title: row.title,
             description: row.description,
-            createAt: row.createAt,
-            updateAt: row.updateAt,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
             activeTime: row.activeTime,
             itemTypeId: row.itemTypeId,
             clientId: row.clientId,
@@ -317,63 +318,63 @@ export class ClientItemRepository implements OnModuleInit {
   }
 
   async getByLawyerId(lawyerId: string): Promise<any[]> {
-  const rows = await this.clientItemRepository
-    .createQueryBuilder('clientItem')
-    .leftJoin('clientItem.itemType', 'itemType')
-    .leftJoin('clientItem.client', 'client')
-    .leftJoin('clientItem.lawyer', 'lawyer')
-    .leftJoin('clientItem.category', 'category')
-    .leftJoin('clientItem.section', 'section')
-    .leftJoin('clientItem.documents', 'documents')
-    .select([
-      'clientItem.id AS id',
-      'clientItem.title AS title',
-      'clientItem.description AS description',
-      'clientItem.createAt AS createAt',
-      'clientItem.updateAt AS updateAt',
-      'clientItem.activeTime AS activeTime',
-    ])
-    .addSelect('itemType.id', 'itemTypeId')
-    .addSelect('client.id', 'clientId')
-    .addSelect('lawyer.id', 'lawyerId')
-    .addSelect('clientItem.status', 'status')
-    .addSelect('category.id', 'categoryId')
-    .addSelect('section.id', 'sectionId')
-    .addSelect('documents.id', 'documentId')
-    .where('lawyer.id = :lawyerId', { lawyerId }) // 🔹 filtro por lawyer
-    .getRawMany();
+    const rows = await this.clientItemRepository
+      .createQueryBuilder('clientItem')
+      .leftJoin('clientItem.itemType', 'itemType')
+      .leftJoin('clientItem.client', 'client')
+      .leftJoin('clientItem.lawyer', 'lawyer')
+      .leftJoin('clientItem.category', 'category')
+      .leftJoin('clientItem.section', 'section')
+      .leftJoin('clientItem.documents', 'documents')
+      .select([
+        'clientItem.id AS id',
+        'clientItem.title AS title',
+        'clientItem.description AS description',
+        'clientItem.createdAt AS createdAt',
+        'clientItem.updatedAt AS updatedAt',
+        'clientItem.activeTime AS activeTime',
+      ])
+      .addSelect('itemType.id', 'itemTypeId')
+      .addSelect('client.id', 'clientId')
+      .addSelect('lawyer.id', 'lawyerId')
+      .addSelect('clientItem.status', 'status')
+      .addSelect('category.id', 'categoryId')
+      .addSelect('section.id', 'sectionId')
+      .addSelect('documents.id', 'documentId')
+      .where('lawyer.id = :lawyerId', { lawyerId }) // 🔹 filtro por lawyer
+      .getRawMany();
 
-  // 🔹 Agrupamos para evitar duplicados
-  const result = Object.values(
-    rows.reduce((acc, row) => {
-      if (!acc[row.id]) {
-        acc[row.id] = {
-          id: row.id,
-          title: row.title,
-          description: row.description,
-          createAt: row.createAt,
-          updateAt: row.updateAt,
-          activeTime: row.activeTime,
-          itemTypeId: row.itemTypeId,
-          clientId: row.clientId,
-          lawyerId: row.lawyerId,
-          status: row.status,
-          categoryId: row.categoryId,
-          sectionId: row.sectionId,
-          documents: [],
-        };
-      }
+    // 🔹 Agrupamos para evitar duplicados
+    const result = Object.values(
+      rows.reduce((acc, row) => {
+        if (!acc[row.id]) {
+          acc[row.id] = {
+            id: row.id,
+            title: row.title,
+            description: row.description,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
+            activeTime: row.activeTime,
+            itemTypeId: row.itemTypeId,
+            clientId: row.clientId,
+            lawyerId: row.lawyerId,
+            status: row.status,
+            categoryId: row.categoryId,
+            sectionId: row.sectionId,
+            documents: [],
+          };
+        }
 
-      if (row.documentId) {
-        acc[row.id].documents.push({ id: row.documentId });
-      }
+        if (row.documentId) {
+          acc[row.id].documents.push({ id: row.documentId });
+        }
 
-      return acc;
-    }, {}),
-  );
+        return acc;
+      }, {}),
+    );
 
-  return result;
-}
+    return result;
+  }
 
   async seedClientItems() {
     const lawyerExists = await this.lawyerService.getAllLawyers();

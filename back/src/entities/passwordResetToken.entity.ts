@@ -1,5 +1,11 @@
 // src/entities/password-reset-token.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('password_reset_tokens')
 export class PasswordResetToken {
@@ -18,6 +24,9 @@ export class PasswordResetToken {
   @Column({ nullable: true })
   usedAt: Date;
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz', default: () => 'now()' })
+  updatedAt!: Date;
 }

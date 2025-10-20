@@ -4,7 +4,6 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
 import { Buffer } from 'buffer';
 import { UserService } from '../services/user.service';
 import axios from 'axios';
@@ -54,20 +53,17 @@ export class MyMailerService {
     title: string,
   ) {
     try {
-      // 0) Buscar usuario y validar refreshToken
       const user = await this.userService.findOneByEmail(lawyerEmail);
-      if (!user?.googleRefreshToken) {
+      if (!user?.googleRefreshToken || !user?.googleEmail) {
         throw new InternalServerErrorException(
-          'El refreshToken de Google no está configurado para este usuario.',
+          'La cuenta de Google del abogado no está correctamente vinculada.',
         );
       }
 
-      // 1) Crear cliente Gmail
       const gmail = getGmailClient(user.googleRefreshToken);
 
-      // 2) Construir MIME (HTML + PDF)
       const raw = buildMimeMessage({
-        from: user.googleEmail, // debe ser la misma cuenta del refresh token
+        from: user.googleEmail,
         to,
         subject: `${subject} - ${title}`,
         html: descriptionHtml,
@@ -75,93 +71,15 @@ export class MyMailerService {
         pdfBuffer: contractBuffer,
       });
 
-      // 3) Enviar por Gmail API
-      await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: { raw },
-      });
+      await gmail.users.messages.send({ userId: 'me', requestBody: { raw } });
 
       return { message: `El documento para ${to} fue enviado con éxito.` };
     } catch (err: any) {
-      // No loguees secretos. Mostrá mensaje limpio.
       console.error(
         'Error al enviar el documento (Gmail API):',
         err?.message || err,
       );
       throw new InternalServerErrorException('No se pudo enviar el documento.');
     }
-  }
-
-  async sendResetPasswordEmail(userEmail: string, resetToken: string) {
-    try {
-      const user = await this.userService.findOneByEmail(userEmail);
-      if (!user?.googleRefreshToken) {
-        throw new InternalServerErrorException(
-          'El refreshToken de Google no está configurado para este usuario.',
-        );
-      }
-
-      const resetLink = `${process.env.APP_PUBLIC_URL}reset?token=${encodeURIComponent(
-        resetToken,
-      )}`;
-
-      const gmail = getGmailClient(user.googleRefreshToken);
-
-      // Llamamos buildMimeMessage sin pdfBuffer ni filename
-      const raw = await this.buildMimeMessage({
-        from: user.googleEmail,
-        to: userEmail,
-        subject: 'Restablecer contraseña',
-        html: `
-        <p>Hola,</p>
-        <p>Para restablecer tu contraseña, hacé click en el siguiente enlace:</p>
-        <p><a href="${resetLink}">${resetLink}</a></p>
-        <p>Si no solicitaste este cambio, podés ignorar este correo.</p>
-      `,
-      });
-
-      await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: { raw },
-      });
-
-      return { message: `Correo de restablecimiento enviado a ${userEmail}` };
-    } catch (err: any) {
-      console.error(
-        'Error al enviar correo de reset password:',
-        err?.message || err,
-      );
-      throw new InternalServerErrorException(
-        'No se pudo enviar el correo de restablecimiento.',
-      );
-    }
-  }
-
-  // src/lib/google/gmail.client.ts
-
-  async buildMimeMessage(options: MimeOptions) {
-    const encodedSubject = `=?UTF-8?B?${Buffer.from(options.subject).toString('base64')}?=`;
-
-    let mime =
-      `From: ${options.from}\r\n` +
-      `To: ${options.to}\r\n` +
-      `Subject: ${encodedSubject}\r\n` +
-      `MIME-Version: 1.0\r\n`;
-
-    if (options.pdfBuffer && options.filename) {
-      mime += `Content-Type: application/pdf; name="${options.filename}"\r\n`;
-      mime += `Content-Transfer-Encoding: base64\r\n`;
-      mime += `Content-Disposition: attachment; filename="${options.filename}"\r\n\r\n`;
-      mime += options.pdfBuffer.toString('base64') + '\r\n';
-    }
-
-    mime += `Content-Type: text/html; charset=UTF-8\r\n\r\n`;
-    mime += options.html;
-
-    return Buffer.from(mime)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
   }
 }
