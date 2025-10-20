@@ -13,28 +13,30 @@ export class AdminRepository {
     private readonly userService: UserService, // Asegúrate de importar y usar el UserRepository correctamente
   ) {}
 
-    async createAdmin(data: AdministradorDto): Promise<Admin> {
-        const user = await this.userService.findOneByEmail(data.userEmail);
-        if (!user) {
-            throw new Error('User not found');
-        }
-        const admin = this.adminRepository.create({
-            user: user,
-        });
-        return this.adminRepository.save(admin);
+  async createAdmin(data: AdministradorDto): Promise<Admin> {
+    const user = await this.userService.findOneByEmail(data.userEmail);
+    if (!user) {
+      throw new Error('User not found');
     }
+    const admin = this.adminRepository.create({
+      user: user,
+    });
+    return this.adminRepository.save(admin);
+  }
 
   async seedAdmin(): Promise<Admin> {
-   
     const newAdmin = await this.createAdmin({
-      userEmail: 'admin@example.com'
+      userEmail: 'admin@example.com',
     });
 
     return newAdmin;
   }
-  
-  async getAdmin() :Promise<Admin[]> {
-    return this.adminRepository.find({ relations: ['usuario'] });
 
-  }
+ async getAdmin(): Promise<Admin | null> {
+  const admins = await this.adminRepository.find({
+    relations: ['user'],
+  });
+
+  return admins[0] || null; 
+}
 }

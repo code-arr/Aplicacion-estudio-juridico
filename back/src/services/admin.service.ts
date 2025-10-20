@@ -16,7 +16,7 @@ export class AdminService {
     return this.adminRepository.seedAdmin();
   }
 
-  async getAdmin(): Promise<Admin[]> {
+  async getAdmin(): Promise<Admin | null> {
     return this.adminRepository.getAdmin();
   }
 }
