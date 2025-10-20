@@ -1,6 +1,5 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { Lawyer } from '../entities/lawyer.entity';
-import { AuthGuard } from '../guards/auth.guard';
 import { AbogadoService } from '../services/abogado.service';
 
 @Controller('lawyer')
@@ -31,7 +30,6 @@ export class AbogadoController {
     return this.abogadoService.getAbogadoByEmail(email);
   }
   @Get(':id')
-  @UseGuards(AuthGuard)
   async getAbogadoById(@Param('id') id: string) {
     return this.abogadoService.getAbogadoById(id);
   }

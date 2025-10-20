@@ -13,11 +13,11 @@ import { registerUserDto } from 'src/dtos/user.dto';
 import { User } from 'src/entities/user.entity';
 import { AuthRepository } from 'src/auth/auth.repository';
 import { Request, Response } from 'express';
-import { AuthGuard } from 'src/guards/auth.guard';
 import { GoogleAuthGuard } from 'src/guards/google.guard';
 import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 import { UserService } from 'src/services/user.service';
 import { buffer } from 'stream/consumers';
+import { Public } from './public.decorator';
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -25,11 +25,13 @@ export class AuthController {
     private readonly userService: UserService,
   ) {}
 
+  @Public()
   @Post('register')
   async register(@Body() user: registerUserDto): Promise<Partial<User> | void> {
     return this.authRepository.register(user); // sin try/catch
   }
 
+  @Public()
   @Post('login')
   async login(
     @Req() req: Request,
@@ -43,7 +45,6 @@ export class AuthController {
     return this.authRepository.login(email, password, { req, deviceId }); // sin try/catch
   }
 
-  @UseGuards(AuthGuard)
   @Get('me')
   async me(@Req() req) {
     const user = await this.userService.getOneById(req.user.id);
@@ -59,7 +60,6 @@ export class AuthController {
   }
 
   @Get('google/connect')
-  @UseGuards(AuthGuard)
   async connectGoogleAccount(@Req() req, @Res() res: Response) {
     const dbEmail = req.query.email;
     const statePayload = { email: dbEmail };
@@ -76,6 +76,7 @@ export class AuthController {
     res.json({ redirectUrl: googleAuthUrl });
   }
 
+  @Public()
   @Get('google/callback')
   @UseGuards(PassportAuthGuard('google'))
   async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
@@ -107,11 +108,13 @@ export class AuthController {
     }
   }
 
+  @Public()
   @Post('forgotPassword')
   async forgotPassword(@Body('email') email: string) {
     return this.authRepository.forgotPassword(email);
   }
 
+  @Public()
   @Post('resetPassword')
   async resetPassword(@Body() body: { token: string; password: string }) {
     return this.authRepository.resetPassword(body.token, body.password);

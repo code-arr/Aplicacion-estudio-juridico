@@ -12,7 +12,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateClienteDto } from '../dtos/cliente';
 import { AdminGuard } from '../guards/admin.guard';
-import { AuthGuard } from '../guards/auth.guard';
 import { MyMailerService } from '../mailer/mailer.service';
 import { ClienteService } from '../services/cliente.service';
 
@@ -24,7 +23,6 @@ export class ClienteController {
   ) {}
 
   @Post()
-  @UseGuards(AuthGuard)
   async createCliente(
     @Body() clienteData: CreateClienteDto,
     @Body('abogadoId') abogadoId: string,
