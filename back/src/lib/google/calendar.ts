@@ -104,4 +104,35 @@ export class GoogleCalendarService {
       throw new InternalServerErrorException('No se pudo agendar la reunión.');
     }
   }
+
+  async deleteEvent(lawyerEmail: string, eventId: string): Promise<void> {
+    try {
+      const user = await this.userService.findOneByEmail(lawyerEmail);
+      if (!user?.googleRefreshToken) {
+        throw new InternalServerErrorException(
+          'El refresh token de Google no está configurado para este usuario.',
+        );
+      }
+      const accessToken = await this.getAccessTokenFromRefreshToken(
+        user.googleRefreshToken,
+      );
+      const oauth2Client = new google.auth.OAuth2();
+      oauth2Client.setCredentials({ access_token: accessToken });
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+      await calendar.events.delete({
+        calendarId: 'primary',
+        eventId,
+        sendUpdates: 'all', // notifica a asistentes
+      });
+    } catch (err: any) {
+      console.error(
+        'Error al eliminar evento de Google Calendar:',
+        err?.message || err,
+      );
+      throw new InternalServerErrorException(
+        'No se pudo cancelar en Google Calendar.',
+      );
+    }
+  }
 }

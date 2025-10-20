@@ -52,6 +52,13 @@ export class MeetingRepository {
     return this.meetingRepository.find({ relations: ['clientItem'] });
   }
 
+  async getById(id: string): Promise<Meeting | null> {
+    return this.meetingRepository.findOne({
+      where: { id },
+      relations: ['clientItem'],
+    });
+  }
+
   async updateMeeting(
     id: string,
     meetingData: Partial<Meeting>,

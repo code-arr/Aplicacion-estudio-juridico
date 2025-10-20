@@ -55,7 +55,7 @@ export class Meeting {
   location: string; // Ubicación física si es una reunión en persona
   @Column({
     type: 'enum',
-    enum: ['scheduled', 'completed'],
+    enum: ['scheduled', 'completed', 'canceled'],
     default: 'scheduled',
   })
   status: 'scheduled' | 'completed' | 'canceled';

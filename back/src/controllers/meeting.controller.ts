@@ -9,6 +9,7 @@ import {
   Query,
   Put,
   Delete,
+  Patch,
 } from '@nestjs/common';
 import { GoogleCalendarService } from '../lib/google/calendar';
 import { MeetingDto } from 'src/dtos/meeting.dto';
@@ -54,6 +55,14 @@ export class MeetingsController {
     @Body() meetingData: Partial<Meeting>,
   ): Promise<Meeting | null> {
     return this.meetingService.updateMeeting(id, meetingData);
+  }
+
+  @Patch('cancel/:id')
+  async cancelMeeting(
+    @Param('id') id: string,
+    @Body('lawyerEmail') lawyerEmail: string,
+  ): Promise<Meeting> {
+    return this.meetingService.cancelMeeting(id, lawyerEmail);
   }
 
   @Delete('delete/:id')

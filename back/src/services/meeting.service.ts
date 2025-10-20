@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   Catch,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { MeetingDto } from 'src/dtos/meeting.dto';
 import { Meeting } from 'src/entities/meeting.entity';
@@ -124,11 +126,39 @@ export class MeetingService {
   }
 
   async deleteMeeting(id: string): Promise<Meeting> {
-    // Si más adelante querés cancelar el evento en Google Calendar, acá podrías:
-    // 1) leer la meeting por id (para obtener eventId y organizer),
-    // 2) llamar a googleCalendarService para cancelar,
-    // 3) recién ahí repo.deleteMeeting(id).
     return this.meetingRepository.deleteMeeting(id);
+  }
+
+  async cancelMeeting(id: string, lawyerEmail: string): Promise<Meeting> {
+    // 1) traer meeting actual
+    const current = await this.meetingRepository.getById(id);
+    if (!current) throw new NotFoundException('Meeting not found');
+
+    // si ya está cancelada, devolvés igual (idempotente)
+    if (current.status === 'canceled') return current;
+
+    // 2) si era Google, cancelar en Calendar
+    if (current.type === 'google-meet' && current.eventId) {
+      if (!lawyerEmail) {
+        throw new BadRequestException('Organizer email not found for lawyer');
+      }
+      // 👍 asumimos que tu servicio tiene un método para borrar el evento
+      await this.googleCalendarService.deleteEvent(
+        lawyerEmail,
+        current.eventId,
+      );
+    }
+
+    // 3) marcar como cancelada en BD (y opcionalmente limpiar datos)
+    const updatedMeeting = await this.meetingRepository.updateMeeting(id, {
+      status: 'canceled',
+      link: undefined, // opcional
+      eventId: undefined, // opcional
+    });
+    if (!updatedMeeting) {
+      throw new NotFoundException('Meeting not found');
+    }
+    return updatedMeeting;
   }
 
   async getAllMeetings(): Promise<Meeting[]> {
