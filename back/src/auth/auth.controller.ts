@@ -12,7 +12,7 @@ import {
 import { registerUserDto } from 'src/dtos/user.dto';
 import { User } from 'src/entities/user.entity';
 import { AuthRepository } from 'src/auth/auth.repository';
-import { Request, Response } from 'express';
+import { Request as ExpressRequest, Response } from 'express';
 import { GoogleAuthGuard } from 'src/guards/google.guard';
 import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 import { UserService } from 'src/services/user.service';
@@ -31,19 +31,19 @@ export class AuthController {
     return this.authRepository.register(user); // sin try/catch
   }
 
-  // @Public()
-  // @Post('login')
-  // async login(
-  //   @Req() req: Request,
-  //   @Body()
-  //   {
-  //     email,
-  //     password,
-  //     deviceId,
-  //   }: { email: string; password: string; deviceId?: string },
-  // ): Promise<{ message: string; token?: string; user?: any }> {
-  //   return this.authRepository.login(email, password, { req, deviceId }); // sin try/catch
-  // }
+   @Public()
+   @Post('login')
+   async login(
+     @Req() req: ExpressRequest,
+     @Body()
+     {
+       email,
+       password,
+       deviceId,
+     }: { email: string; password: string; deviceId?: string },
+   ): Promise<{ message: string; token?: string; user?: any }> {
+     return this.authRepository.login(email, password, { req: req as any, deviceId }); // sin try/catch
+   }
 
   @Get('me')
   async me(@Req() req) {
@@ -79,7 +79,7 @@ export class AuthController {
   @Public()
   @Get('google/callback')
   @UseGuards(PassportAuthGuard('google'))
-  async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
+  async googleAuthCallback(@Req() req: ExpressRequest, @Res() res: Response) {
     const user = req.user as any;
     console.log('User: ', user);
 
