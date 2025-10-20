@@ -1,18 +1,18 @@
-import { registerUserDto } from 'src/dtos/user.dto';
-import { User } from 'src/entities/user.entity';
+import { registerUserDto } from '../dtos/user.dto';
+import { User } from '../entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { isBefore , addMinutes} from 'date-fns';
 
-import { UserService } from 'src/services/user.service';
+import { UserService } from '../services/user.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MyMailerService } from 'src/mailer/mailer.service';
-import { PasswordResetRepository } from 'src/repositories/passwordResetToken.repository';
+import { MyMailerService } from '../mailer/mailer.service';
+import { PasswordResetRepository } from '../repositories/passwordResetToken.repository';
 
 @Injectable()
 export class AuthRepository {
