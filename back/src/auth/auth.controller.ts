@@ -51,8 +51,8 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async me(@Req() req: ExpressRequest) {
-    const user = await this.userService.getOneById(req.user.id);
+  async me(@Req() req) {
+    const user = await this.userService.getOneById(req.user?.id);
     if (!user) {
       throw new UnauthorizedException('User not found for this token');
     }
