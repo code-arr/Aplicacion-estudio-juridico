@@ -261,16 +261,16 @@ export class EntryDayRepository {
     const start = `${year}-01-01`;
     const end = `${year}-12-31`;
 
-    // ===== 1) Acumulado por DÍA (day es DATE, sin TZ) =====
+    // 1) Por DÍA — usar to_char para forzar "YYYY-MM-DD"
     const byDay = await this.repo
       .createQueryBuilder('e')
-      .select('e.day', 'day') // DATE -> 'YYYY-MM-DD'
+      .select(`to_char(e.day, 'YYYY-MM-DD')`, 'day') // 👈 cambio clave
       .addSelect('SUM(e.durationSec)', 'total')
       .where('e.lawyerId = :lawyerId', { lawyerId })
       .andWhere('e.clientId = :clientId', { clientId })
       .andWhere('e.day BETWEEN :start AND :end', { start, end })
-      .groupBy('e.day')
-      .orderBy('e.day', 'ASC')
+      .groupBy('day')
+      .orderBy('day', 'ASC')
       .getRawMany<{ day: string; total: string }>();
 
     // ===== 2) Acumulado por SEMANA ISO (Postgres) =====
@@ -308,8 +308,7 @@ export class EntryDayRepository {
     // ===== Armado de MAPS =====
     const totalByDay: Record<string, number> = {};
     byDay.forEach((r) => {
-      // r.day ya viene como 'YYYY-MM-DD'
-      totalByDay[r.day] = Number(r.total);
+      totalByDay[r.day] = Number(r.total); // r.day ya es "YYYY-MM-DD"
     });
 
     const totalByWeek: Record<number, number> = {};
