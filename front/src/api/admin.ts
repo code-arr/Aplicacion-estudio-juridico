@@ -3,7 +3,9 @@ import type { Client } from "@/types/Client";
 import type { Lawyer } from "@/types/Lawyer";
 import type { Admin } from "@/types/Admin";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://estudio-backend-dev.us-east-1.elasticbeanstalk.com";
 
 export type AdminGlobalStats = {
   totalLawyers: number;

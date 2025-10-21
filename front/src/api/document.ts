@@ -1,3 +1,4 @@
+// src/api/document.ts
 import type { Document } from "@/types/Document";
 import axios from "./axios";
 
@@ -19,6 +20,13 @@ export const createDocument = async (
     .data;
 };
 
-export const deleteDocument = async (documentId: string): Promise<void> => {
-  return (await axios.delete(`document/delete/${documentId}`)).data;
+export const deleteDocument = async (
+  documentId: string,
+  fileUrl: string
+): Promise<Document> => {
+  return (
+    await axios.delete(`document/delete/${documentId}`, {
+      data: { fileUrl },
+    })
+  ).data;
 };

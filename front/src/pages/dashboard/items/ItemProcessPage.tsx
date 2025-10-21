@@ -9,11 +9,14 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import RowSkeleton from "@/components/shared/RowSkeleton";
+import type { Process } from "@/types/Process";
 
 const ItemProcessPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +27,7 @@ const ItemProcessPage = () => {
   const setProcessesByClientItem = useProcessStore(
     (s) => s.setProcessesByClientItem
   );
+  const deleteProcessById = useProcessStore((s) => s.deleteProcessById);
 
   const filtered = processesByClientItem.filter((p) => {
     const q = searchTerm.trim().toLowerCase();
@@ -55,6 +59,24 @@ const ItemProcessPage = () => {
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
+  };
+
+  const handleDelete = async (p: Process) => {
+    const ok = window.confirm(
+      `¿Eliminar el trámite “${p.name}”? 
+Se eliminará también el TIEMPO DE TRABAJO asociado a este trámite. Esta acción no se puede deshacer.`
+    );
+    if (!ok) return;
+
+    try {
+      setDeletingId(p.id!);
+      await deleteProcessById(p);
+      // opcional: toast de éxito
+    } catch {
+      alert("No se pudo eliminar el trámite. Intenta de nuevo.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -130,14 +152,20 @@ const ItemProcessPage = () => {
 
           {!loading && !error && filtered.length > 0 && (
             <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
-              <div className="grid grid-cols-[1fr_2fr_3fr_1fr] pl-10 py-3 gap-x-5 font-medium">
+              <div className="grid grid-cols-[12rem_1.6fr_3fr_1fr_112px] px-4 py-3 gap-x-4 font-medium rounded-t-xl text-[hsl(225,15%,20%)] bg-[hsl(210,100%,97%)]/60">
                 <p>Fecha</p>
                 <p>Nombre</p>
                 <p>Descripción</p>
                 <p>Duración</p>
+                <p className="text-right">Acciones</p>
               </div>
               {filtered.map((p) => (
-                <ProcessCard key={p.id} p={p} />
+                <ProcessCard
+                  key={p.id}
+                  p={p}
+                  onDelete={handleDelete}
+                  deleting={deletingId === p.id}
+                />
               ))}
             </ul>
           )}

@@ -18,8 +18,9 @@ const LoginPage = () => {
     status: false,
     message: "",
   });
-  const location = useLocation();
-  const from = (location.state as any)?.from?.pathname ?? "/dashboard";
+
+  /* const location = useLocation();
+  const from = (location.state as any)?.from?.pathname ?? "/dashboard"; 
 
   useEffect(() => {
     if (isLoggedIn && user) {
@@ -30,9 +31,19 @@ const LoginPage = () => {
         navigate("/dashboard/admin/clients", { replace: true });
       }
     }
-  }, [isLoggedIn, user, navigate, isAdmin, isLawyer, from]);
+  }, [isLoggedIn, user, navigate, isAdmin, isLawyer, from]); */
 
-  const handleLogin = async (email: string, password: string) => {
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      if (isAdmin) {
+        navigate("/dashboard/admin/clients", { replace: true });
+      } else if (isLawyer) {
+        navigate("/dashboard/clients", { replace: true });
+      }
+    }
+  }, [isLoggedIn, user, isAdmin, isLawyer, navigate]);
+
+  /*   const handleLogin = async (email: string, password: string) => {
     try {
       const { user, token } = await loginUser(email, password);
       setLawyer(user.email);
@@ -45,7 +56,29 @@ const LoginPage = () => {
       });
       setPassword("");
     }
+  }; */
+
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      const { user, token } = await loginUser(email, password);
+      setLawyer(user.email);
+      await login(user, token);
+
+      // ➜ destino fijo por rol
+      if (user.role === "admin") {
+        navigate("/dashboard/admin/clients", { replace: true });
+      } else {
+        navigate("/dashboard/clients", { replace: true });
+      }
+    } catch (error) {
+      setError({
+        status: true,
+        message: "Las credenciales ingresadas son incorrectas",
+      });
+      setPassword("");
+    }
   };
+
   //Creo que es redundante ya que en AppRoutes y DashboardRouter ya lo renderiza mientras verifica si se puede restaurar la sesion
   /* if (isLoadingSession) {
     return <Spinner size={"3"} />; //Despues puedo cambiarlo por algo mas pro

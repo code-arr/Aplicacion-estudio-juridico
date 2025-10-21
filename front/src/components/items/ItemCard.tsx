@@ -166,10 +166,9 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
           <div className="flex flex-col items-end gap-1">
             {StatusBadge(item.status)}
             <p className="text-sm text-gray-500">
-              {/* {item.updatedAt
+              {item.updatedAt
                 ? `Última actualización: ${item.updatedAt}`
-                : `Creado: ${item.createdAt}`} */}
-              01/09/2025
+                : `Creado: ${item.createdAt}`}
             </p>
           </div>
         </div>

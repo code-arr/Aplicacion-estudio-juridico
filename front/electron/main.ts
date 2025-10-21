@@ -429,6 +429,17 @@ ipcMain.on("viewer:close", () => {
     documentViewerWindow.close();
   }
 });
+
+ipcMain.on("viewer:closeById", (_event, id: string) => {
+  const win = createDocumentViewerWindow(); // garantiza que exista si la abrís al vuelo
+  if (!win) return;
+  if (win.isMinimized()) win.restore();
+  // reenviamos al renderer del visor
+  const send = () => win.webContents.send("viewer:closeById", id);
+  if (win.webContents.isLoading())
+    win.webContents.once("did-finish-load", send);
+  else send();
+});
 /** ====================================================================== */
 
 /** ==================== IPC: AUDIENCES VIEWER ==================== */
@@ -475,4 +486,14 @@ ipcMain.on("viewer:audience:close", () => {
   if (audienceViewerWindow && !audienceViewerWindow.isDestroyed()) {
     audienceViewerWindow.close();
   }
+});
+
+ipcMain.on("viewer:audience:closeById", (_event, id: string) => {
+  const win = createAudienceViewerWindow();
+  if (!win) return;
+  if (win.isMinimized()) win.restore();
+  const send = () => win.webContents.send("viewer:audience:closeById", id);
+  if (win.webContents.isLoading())
+    win.webContents.once("did-finish-load", send);
+  else send();
 });

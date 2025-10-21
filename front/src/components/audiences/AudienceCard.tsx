@@ -11,9 +11,16 @@ import type { Audience } from "@/types/Audience";
 interface AudienceCardProps {
   aud: Audience;
   openInViewer: (audiences: Audience[], activeId?: string) => void;
+  onDelete?: (aud: Audience) => void;
+  deleting?: boolean;
 }
 
-const AudienceCard = ({ aud, openInViewer }: AudienceCardProps) => {
+const AudienceCard = ({
+  aud,
+  openInViewer,
+  onDelete,
+  deleting,
+}: AudienceCardProps) => {
   function formatDate(isoDate: string | null): string {
     if (!isoDate) return "";
     const date = new Date(isoDate);
@@ -49,15 +56,20 @@ const AudienceCard = ({ aud, openInViewer }: AudienceCardProps) => {
         <div className="flex items-center gap-2 gap-x-4">
           <button
             onClick={() => openInViewer([aud], aud.id)}
-            className="text-blue-700 cursor-pointer"
+            className={`text-blue-700 ${
+              deleting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+            }`}
+            disabled={deleting}
           >
-            Ver
+            {deleting ? "Eliminando..." : "Ver"}
           </button>
+
           <DropdownMenuRoot>
             <DropdownMenuTrigger asChild>
               <button
                 aria-label="Opciones del ítem"
                 className="p-1.5 rounded-md hover:bg-gray-100 leading-none"
+                disabled={deleting}
               >
                 <Ellipsis className="w-5 h-5" />
               </button>
@@ -80,13 +92,13 @@ const AudienceCard = ({ aud, openInViewer }: AudienceCardProps) => {
 
               <DropdownMenuItem
                 onSelect={() => {
-                  // Confirmación y borrado
-                  // confirmDelete(item.id)
+                  if (deleting) return;
+                  onDelete?.(aud);
                 }}
                 color="crimson"
                 shortcut="⌘ ⌫"
               >
-                Eliminar
+                {deleting ? "Eliminando..." : "Eliminar"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenuRoot>

@@ -2,7 +2,7 @@
 import { create } from "zustand";
 import type { User } from "@/types/User";
 import type { AuthState } from "@/types/AuthState";
-import { getUserById } from "@/api/user";
+import { getMe, getUserById } from "@/api/user";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import { useTimerUIStore } from "@/store/useTimerUIStore";
 
@@ -11,19 +11,22 @@ export async function restoreSession() {
   useAuthStore.setState({ isLoadingSession: true });
   try {
     const authData = await window.electronAPI?.invoke("auth:get");
-    if (authData && authData.token) {
-      const user = await getUserById(authData.id);
+    if (authData?.token) {
+      // ✅ ahora validamos el token contra el back
+      const user = await getMe();
+      /* const user = await getUserById(authData.id); */
 
-      if (user) {
-        // ✅ SOLO si es lawyer, hidrato el store del abogado
-        if (user.role === "lawyer") {
-          // Si tenés lawyerId, mejor hidratar por id:
-          // await useLawyerStore.getState().hydrateById(user.lawyerId!);
-          useLawyerStore.getState().setLawyer(user.email);
-        }
-        // Dejo que login unifique flags y estado
-        await useAuthStore.getState().login(user, authData.token);
+      // 1) Primero login (para que el interceptor ya tenga token del store)
+      await useAuthStore.getState().login(user, authData.token);
+
+      // ✅ SOLO si es lawyer, hidrato el store del abogado
+      if (user.role === "lawyer") {
+        // Si tenés lawyerId, mejor hidratar por id:
+        // await useLawyerStore.getState().hydrateById(user.lawyerId!);
+        useLawyerStore.getState().setLawyer(user.email);
       }
+      // Dejo que login unifique flags y estado
+      /*   await useAuthStore.getState().login(user, authData.token); */
     }
   } catch (error) {
     console.error("Error al restaurar sesión:", error);

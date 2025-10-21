@@ -143,6 +143,13 @@ export default function AudienceViewerPage() {
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    const off = window.audienceViewer?.onCloseById?.((id: string) => {
+      usePdfManagerStore.getState().close(id);
+    });
+    return () => off?.();
+  }, []);
+
   // UI igual
   const nothingOpen = openDocs.length === 0;
   const zoomIn = () => setZoom((z) => Math.min(4, +(z * 1.1).toFixed(3)));

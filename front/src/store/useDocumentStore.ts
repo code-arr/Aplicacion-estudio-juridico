@@ -1,6 +1,7 @@
+// src/store/useDocumentStore.tsx
 import { create } from "zustand";
 import type { Document } from "@/types/Document";
-import { getDocumentsByClientItem } from "@/api/document";
+import { getDocumentsByClientItem, deleteDocument } from "@/api/document";
 
 interface DocumentState {
   documents: Document[];
@@ -16,6 +17,9 @@ interface DocumentState {
   addSelectedDocument: () => void;
   removeSelectedDocument: (id: string) => void;
   clearSelectedDocuments: () => void;
+  removeDocumentLocally: (id: string) => void;
+  restoreDocumentLocally: (doc: Document) => void;
+  deleteDocumentById: (doc: Document) => Promise<void>;
 
   fetchDocuments: () => Promise<void>;
   fetchDocumentsByClient: (clientId: string) => Promise<void>;
@@ -59,6 +63,39 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
       selectedDocuments: state.selectedDocuments.filter((d) => d.id !== id),
     })),
   clearSelectedDocuments: () => set({ selectedDocuments: [] }),
+  removeDocumentLocally: (id) => {
+    set((state) => ({
+      documentsByClientItem: state.documentsByClientItem.filter(
+        (d) => d.id !== id
+      ),
+    }));
+  },
+
+  restoreDocumentLocally: (doc) => {
+    // lo metemos de nuevo manteniendo un orden básico (al final)
+    set((state) => ({
+      documentsByClientItem: [...state.documentsByClientItem, doc],
+    }));
+  },
+
+  deleteDocumentById: async (doc) => {
+    const { id, fileUrl } = doc;
+    const current = get().documentsByClientItem;
+    const toRestore = current.find((d) => d.id === id);
+    if (!toRestore) return;
+
+    // optimista
+    set({ documentsByClientItem: current.filter((d) => d.id !== id) });
+
+    try {
+      await deleteDocument(id, fileUrl!);
+      // éxito: nada más
+    } catch (e) {
+      // rollback
+      set({ documentsByClientItem: current });
+      throw e;
+    }
+  },
 
   fetchDocuments: async () => {},
   fetchDocumentsByClient: async (clientId: string) => {},

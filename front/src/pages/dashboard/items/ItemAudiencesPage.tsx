@@ -27,6 +27,7 @@ const ItemAudiencesPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +41,7 @@ const ItemAudiencesPage = () => {
   const setAudiencesByClientItem = useAudienceStore(
     (s) => s.setAudiencesByClientItem
   );
+  const deleteAudienceById = useAudienceStore((s) => s.deleteAudienceById);
 
   useEffect(() => {
     if (!clientItemId) return;
@@ -59,6 +61,23 @@ const ItemAudiencesPage = () => {
       setAudiencesByClientItem([]);
     };
   }, [clientItemId, fetchAudiencesByClientItemId, setAudiencesByClientItem]);
+
+  const handleDelete = async (aud: Audience) => {
+    const ok = window.confirm(
+      `¿Eliminar “${aud.name}”? Esta acción no se puede deshacer.`
+    );
+    if (!ok) return;
+    try {
+      setDeletingId(aud.id);
+      await deleteAudienceById(aud);
+      // 👇 cerrar pestaña del visor si existía (no rompe si no está)
+      window.audienceViewer?.closeById?.(aud.id);
+    } catch {
+      alert("No se pudo eliminar la audiencia. Intenta de nuevo.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
@@ -136,6 +155,8 @@ const ItemAudiencesPage = () => {
                     key={aud.id}
                     aud={aud}
                     openInViewer={openInViewer}
+                    onDelete={handleDelete}
+                    deleting={deletingId === aud.id}
                   />
                 ))
               ) : (

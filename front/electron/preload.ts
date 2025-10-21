@@ -146,6 +146,16 @@ ipcRenderer.on("viewer:addDocs", (_e, data) => {
   else _pendingViewerPayloads.push(data);
 });
 
+// ===== Buffer/Subscriber para "closeById" (DOCUMENTS VIEWER) =====
+let _viewerCloseSub: ((id: string) => void) | null = null;
+let _pendingViewerCloseIds: string[] = [];
+
+// Siempre escuchar el canal de main → renderer:
+ipcRenderer.on("viewer:closeById", (_e, id: string) => {
+  if (_viewerCloseSub) _viewerCloseSub(id);
+  else _pendingViewerCloseIds.push(id);
+});
+
 contextBridge.exposeInMainWorld("viewer", {
   open: (payload: { docs: any[]; activeId?: string | null }) =>
     ipcRenderer.invoke("viewer:open", payload),
@@ -166,6 +176,19 @@ contextBridge.exposeInMainWorld("viewer", {
       _viewerSubscriber = null;
     };
   },
+
+  closeById: (id: string) => ipcRenderer.send("viewer:closeById", id),
+
+  onCloseById: (cb: (id: string) => void) => {
+    _viewerCloseSub = cb;
+    if (_pendingViewerCloseIds.length) {
+      for (const id of _pendingViewerCloseIds) cb(id);
+      _pendingViewerCloseIds = [];
+    }
+    return () => {
+      _viewerCloseSub = null;
+    };
+  },
 });
 /** =============================================================== */
 
@@ -177,6 +200,15 @@ let _pendingAudViewerPayloads: any[] = [];
 ipcRenderer.on("viewer:audience:addDocs", (_e, data) => {
   if (_audViewerSubscriber) _audViewerSubscriber(data);
   else _pendingAudViewerPayloads.push(data);
+});
+
+// ===== Buffer para "audience:closeById" =====
+let _audCloseSub: ((id: string) => void) | null = null;
+let _pendingAudCloseIds: string[] = [];
+
+ipcRenderer.on("viewer:audience:closeById", (_e, id: string) => {
+  if (_audCloseSub) _audCloseSub(id);
+  else _pendingAudCloseIds.push(id);
 });
 
 // ===== API del visor de AUDIENCIAS =====
@@ -197,6 +229,17 @@ contextBridge.exposeInMainWorld("audienceViewer", {
     }
     return () => {
       _audViewerSubscriber = null;
+    };
+  },
+  closeById: (id: string) => ipcRenderer.send("viewer:audience:closeById", id),
+  onCloseById: (cb: (id: string) => void) => {
+    _audCloseSub = cb;
+    if (_pendingAudCloseIds.length) {
+      for (const id of _pendingAudCloseIds) cb(id);
+      _pendingAudCloseIds = [];
+    }
+    return () => {
+      _audCloseSub = null;
     };
   },
 });

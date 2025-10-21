@@ -1,7 +1,7 @@
 // src/store/useAudienceStore.ts
 import { create } from "zustand";
 import type { Process } from "@/types/Process";
-import { getProcessesByClientItem } from "@/api/process";
+import { deleteProcess, getProcessesByClientItem } from "@/api/process";
 
 // TTL simple para cache (opcional)
 const TTL_MS = 5 * 60 * 1000;
@@ -20,6 +20,7 @@ type ProcessState = {
   setProcess: (processes: Process[]) => void;
   setProcessesByClient: (processes: Process[]) => void;
   setProcessesByClientItem: (processes: Process[]) => void;
+  deleteProcessById: (p: Process) => Promise<void>;
 
   fetchProcesses: () => Promise<void>;
   fetchProcessesByClient: (clientId: string) => Promise<void>;
@@ -44,6 +45,21 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
   },
   setProcessesByClientItem: (processes: Process[]) => {
     set({ processesByClientItem: processes });
+  },
+  deleteProcessById: async (p) => {
+    const prev = get().processesByClientItem;
+    if (!prev.some((x) => x.id === p.id)) return;
+
+    // ✅ optimista
+    set({ processesByClientItem: prev.filter((x) => x.id !== p.id) });
+
+    try {
+      await deleteProcess(p.id!);
+    } catch (e) {
+      // 🔁 rollback
+      set({ processesByClientItem: prev });
+      throw e;
+    }
   },
 
   fetchProcesses: async () => {},

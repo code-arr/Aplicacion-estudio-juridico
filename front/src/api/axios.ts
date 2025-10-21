@@ -1,8 +1,7 @@
 // src/api/axios.ts
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, AxiosHeaders } from "axios";
 import { useLawyerStore } from "@/store/useLawyerStore";
-// Si manejás auth en el store:
-/* import { useAuthStore } from "@/store/useAuthStore"; */
+import { useAuthStore } from "@/store/useAuthStore";
 
 export type NormalizedApiError = {
   kind: "AUTH" | "CLIENT" | "SERVER" | "NETWORK" | "UNKNOWN";
@@ -72,46 +71,51 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Asegura que el lawyerId siempre sea el ACTUAL del store
-api.interceptors.request.use((config) => {
+// -------- Request interceptor: Bearer + lawyerId
+api.interceptors.request.use(async (config) => {
+  // 1) Token desde el store o, si no hay, desde el proceso main (Electron)
+  let token = useAuthStore.getState().token;
+  if (!token) {
+    try {
+      const authData = await window.electronAPI?.invoke("auth:get");
+      token = authData?.token ?? null;
+    } catch {
+      token = null;
+    }
+  }
+
+  // ⚠️ Usar AxiosHeaders
+  const headers = (config.headers ?? new AxiosHeaders()) as AxiosHeaders;
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  config.headers = headers;
+
+  // 2) lawyerId actual como query param
   const lawyerId = useLawyerStore.getState().lawyer?.id;
   if (lawyerId) {
-    config.params = { ...(config.params || {}), lawyerId };
+    // aseguramos objeto plano para params
+    config.params = { ...(config.params as any), lawyerId };
   }
+
   return config;
 });
 
-/* // ----- Interceptor de request
-api.interceptors.request.use((config) => {
-  // (opcional) token
-  const token = useAuthStore.getState().token;
-  if (token) {
-    config.headers = {
-      ...(config.headers || {}),
-      Authorization: `Bearer ${token}`,
-    };
-  }
-
-  // lawyerId actual
-  const lawyerId = useLawyerStore.getState().lawyer?.id;
-  if (lawyerId) {
-    config.params = { ...(config.params || {}), lawyerId };
-  }
-
-  return config;
-}); */
-
-// ----- Interceptor de respuesta (normaliza errores SIEMPRE)
+// -------- Response interceptor: normaliza y desloguea ante 401
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
+    const status = err?.response?.status;
+
+    if (status === 401) {
+      try {
+        await useAuthStore.getState().reset();
+      } catch {
+        // noop
+      }
+    }
+
     const normalized = normalizeAxiosError(err);
-
-    // (opcional) si el back devuelve 401 para sesión expirada:
-    // if (normalized.status === 401 && normalized.kind !== "AUTH") {
-    //   useAuthStore.getState().reset();
-    // }
-
     return Promise.reject(normalized);
   }
 );

@@ -41,6 +41,8 @@ export interface Client {
   companyName?: string;
   legalRepresentative?: string;
 
+  activeTime?: number;
+
   createdAt?: string; // ISO date string
   updatedAt?: string;
 

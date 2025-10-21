@@ -79,6 +79,8 @@ declare global {
       onAddDocs: (
         cb: (payload: { docs: any[]; activeId?: string | null }) => void
       ) => () => void;
+      closeById: (id: string) => void;
+      onCloseById: (cb: (id: string) => void) => () => void;
     };
     audienceViewer: {
       open: (payload: {
@@ -93,6 +95,8 @@ declare global {
       onAddDocs: (
         cb: (payload: { audiences: any[]; activeId?: string | null }) => void
       ) => () => void;
+      closeById: (id: string) => void;
+      onCloseById: (cb: (id: string) => void) => () => void;
     };
     authDeepLink?: {
       onResetLink: (cb: (token: string) => void) => () => void;

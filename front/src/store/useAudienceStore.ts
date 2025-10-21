@@ -1,7 +1,7 @@
 // src/store/useAudienceStore.ts
 import { create } from "zustand";
 import type { Audience } from "@/types/Audience";
-import { getAudiencesByClientItem } from "@/api/audience";
+import { deleteAudience, getAudiencesByClientItem } from "@/api/audience";
 
 // TTL simple para cache (opcional)
 const TTL_MS = 5 * 60 * 1000;
@@ -33,6 +33,7 @@ type AudienceState = {
   setAudiences: (audiences: Audience[]) => void;
   setAudiencesByClient: (audiences: Audience[]) => void;
   setAudiencesByClientItem: (audiences: Audience[]) => void;
+  deleteAudienceById: (aud: Audience) => Promise<void>;
 
   fetchAudiences: () => Promise<void>;
   fetchAudiencesByClient: (clientId: string) => Promise<void>;
@@ -57,6 +58,24 @@ export const useAudienceStore = create<AudienceState>((set, get) => ({
   },
   setAudiencesByClientItem: (audiences: Audience[]) => {
     set({ audiencesByClientItem: audiences });
+  },
+  deleteAudienceById: async (aud) => {
+    const { id, fileUrl } = aud;
+    const current = get().audiencesByClientItem;
+    const exists = current.some((a) => a.id === id);
+    if (!exists) return;
+
+    // ✅ Optimista: saco de la lista
+    set({ audiencesByClientItem: current.filter((a) => a.id !== id) });
+
+    try {
+      await deleteAudience(id, fileUrl);
+      // ok
+    } catch (e) {
+      // 🔁 Rollback
+      set({ audiencesByClientItem: current });
+      throw e;
+    }
   },
 
   fetchAudiences: async () => {},

@@ -55,7 +55,7 @@ export async function sendDocument({
   if (contractFile) form.append("contractFile", contractFile); // <- NOMBRE EXACTO
 
   const { data } = await axios.post(
-    `/client/send-document?lawyerEmail=${encodeURIComponent(lawyerEmail)}`,
+    `/client/sendDocument?lawyerEmail=${encodeURIComponent(lawyerEmail)}`,
     form,
     { headers: { "Content-Type": "multipart/form-data" } }
   );

@@ -1,3 +1,4 @@
+// src/pages/dashboard/items/ItemDocumentsPage.tsx
 import { useParams } from "react-router-dom";
 import type { Document } from "@/types/Document";
 import { useDocumentStore } from "@/store/useDocumentStore";
@@ -37,9 +38,11 @@ const ItemDocumentsPage = () => {
   /*   const [tagFilter, setTagFilter] = useState<string>(""); */
   const [clientOrder, setClientOrder] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const documentsByClientItem = useDocumentStore(
     (s) => s.documentsByClientItem
   );
@@ -49,6 +52,7 @@ const ItemDocumentsPage = () => {
   const setDocumentsByClientItem = useDocumentStore(
     (s) => s.setDocumentsByClientItem
   );
+  const deleteDocumentById = useDocumentStore((s) => s.deleteDocumentById);
 
   useEffect(() => {
     if (!clientItemId) return;
@@ -68,6 +72,23 @@ const ItemDocumentsPage = () => {
       setDocumentsByClientItem([]);
     };
   }, [clientItemId, fetchDocumentsByClientItemId, setDocumentsByClientItem]);
+
+  const handleDelete = async (doc: Document) => {
+    const ok = window.confirm(
+      `¿Eliminar “${doc.name}”? Esta acción no se puede deshacer.`
+    );
+    if (!ok) return;
+    try {
+      setDeletingId(doc.id);
+      await deleteDocumentById(doc);
+      // cerrar pestaña del visor si existía (si implementaste closeById)
+      window.viewer?.closeById?.(doc.id);
+    } catch {
+      alert("No se pudo eliminar el documento.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
@@ -180,6 +201,8 @@ const ItemDocumentsPage = () => {
                     key={doc.id}
                     doc={doc}
                     openInViewer={openInViewer}
+                    onDelete={handleDelete}
+                    deleting={deletingId === doc.id}
                   />
                 ))
               ) : (

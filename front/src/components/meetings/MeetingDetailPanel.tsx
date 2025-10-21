@@ -10,14 +10,11 @@ type MeetingDetailPanelProps = {
   meeting: Meeting | null;
   isOpen: boolean;
   onClose: () => void;
-
-  // datos para mostrar al abogado logueado en "Participantes":
   lawyerFullName?: string;
   lawyerEmail?: string;
-
-  // Opcional: callbacks para acciones
   onEdit?: (m: Meeting) => void;
   onCancel?: (m: Meeting) => void;
+  canceling?: boolean;
 };
 
 export default function MeetingDetailPanel({
@@ -28,6 +25,7 @@ export default function MeetingDetailPanel({
   lawyerEmail,
   onEdit,
   onCancel,
+  canceling = false,
 }: MeetingDetailPanelProps) {
   const open = Boolean(meeting) && isOpen;
 
@@ -42,6 +40,8 @@ export default function MeetingDetailPanel({
     onOpenError: () => console.error("No se pudo abrir el enlace."),
     onOpened: () => console.log("Abriendo reunión en el navegador…"),
   });
+
+  const canCancel = meeting?.status === "scheduled";
 
   return (
     <>
@@ -191,8 +191,18 @@ export default function MeetingDetailPanel({
                   variant="outline"
                   className="border-gray-300"
                   onClick={() => meeting && onCancel?.(meeting)}
+                  disabled={!meeting || !canCancel || canceling}
+                  title={
+                    !meeting
+                      ? "Sin reunión"
+                      : !canCancel
+                      ? "Solo se pueden cancelar las programadas"
+                      : canceling
+                      ? "Cancelando..."
+                      : "Cancelar reunión"
+                  }
                 >
-                  Cancelar reunión
+                  {canceling ? "Cancelando..." : "Cancelar reunión"}
                 </Button>
               </div>
             </>

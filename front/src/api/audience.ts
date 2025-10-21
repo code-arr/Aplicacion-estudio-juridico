@@ -19,6 +19,11 @@ export const createAudience = async (
     .data;
 };
 
-export const deleteAudience = async (audienceId: string): Promise<void> => {
-  return (await axios.delete(`audience/delete/${audienceId}`)).data;
+export const deleteAudience = async (
+  audienceId: string,
+  fileUrl: string
+): Promise<Audience> => {
+  return (
+    await axios.delete(`audience/delete/${audienceId}`, { data: { fileUrl } })
+  ).data;
 };

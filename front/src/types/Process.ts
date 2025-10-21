@@ -1,3 +1,4 @@
+// src/types/Process.ts
 export interface Process {
   id?: string;
   name: string;

@@ -1,5 +1,5 @@
 import type { Meeting } from "@/types/Meeting";
-import { ChevronRight, User } from "lucide-react";
+import { ChevronRight, Trash2, User } from "lucide-react";
 import googleLogo from "@/assets/logos/cromoVerde.png";
 import { formatDateWeekdayShort, formatTimeChile } from "@/lib/formatDate";
 
@@ -7,9 +7,19 @@ interface MeetingCardProps {
   m: Meeting;
   togglePanel: (id: string) => void;
   openId?: string | null;
+  onDelete?: (m: Meeting) => void;
+  deleting?: boolean;
 }
 
-const MeetingCard = ({ m, togglePanel, openId }: MeetingCardProps) => {
+const MeetingCard = ({
+  m,
+  togglePanel,
+  openId,
+  onDelete,
+  deleting,
+}: MeetingCardProps) => {
+  const canDelete = m.status === "completed" || m.status === "canceled";
+
   return (
     <li key={m.id} className="p-4">
       {/* fila */}
@@ -49,12 +59,35 @@ const MeetingCard = ({ m, togglePanel, openId }: MeetingCardProps) => {
         </div>
 
         {/* arrow */}
-        <div className="pr-2">
+        <div className="pr-2 flex items-center gap-2">
+          {canDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // no abrir el panel por error
+                if (!deleting) onDelete?.(m);
+              }}
+              className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[0.85rem]
+                          ${
+                            deleting
+                              ? "opacity-50 cursor-not-allowed"
+                              : "hover:bg-[hsl(0,70%,97%)]"
+                          }
+                          border-[hsl(0,70%,70%)] text-[hsl(0,70%,40%)]`}
+              aria-label="Eliminar reunión"
+              disabled={deleting}
+              title={deleting ? "Eliminando..." : "Eliminar reunión"}
+            >
+              <Trash2 className="w-4 h-4" />
+              {deleting ? "Eliminando..." : "Eliminar"}
+            </button>
+          )}
+
           <button
             className="cursor-pointer"
             onClick={() => togglePanel(m.id ?? "")}
             aria-expanded={openId === m.id}
             aria-controls="meeting-detail-panel"
+            title="Ver detalles"
           >
             <ChevronRight />
           </button>

@@ -23,8 +23,6 @@ export const createMeeting = async (
   clientId: string,
   clientItemId: string
 ): Promise<Meeting> => {
-  console.log(newMeeting);
-
   return (
     await axios.post(`meeting/create/${clientItemId}`, {
       ...newMeeting,
@@ -35,4 +33,13 @@ export const createMeeting = async (
 
 export const deleteMeeting = async (meetingId: string): Promise<void> => {
   return (await axios.delete(`meeting/delete/${meetingId}`)).data;
+};
+
+export const cancelMeeting = async (
+  meetingId: string,
+  lawyerEmail: string
+): Promise<Meeting> => {
+  return (
+    await axios.patch(`meeting/cancel/${meetingId}`, { data: { lawyerEmail } })
+  ).data;
 };

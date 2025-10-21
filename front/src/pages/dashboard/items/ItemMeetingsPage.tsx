@@ -1,10 +1,10 @@
 // src/pages/dashboard/items/ItemMeetingsPage.tsx
 import { useState, useEffect, useRef, useMemo } from "react";
+import type { Meeting } from "@/types/Meeting";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import MeetingForm from "@/components/meetings/MeetingForm";
-
 import { useMeetingStore } from "@/store/useMeetingStore";
 import { useClientItemStore } from "@/store/useClientItemStore";
 import { useClientStore } from "@/store/useClientStore";
@@ -19,6 +19,9 @@ const ItemMeetingsPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +32,8 @@ const ItemMeetingsPage = () => {
   const setMeetingsByClientItem = useMeetingStore(
     (s) => s.setMeetingsByClientItem
   );
+  const cancelMeetingById = useMeetingStore((s) => s.cancelMeetingById);
+  const deleteMeetingById = useMeetingStore((s) => s.deleteMeetingById);
 
   useEffect(() => {
     if (!clientItemId) return;
@@ -83,6 +88,38 @@ const ItemMeetingsPage = () => {
       block: "start",
     });
   }, [openMeeting]);
+
+  const handleCancel = async (m: Meeting) => {
+    if (m.status === "canceled") return;
+    const ok = window.confirm(`¿Cancelar “${m.name}”?`);
+    if (!ok) return;
+
+    try {
+      setCancellingId(m.id);
+      await cancelMeetingById(m, user?.email);
+      if (openId === m.id) setOpenId(null); // cierro panel si era esa
+    } catch {
+      alert("No se pudo cancelar la reunión. Intenta de nuevo.");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const handleDelete = async (m: Meeting) => {
+    const ok = window.confirm(
+      `¿Eliminar “${m.name}”? Esta acción no se puede deshacer.`
+    );
+    if (!ok) return;
+    try {
+      setDeletingId(m.id);
+      await deleteMeetingById(m);
+      if (openId === m.id) setOpenId(null); // cerrar panel si era ese
+    } catch {
+      alert("No se pudo eliminar la reunión. Intenta de nuevo.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // 1) Helpers arriba del componente (mantenelos cerca del resto)
   const normalize = (s: string) =>
@@ -213,6 +250,8 @@ const ItemMeetingsPage = () => {
                   m={m}
                   togglePanel={togglePanel}
                   openId={openId}
+                  onDelete={handleDelete}
+                  deleting={deletingId === m.id}
                 />
               ))
             )}
@@ -235,6 +274,8 @@ const ItemMeetingsPage = () => {
                   m={m}
                   togglePanel={togglePanel}
                   openId={openId}
+                  onDelete={handleDelete}
+                  deleting={deletingId === m.id}
                 />
               ))
             )}
@@ -250,13 +291,10 @@ const ItemMeetingsPage = () => {
         lawyerFullName={lawyerFullName}
         lawyerEmail={lawyerEmail}
         onEdit={(m) => {
-          // opcional: abrí tu modal de edición o redirigí
-          console.log("Editar", m.id);
+          /* ... */
         }}
-        onCancel={(m) => {
-          // opcional: dispará acción para cancelar
-          console.log("Cancelar", m.id);
-        }}
+        onCancel={(m) => handleCancel(m)}
+        canceling={cancellingId === openId}
       />
     </div>
   );

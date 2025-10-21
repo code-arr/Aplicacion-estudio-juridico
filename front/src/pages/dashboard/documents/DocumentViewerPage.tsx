@@ -181,6 +181,14 @@ const DocumentViewerPage = () => {
   // [H] UI: si aún no hay nada abierto, mostramos “esperando” (no bloqueamos por falta de docIds)
   const nothingOpen = openDocs.length === 0;
 
+  useEffect(() => {
+    // cuando main diga "cerrá el doc X", cerramos en el store
+    const unsub = window.viewer.onCloseById?.((id: string) => {
+      usePdfManagerStore.getState().close(id);
+    });
+    return () => unsub?.();
+  }, []);
+
   const zoomIn = () => setZoom((z) => Math.min(4, +(z * 1.1).toFixed(3)));
   const zoomOut = () => setZoom((z) => Math.max(0.1, +(z / 1.1).toFixed(3)));
   const resetZoom = () => setZoom(1);

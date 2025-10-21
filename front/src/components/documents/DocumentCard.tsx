@@ -1,3 +1,4 @@
+// src/components/documents/DocumentCard.tsx
 import { Ellipsis, FileIcon } from "lucide-react";
 import {
   DropdownMenuContent,
@@ -12,9 +13,16 @@ import { formatDateChileNumeric } from "@/lib/formatDate";
 interface DocumentCardProps {
   doc: Document;
   openInViewer: (docs: Document[], activeId?: string) => void;
+  onDelete?: (doc: Document) => void;
+  deleting?: boolean;
 }
 
-const DocumentCard = ({ doc, openInViewer }: DocumentCardProps) => {
+const DocumentCard = ({
+  doc,
+  openInViewer,
+  onDelete,
+  deleting,
+}: DocumentCardProps) => {
   function formatSize(bytes: number): string {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -50,23 +58,27 @@ const DocumentCard = ({ doc, openInViewer }: DocumentCardProps) => {
         {/* acciones */}
         <div className="flex items-center gap-2 gap-x-4">
           <button
+            disabled={deleting}
             onClick={() => {
               if ((doc.type || "").toLowerCase() === "pdf") {
-                openInViewer([doc], doc.id); // abre si no existe, agrega si ya está abierto
+                openInViewer([doc], doc.id);
               } else {
-                // Otros tipos, por ahora, abrir/descargar directo
                 window.open(doc.fileUrl, "_blank", "noopener,noreferrer");
               }
             }}
-            className="text-blue-700 cursor-pointer"
+            className={`text-blue-700 ${
+              deleting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+            }`}
           >
-            Ver
+            {deleting ? "Eliminando..." : "Ver"}
           </button>
+
           <DropdownMenuRoot>
             <DropdownMenuTrigger asChild>
               <button
                 aria-label="Opciones del ítem"
                 className="p-1.5 rounded-md hover:bg-gray-100 leading-none"
+                disabled={deleting}
               >
                 <Ellipsis className="w-5 h-5" />
               </button>
@@ -106,13 +118,13 @@ const DocumentCard = ({ doc, openInViewer }: DocumentCardProps) => {
 
               <DropdownMenuItem
                 onSelect={() => {
-                  // Confirmación y borrado
-                  // confirmDelete(item.id)
+                  if (deleting) return;
+                  onDelete?.(doc); // <- ahora pasás el doc completo
                 }}
                 color="crimson"
                 shortcut="⌘ ⌫"
               >
-                Eliminar
+                {deleting ? "Eliminando..." : "Eliminar"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenuRoot>

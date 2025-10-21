@@ -1,14 +1,13 @@
-import React from "react";
-import {
-  useClientStore,
-  selectClientsByLawyer,
-  selectIsLoadingClients,
-} from "@/store/useClientStore";
-/* import { Card } from "@components/ui/card"; */
-import Avatar from "@/assets/usuario.png";
-import { FolderClosed } from "lucide-react";
+// src/pages/dashboard/lawyer/statistics/LawyerStatistics.tsx
+import React, { useEffect, useMemo } from "react";
 import ClientStatsCard from "@/components/clients/ClientStatsCard";
 import { useFocusContext } from "@/hooks/useFocusContext";
+import { useStatsStore } from "@/store/useStatsStore";
+import { mapMonthlyToSeries, secToHours, sumMonth } from "@/utils/timeMaps";
+import {
+  selectClientItems,
+  useClientItemStore,
+} from "@/store/useClientItemStore";
 
 // =============================
 // Types
@@ -35,8 +34,6 @@ export interface LawyerStatisticsProps {
 // =============================
 // Helpers
 // =============================
-const clamp = (n: number, min = 0, max = 100) =>
-  Math.min(max, Math.max(min, n));
 const formatNumber = (n: number, digits = 1) =>
   new Intl.NumberFormat("es-AR", {
     minimumFractionDigits: digits,
@@ -82,7 +79,7 @@ function StatCard({
   );
 }
 
-function ProgressBar({
+/* function ProgressBar({
   value,
   className = "",
 }: {
@@ -100,66 +97,93 @@ function ProgressBar({
       />
     </div>
   );
-}
+} */
 
 // =============================
-// Demo data (se usa si no pasás props)
+// Demo fallbacks (solo por si no hay datos aún)
 // =============================
-const demo = {
-  kpis: {
-    activeItems: 15,
-    billableHoursThisMonth: 126.4,
-    collectionRate: null, // N/A
-    avgResolutionDays: 34,
-  } satisfies LawyerKpis,
-  hoursByWeek: [
-    { label: "Sem 17", hours: 14.5 },
-    { label: "Sem 16", hours: 14.0 },
-    { label: "Sem 15", hours: 13.6 },
-    { label: "Sem 14", hours: 11.2 },
-    { label: "Sem 13", hours: 10.3 },
-    { label: "Sem 12", hours: 9.8 },
-    /* { label: "Sem 11", hours: 9.1 }, */
-    /*   { label: "Sem 10", hours: 11.2 }, */
-  ] as WeekHours[],
-  casesByStage: [
-    { stage: "Documents", count: 5 },
-    { stage: "Audiences", count: 2 },
-    { stage: "Meetings", count: 3 },
-    { stage: "Processes", count: 2 },
-    { stage: "Extra", count: 3 },
-  ] as StageCount[],
-  topClients: [
-    { name: "Cliente A", hours: 19.8 },
-    { name: "Cliente B", hours: 13.4 },
-    { name: "Cliente C", hours: 12.2 },
-    { name: "Cliente D", hours: 11.9 },
-    { name: "Cliente E", hours: 11.0 },
-  ] as TopClient[],
+const demoKpis: LawyerKpis = {
+  activeItems: 0,
+  billableHoursThisMonth: 0,
+  collectionRate: null,
+  avgResolutionDays: 0,
 };
+
+const demoMonthly: WeekHours[] = [
+  { label: "Ene", hours: 0 },
+  { label: "Feb", hours: 0 },
+  { label: "Mar", hours: 0 },
+  { label: "Abr", hours: 0 },
+  { label: "May", hours: 0 },
+  { label: "Jun", hours: 0 },
+  { label: "Jul", hours: 0 },
+];
 
 // =============================
 // Main component
 // =============================
-const LawyerStatistics = ({
-  kpis = demo.kpis,
-  hoursByWeek = demo.hoursByWeek,
-  casesByStage = demo.casesByStage,
-  topClients = demo.topClients,
-  className = "",
-}: LawyerStatisticsProps) => {
+const LawyerStatistics = ({ className = "" }: LawyerStatisticsProps) => {
   useFocusContext({ type: "LawyerApp", id: "main" });
+
+  const itemsByLawyer = useClientItemStore(selectClientItems);
+
+  const {
+    topClients,
+    monthlyByLawyer,
+    isLoading,
+    error,
+    fetchTopClients,
+    fetchMonthlyByLawyer,
+  } = useStatsStore();
+
+  useEffect(() => {
+    fetchTopClients();
+    fetchMonthlyByLawyer();
+  }, [fetchTopClients, fetchMonthlyByLawyer]);
+
+  // ✨ CAMBIO: calcular KPIs con datos reales (solo “Horas (mes act.)” por ahora)
+  const kpis: LawyerKpis = useMemo(() => {
+    const billableHoursThisMonth = monthlyByLawyer
+      ? sumMonth(monthlyByLawyer) // convierte a horas adentro
+      : 0;
+
+    // Los otros KPI aún no tienen endpoint → los dejamos en 0/N/A
+    return {
+      ...demoKpis,
+      billableHoursThisMonth,
+    };
+  }, [monthlyByLawyer]);
+
+  // ✨ CAMBIO: serie “Horas por mes (año)” mapeada desde el back
+  const monthlySeries: WeekHours[] = useMemo(() => {
+    if (!monthlyByLawyer) return demoMonthly;
+
+    // Traigo 10 últimos del helper (orden ASC por defecto)…
+    const pts10 = mapMonthlyToSeries(monthlyByLawyer, 10);
+
+    // …me quedo con los últimos 7 y los invierto para mostrar: más reciente → más viejo (arriba→abajo)
+    const last7Desc = pts10.slice(-7).reverse();
+
+    return last7Desc.map((p) => ({ label: p.label, hours: p.hours }));
+  }, [monthlyByLawyer]);
+
+  // ✨ CAMBIO: Top clientes (tabla derecha) con datos reales
+  const topClientRows = (
+    topClients?.map((c) => ({
+      name: c.firstName || "Desconocido",
+      hours: secToHours(c.totalTime),
+    })) ?? []
+  ).slice(0, 7); // 👈 muestra 7
 
   return (
     <div className="bg-gradient-to-t from-[#334155] via-[#3b4d66] to-[#60a5fa]/20 min-h-screen">
       <div className={`w-full p-4 lg:p-6 ${className}`}>
         {/* KPIs */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Item activos" value={kpis.activeItems} />
+          <StatCard label="Item activos" value={itemsByLawyer.length} />
           <StatCard
             label="Horas (mes at.)"
             value={formatNumber(kpis.billableHoursThisMonth)}
-            hint="% mes actual"
           />
           <StatCard
             label="Tasa de cobro"
@@ -182,25 +206,34 @@ const LawyerStatistics = ({
           {/* Horas por semana */}
           <Card className="p-5">
             <h3 className="mb-3 text-lg font-semibold text-slate-900">
-              Horas por semana
+              Horas por mes (año)
             </h3>
             <div className="overflow-x-auto">
               <table className="min-w-[480px] w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 text-slate-500">
-                    <th className="pt-1 pb-3 font-normal">Semana</th>
+                    <th className="pt-1 pb-3 font-normal">Mes</th>
                     <th className="pt-1 pb-3 font-normal text-right">Horas</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {hoursByWeek.map((w) => (
-                    <tr key={w.label}>
-                      <td className="py-2 text-slate-800">{w.label}</td>
+                  {monthlySeries.map((m) => (
+                    <tr key={m.label}>
+                      <td className="py-2 text-slate-800">{m.label}</td>
                       <td className="py-2 text-right font-medium text-slate-900">
-                        {`${formatNumber(w.hours)}hs`}
+                        {`${formatNumber(m.hours)}hs`}
                       </td>
                     </tr>
                   ))}
+                  {!monthlySeries.length && (
+                    <tr>
+                      <td colSpan={2} className="py-2 text-slate-500">
+                        {isLoading.monthly
+                          ? "Cargando..."
+                          : error.monthly || "Sin datos"}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -220,7 +253,7 @@ const LawyerStatistics = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {topClients.map((c) => (
+                  {topClientRows.map((c) => (
                     <tr key={c.name}>
                       <td className="py-2 text-slate-800">{c.name}</td>
                       <td className="py-2 text-right font-medium text-slate-900">
@@ -228,6 +261,15 @@ const LawyerStatistics = ({
                       </td>
                     </tr>
                   ))}
+                  {!topClientRows.length && (
+                    <tr>
+                      <td colSpan={2} className="py-2 text-slate-500">
+                        {isLoading.topClients
+                          ? "Cargando..."
+                          : error.topClients || "Sin datos"}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
