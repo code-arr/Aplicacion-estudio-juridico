@@ -18,6 +18,7 @@ import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 import { UserService } from 'src/services/user.service';
 import { buffer } from 'stream/consumers';
 import { Public } from './public.decorator';
+import { JwtAuthGuard } from 'src/guards/jwt.guard';
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -44,7 +45,8 @@ export class AuthController {
    ): Promise<{ message: string; token?: string; user?: any }> {
      return this.authRepository.login(email, password, { req: req as any, deviceId }); // sin try/catch
    }
-
+   
+  @UseGuards(JwtAuthGuard)
   @Get('me')
   async me(@Req() req) {
     const user = await this.userService.getOneById(req.user.id);

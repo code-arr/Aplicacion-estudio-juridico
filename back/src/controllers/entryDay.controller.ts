@@ -18,8 +18,9 @@ export class EntryDayController {
   async getClientDetail(
     @Param('clientId') clientId: string,
     @Query('lawyerId') lawyerId: string,
+    @Query('clientItemId') clientItemId?: string,
   ) {
-    return this.service.getClientDetail(lawyerId, clientId);
+    return this.service.getClientDetail(lawyerId, clientId , clientItemId);
   }
   @Get('getMonthlyTimeByLawyerId')
   async getMonthlyTimeByLawyer(@Query('lawyerId') lawyerId: string) {

@@ -20,11 +20,11 @@ export class EntryDayService {
   async getTop10ByLawyerId(lawyerId: string) {
     return this.repo.getTop10ByLawyerId(lawyerId);
   }
-  async getClientDetail(lawyerId: string, clientId: string) {
-    return this.repo.getClientDetail(lawyerId, clientId);
+  async getClientDetail(lawyerId: string, clientId: string , clientItemId?: string) {
+    return this.repo.getClientDetail(lawyerId, clientId, clientItemId);
   }
 
-  async getMonthlyTimeByLawyer(lawyerId: string) {
+  async getMonthlyTimeByLawyer(lawyerId: string ) {
     return this.repo.getMonthlyTimeByLawyer(lawyerId);
   }
 }

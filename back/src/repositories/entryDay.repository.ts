@@ -250,71 +250,188 @@ export class EntryDayRepository {
     return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   }
 
-  async getClientDetail(lawyerId: string, clientId: string) {
+  // async getClientDetail(lawyerId: string, clientId: string , clientItemId?: string) {
+  //   if (!lawyerId || !clientId) {
+  //     throw new Error('lawyerId and clientId are required');
+  //   }
+
+  //   // Rango: año UTC actual (coincide con tu front)
+  //   const now = new Date();
+  //   const year = now.getUTCFullYear();
+  //   const start = `${year}-01-01`;
+  //   const end = `${year}-12-31`;
+
+  //   // 1) Por DÍA — usar to_char para forzar "YYYY-MM-DD"
+  //   const byDay = await this.repo
+  //     .createQueryBuilder('e')
+  //     .select(`to_char(e.day, 'YYYY-MM-DD')`, 'day') // 👈 cambio clave
+  //     .addSelect('SUM(e.durationSec)', 'total')
+  //     .where('e.lawyerId = :lawyerId', { lawyerId })
+  //     .andWhere('e.clientId = :clientId', { clientId })
+  //     .andWhere('e.day BETWEEN :start AND :end', { start, end })
+  //     .groupBy('day')
+  //     .orderBy('day', 'ASC')
+  //     .getRawMany<{ day: string; total: string }>();
+
+  //   // ===== 2) Acumulado por SEMANA ISO (Postgres) =====
+  //   // EXTRACT(WEEK FROM e.day) evita problemas de zona horaria.
+  //   const byWeek = await this.repo
+  //     .createQueryBuilder('e')
+  //     .select('EXTRACT(WEEK FROM e.day)::int', 'week')
+  //     .addSelect('SUM(e.durationSec)', 'total')
+  //     .where('e.lawyerId = :lawyerId', { lawyerId })
+  //     .andWhere('e.clientId = :clientId', { clientId })
+  //     .andWhere('e.day BETWEEN :start AND :end', { start, end })
+  //     .groupBy('week')
+  //     .orderBy('week', 'ASC')
+  //     .getRawMany<{ week: number; total: string }>();
+
+  //   // ===== 3) Acumulado por MES + TIPO (para categorías y total mensual) =====
+  //   const byMonthType = await this.repo
+  //     .createQueryBuilder('e')
+  //     .select('EXTRACT(MONTH FROM e.day)::int', 'month')
+  //     .addSelect('e.type', 'type')
+  //     .addSelect('SUM(e.durationSec)', 'total')
+  //     .where('e.lawyerId = :lawyerId', { lawyerId })
+  //     .andWhere('e.clientId = :clientId', { clientId })
+  //     .andWhere('e.day BETWEEN :start AND :end', { start, end })
+  //     .groupBy('month')
+  //     .addGroupBy('e.type')
+  //     .orderBy('month', 'ASC')
+  //     .getRawMany<{ month: number; type: string; total: string }>();
+
+  //   // Si no hay nada en el año, devolvemos null como antes
+  //   if (!byDay.length && !byWeek.length && !byMonthType.length) {
+  //     return null;
+  //   }
+
+  //   // ===== Armado de MAPS =====
+  //   const totalByDay: Record<string, number> = {};
+  //   byDay.forEach((r) => {
+  //     totalByDay[r.day] = Number(r.total); // r.day ya es "YYYY-MM-DD"
+  //   });
+
+  //   const totalByWeek: Record<number, number> = {};
+  //   byWeek.forEach((r) => {
+  //     totalByWeek[r.week] = Number(r.total);
+  //   });
+
+  //   const totalByMonth: Record<number, number> = {};
+  //   const totalByMonthByType: Record<number, Record<string, number>> = {};
+  //   let totalByYear = 0;
+
+  //   byMonthType.forEach((r) => {
+  //     const m = Number(r.month);
+  //     const t = r.type;
+  //     const v = Number(r.total);
+
+  //     totalByMonth[m] = (totalByMonth[m] ?? 0) + v;
+  //     if (!totalByMonthByType[m]) totalByMonthByType[m] = {};
+  //     totalByMonthByType[m][t] = (totalByMonthByType[m][t] ?? 0) + v;
+
+  //     totalByYear += v;
+  //   });
+
+  //   // ===== Datos del cliente (como antes) =====
+  //   const client = await this.clientRepo.findOne({
+  //     where: { id: clientId },
+  //     select: ['id', 'firstName', 'lastName', 'email'],
+  //   });
+
+  //   return {
+  //     clientId,
+  //     clientName: client
+  //       ? `${client.firstName} ${client.lastName}`
+  //       : 'Desconocido',
+  //     email: client?.email ?? null,
+  //     totalByDay, // { 'YYYY-MM-DD': seconds }
+  //     totalByWeek, // { 1..53: seconds } (ISO)
+  //     totalByMonth, // { 1..12: seconds }
+  //     totalByYear, // seconds
+  //     totalByMonthByType, // { month: { type: seconds } }
+  //   };
+  // }
+
+  async getClientDetail(
+    lawyerId: string,
+    clientId: string,
+    clientItemId?: string,
+  ) {
     if (!lawyerId || !clientId) {
       throw new Error('lawyerId and clientId are required');
     }
 
-    // Rango: año UTC actual (coincide con tu front)
     const now = new Date();
     const year = now.getUTCFullYear();
     const start = `${year}-01-01`;
     const end = `${year}-12-31`;
 
-    // 1) Por DÍA — usar to_char para forzar "YYYY-MM-DD"
-    const byDay = await this.repo
+    // ===== 1) Por DÍA =====
+    const byDayQuery = this.repo
       .createQueryBuilder('e')
-      .select(`to_char(e.day, 'YYYY-MM-DD')`, 'day') // 👈 cambio clave
+      .select(`to_char(e.day, 'YYYY-MM-DD')`, 'day')
       .addSelect('SUM(e.durationSec)', 'total')
       .where('e.lawyerId = :lawyerId', { lawyerId })
       .andWhere('e.clientId = :clientId', { clientId })
-      .andWhere('e.day BETWEEN :start AND :end', { start, end })
+      .andWhere('e.day BETWEEN :start AND :end', { start, end });
+
+    if (clientItemId) {
+      byDayQuery.andWhere('e.clientItemId = :clientItemId', { clientItemId });
+    }
+
+    const byDay = await byDayQuery
       .groupBy('day')
       .orderBy('day', 'ASC')
       .getRawMany<{ day: string; total: string }>();
 
-    // ===== 2) Acumulado por SEMANA ISO (Postgres) =====
-    // EXTRACT(WEEK FROM e.day) evita problemas de zona horaria.
-    const byWeek = await this.repo
+    // ===== 2) Por SEMANA =====
+    const byWeekQuery = this.repo
       .createQueryBuilder('e')
       .select('EXTRACT(WEEK FROM e.day)::int', 'week')
       .addSelect('SUM(e.durationSec)', 'total')
       .where('e.lawyerId = :lawyerId', { lawyerId })
       .andWhere('e.clientId = :clientId', { clientId })
-      .andWhere('e.day BETWEEN :start AND :end', { start, end })
+      .andWhere('e.day BETWEEN :start AND :end', { start, end });
+
+    if (clientItemId) {
+      byWeekQuery.andWhere('e.clientItemId = :clientItemId', { clientItemId });
+    }
+
+    const byWeek = await byWeekQuery
       .groupBy('week')
       .orderBy('week', 'ASC')
       .getRawMany<{ week: number; total: string }>();
 
-    // ===== 3) Acumulado por MES + TIPO (para categorías y total mensual) =====
-    const byMonthType = await this.repo
+    // ===== 3) Por MES + TIPO =====
+    const byMonthTypeQuery = this.repo
       .createQueryBuilder('e')
       .select('EXTRACT(MONTH FROM e.day)::int', 'month')
       .addSelect('e.type', 'type')
       .addSelect('SUM(e.durationSec)', 'total')
       .where('e.lawyerId = :lawyerId', { lawyerId })
       .andWhere('e.clientId = :clientId', { clientId })
-      .andWhere('e.day BETWEEN :start AND :end', { start, end })
+      .andWhere('e.day BETWEEN :start AND :end', { start, end });
+
+    if (clientItemId) {
+      byMonthTypeQuery.andWhere('e.clientItemId = :clientItemId', {
+        clientItemId,
+      });
+    }
+
+    const byMonthType = await byMonthTypeQuery
       .groupBy('month')
       .addGroupBy('e.type')
       .orderBy('month', 'ASC')
       .getRawMany<{ month: number; type: string; total: string }>();
 
-    // Si no hay nada en el año, devolvemos null como antes
-    if (!byDay.length && !byWeek.length && !byMonthType.length) {
-      return null;
-    }
+    if (!byDay.length && !byWeek.length && !byMonthType.length) return null;
 
-    // ===== Armado de MAPS =====
+    // ===== Armado de maps igual que antes =====
     const totalByDay: Record<string, number> = {};
-    byDay.forEach((r) => {
-      totalByDay[r.day] = Number(r.total); // r.day ya es "YYYY-MM-DD"
-    });
+    byDay.forEach((r) => (totalByDay[r.day] = Number(r.total)));
 
     const totalByWeek: Record<number, number> = {};
-    byWeek.forEach((r) => {
-      totalByWeek[r.week] = Number(r.total);
-    });
+    byWeek.forEach((r) => (totalByWeek[r.week] = Number(r.total)));
 
     const totalByMonth: Record<number, number> = {};
     const totalByMonthByType: Record<number, Record<string, number>> = {};
@@ -332,7 +449,6 @@ export class EntryDayRepository {
       totalByYear += v;
     });
 
-    // ===== Datos del cliente (como antes) =====
     const client = await this.clientRepo.findOne({
       where: { id: clientId },
       select: ['id', 'firstName', 'lastName', 'email'],
@@ -344,94 +460,13 @@ export class EntryDayRepository {
         ? `${client.firstName} ${client.lastName}`
         : 'Desconocido',
       email: client?.email ?? null,
-      totalByDay, // { 'YYYY-MM-DD': seconds }
-      totalByWeek, // { 1..53: seconds } (ISO)
-      totalByMonth, // { 1..12: seconds }
-      totalByYear, // seconds
-      totalByMonthByType, // { month: { type: seconds } }
-    };
-  }
-
-  /*   async getClientDetail(lawyerId: string, clientId: string) {
-    if (!lawyerId || !clientId)
-      throw new Error('lawyerId and clientId are required');
-
-    const now = new Date();
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
-
-    // 🔹 Traer todos los EntryDays del año
-    const entries = await this.repo
-      .createQueryBuilder('entry')
-      .select('entry.day', 'day')
-      .addSelect('entry.type', 'type')
-      .addSelect('SUM(entry.durationSec)', 'totalTime')
-      .where('entry.lawyerId = :lawyerId', { lawyerId })
-      .andWhere('entry.clientId = :clientId', { clientId })
-      .andWhere('entry.day BETWEEN :start AND :end', {
-        start: startOfYear,
-        end: endOfYear,
-      })
-      .groupBy('entry.day')
-      .addGroupBy('entry.type')
-      .orderBy('entry.day', 'ASC')
-      .getRawMany();
-
-    if (!entries.length) return null;
-
-    // 🔹 Inicializar contadores
-    let totalByDay: Record<string, number> = {};
-    let totalByWeek: Record<number, number> = {};
-    let totalByMonth: Record<number, number> = {};
-    let totalByYear = 0;
-    let totalByMonthByType: Record<number, Record<string, number>> = {}; // mes -> type -> tiempo
-
-    entries.forEach((e) => {
-      const day = new Date(e.day);
-      const month = day.getMonth() + 1;
-      const weekNumber = this.getWeekNumber(day);
-      const type = e.type;
-      const duration = Number(e.totalTime);
-
-      // Día
-      const dayKey = day.toISOString().split('T')[0];
-      totalByDay[dayKey] = (totalByDay[dayKey] || 0) + duration;
-
-      // Semana
-      totalByWeek[weekNumber] = (totalByWeek[weekNumber] || 0) + duration;
-
-      // Mes
-      totalByMonth[month] = (totalByMonth[month] || 0) + duration;
-
-      // Año
-      totalByYear += duration;
-
-      // 🔹 Por tipo dentro del mes
-      if (!totalByMonthByType[month]) totalByMonthByType[month] = {};
-      totalByMonthByType[month][type] =
-        (totalByMonthByType[month][type] || 0) + duration;
-    });
-
-    // 🔹 Traer info del cliente
-    const client = await this.clientRepo.findOne({
-      where: { id: clientId },
-      select: ['id', 'firstName', 'lastName', 'email'],
-    });
-
-    return {
-      clientId: clientId,
-      clientName: client
-        ? `${client.firstName} ${client.lastName}`
-        : 'Desconocido',
-      email: client?.email || null,
       totalByDay,
       totalByWeek,
       totalByMonth,
       totalByYear,
       totalByMonthByType,
     };
-  } */
-
+  }
   async getMonthlyTimeByLawyer(lawyerId: string) {
     if (!lawyerId) throw new Error('lawyerId is required');
 

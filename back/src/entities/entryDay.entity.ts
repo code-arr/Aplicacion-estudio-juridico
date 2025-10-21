@@ -33,6 +33,9 @@ export class EntryDay {
   clientId: string;
 
   @Column()
+  clientItemId: string;
+
+  @Column()
   type: string;
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
