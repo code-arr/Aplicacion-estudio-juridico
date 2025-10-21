@@ -8,8 +8,23 @@ import {
   IsString,
   Length,
 } from 'class-validator';
-import { PauseReason, TrackableType } from '../entities/timeEntry.entity';
 
+
+export enum TrackableType {
+  DOCUMENT = 'Document',
+  AUDIENCE = 'Audience',
+  MEETING = 'Meeting',
+  PROCESS = 'Process',
+  CLIENT = 'Client',
+}
+
+export enum PauseReason {
+  SWITCH = 'Switch',
+  IDLE = 'Idle',
+  CLOSE = 'Close',
+  LOGOUT = 'Logout',
+  SUSPEND = 'Suspend'
+}
 export class CreateTimeEntryDto {
   @IsUUID() id!: string;
   @IsUUID() lawyerId!: string;
@@ -26,6 +41,8 @@ export class CreateTimeEntryDto {
   @IsString() dayKey?: string | null; // Formato 'YYYY-MM-DD', para consultas y reportes diarios
 
   @IsString() clientId : string
+
+  @IsString() clientItemId? : string
   
   @IsOptional() @IsString() appVersion?: string | null;
 }

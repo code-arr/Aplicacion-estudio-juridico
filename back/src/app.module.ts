@@ -19,11 +19,9 @@ import { clientItemModule } from './modules/clientItem.module';
 import { DocumentModule } from './modules/document.module';
 import { ProcessModule } from './modules/process.module';
 import { GoogleModule } from './auth/google.module';
-import { meet } from 'googleapis/build/src/apis/meet';
 import { MeetingModule } from './modules/meeting.module';
 import { AudienceModule } from './modules/audience.module';
 import { OpenSignModule } from './openSign/openSign.module';
-import { TimeEntriesModule } from './modules/timeEntry.module';
 import { EntryDayModule } from './modules/entryDay.module';
 import { UserLoginsModule } from './userLogins/userLogins.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -61,7 +59,6 @@ import { AuthGuard } from './guards/auth.guard';
     MeetingModule,
     AudienceModule,
     OpenSignModule,
-    TimeEntriesModule,
     EntryDayModule,
     UserLoginsModule,
   ],

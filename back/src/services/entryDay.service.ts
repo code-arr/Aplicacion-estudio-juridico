@@ -20,11 +20,25 @@ export class EntryDayService {
   async getTop10ByLawyerId(lawyerId: string) {
     return this.repo.getTop10ByLawyerId(lawyerId);
   }
-  async getClientDetail(lawyerId: string, clientId: string , clientItemId?: string) {
+  async getClientDetail(
+    lawyerId: string,
+    clientId: string,
+    clientItemId?: string,
+  ) {
     return this.repo.getClientDetail(lawyerId, clientId, clientItemId);
   }
 
-  async getMonthlyTimeByLawyer(lawyerId: string ) {
+  async getMonthlyTimeByLawyer(lawyerId: string) {
     return this.repo.getMonthlyTimeByLawyer(lawyerId);
+  }
+  async upsertBulk(
+    dtos: CreateTimeEntryDto[],
+  ): Promise<EntryDay[] | { inserted: number; updated: number }> {
+    console.log(dtos.length);
+
+    if (!dtos.length) return { inserted: 0, updated: 0 };
+
+    const updatedEntryDays = await this.updateEntryDay(dtos);
+    return updatedEntryDays;
   }
 }

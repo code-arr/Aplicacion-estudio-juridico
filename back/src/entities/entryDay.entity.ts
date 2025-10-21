@@ -32,7 +32,7 @@ export class EntryDay {
   @Column()
   clientId: string;
 
-  @Column()
+  @Column({nullable: true})
   clientItemId: string;
 
   @Column()

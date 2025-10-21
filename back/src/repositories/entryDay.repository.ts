@@ -42,6 +42,7 @@ export class EntryDayRepository {
           lawyerId: entry.lawyerId,
           type: entry.trackableType,
           clientId: entry.clientId,
+          clientItemId: entry.clientItemId,
         });
 
         const saved = await this.repo.save(newEntryDay);
@@ -456,6 +457,7 @@ export class EntryDayRepository {
 
     return {
       clientId,
+      clientItemId: clientItemId ?? null, // ⚡ aquí agregamos el clientItemId
       clientName: client
         ? `${client.firstName} ${client.lastName}`
         : 'Desconocido',
