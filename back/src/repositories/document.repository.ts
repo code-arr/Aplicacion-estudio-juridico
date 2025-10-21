@@ -68,6 +68,7 @@ export class DocumentRepository {
         doc.fileUrl = s3Url;
         doc.clientItem = clientItem; // relación
         doc.clientId = clientId; // campo directo
+        doc.clientItemId = clientItemId;
         doc.type = type;
         doc.size = fileBuffer.length;
 

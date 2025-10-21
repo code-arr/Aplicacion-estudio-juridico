@@ -62,6 +62,7 @@ export class AudiencieRepository {
         audience.fileUrl = s3Url;
         audience.clientItem = clientItem;
         audience.clientId = clientId;
+        audience.clientItemId = clientItemId;
 
         const saved = await audienceRepo.save(audience);
 

@@ -37,6 +37,9 @@ export class Document {
   @Column({ type: 'uuid' })
   clientId: string;
 
+  @Column({ type: 'uuid' })
+  clientItemId?: string;
+
   @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
   createdAt!: Date;
 
