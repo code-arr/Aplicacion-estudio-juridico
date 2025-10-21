@@ -17,7 +17,7 @@ import { MyMailerService } from '../mailer/mailer.service';
 import { PasswordResetRepository } from '../repositories/passwordResetToken.repository';
 import { SystemMailerService } from 'src/mailer/system-mailer.service';
 import { UserLoginsService } from 'src/userLogins/userLogins.service';
-import { Request  } from 'express';
+import { Request } from 'express';
 
 @Injectable()
 export class AuthRepository {

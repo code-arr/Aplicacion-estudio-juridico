@@ -32,23 +32,26 @@ export class AuthController {
     return this.authRepository.register(user); // sin try/catch
   }
 
-   @Public()
-   @Post('login')
-   async login(
-     @Req() req: ExpressRequest,
-     @Body()
-     {
-       email,
-       password,
-       deviceId,
-     }: { email: string; password: string; deviceId?: string },
-   ): Promise<{ message: string; token?: string; user?: any }> {
-     return this.authRepository.login(email, password, { req: req as any, deviceId }); // sin try/catch
-   }
-   
+  @Public()
+  @Post('login')
+  async login(
+    @Req() req: ExpressRequest,
+    @Body()
+    {
+      email,
+      password,
+      deviceId,
+    }: { email: string; password: string; deviceId?: string },
+  ): Promise<{ message: string; token?: string; user?: any }> {
+    return this.authRepository.login(email, password, {
+      req: req as any,
+      deviceId,
+    }); // sin try/catch
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async me(@Req() req) {
+  async me(@Req() req: ExpressRequest) {
     const user = await this.userService.getOneById(req.user.id);
     if (!user) {
       throw new UnauthorizedException('User not found for this token');
@@ -62,7 +65,7 @@ export class AuthController {
   }
 
   @Get('google/connect')
-  async connectGoogleAccount(@Req() req, @Res() res: Response) {
+  async connectGoogleAccount(@Req() req: ExpressRequest, @Res() res: Response) {
     const dbEmail = req.query.email;
     const statePayload = { email: dbEmail };
     const state = Buffer.from(JSON.stringify(statePayload)).toString('base64');
