@@ -1,4 +1,9 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+
+import { Roles } from 'src/decorator/roles.decorator';
+import { UserRole } from 'src/entities/user.entity';
+import { AdminGuard } from 'src/guards/admin.guard';
+import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { AdminService } from 'src/services/admin.service';
 
 @Controller('admin')
@@ -11,6 +16,8 @@ export class AdminController {
   }
 
   @Get('')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async getAdmin() {
     return this.adminService.getAdmin();
   }

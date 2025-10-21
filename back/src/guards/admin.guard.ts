@@ -26,6 +26,8 @@ export class AdminGuard implements CanActivate {
 
       const valid: boolean = user && user.role && hasRole();
       console.log('estamos en admin guard');
+      console.log(user);
+      
 
       if (!valid) throw new ForbiddenException('Unauthorized');
 
