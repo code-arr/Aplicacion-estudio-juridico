@@ -166,6 +166,90 @@ export class EntryDayRepository {
     return updatedEntryDays;
   } */
 
+  async getByClientId(clientId: string, lawyerId: string) {
+    const entryDays = await this.repo.find({ where: { clientId, lawyerId } });
+    let totalDocumentTime = 0;
+    let totalMeetingTime = 0;
+    let totalAudienceTime = 0;
+    let totalClientTime = 0;
+    let totalProcessTime = 0;
+    let totalStats: { type: string; durationSec: number }[] = [];
+    for (const entryDay of entryDays) {
+      if (entryDay.type === 'Document') {
+        totalDocumentTime += entryDay.durationSec;
+      } else if (entryDay.type === 'Meeting') {
+        totalMeetingTime += entryDay.durationSec;
+      } else if (entryDay.type === 'Audience') {
+        totalAudienceTime += entryDay.durationSec;
+      } else if (entryDay.type === 'Client') {
+        totalClientTime += entryDay.durationSec;
+      } else if (entryDay.type === 'Process') {
+        totalProcessTime += entryDay.durationSec;
+      }
+    }
+    totalStats.push({ type: 'Document', durationSec: totalDocumentTime });
+    totalStats.push({ type: 'Meeting', durationSec: totalMeetingTime });
+    totalStats.push({ type: 'Audience', durationSec: totalAudienceTime });
+    totalStats.push({ type: 'Client', durationSec: totalClientTime });
+    totalStats.push({ type: 'Process', durationSec: totalProcessTime });
+    return totalStats;
+  }
+
+  async getTop10ByLawyerId(lawyerId: string) {
+    console.log(lawyerId);
+
+    if (!lawyerId) {
+      throw new Error('lawyerId is required');
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const totals = await this.repo
+      .createQueryBuilder('entry')
+      .select('entry.clientId', 'clientId')
+      .addSelect('SUM(entry.durationSec)', 'totalTime')
+      .where('entry.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('entry.day BETWEEN :start AND :end', {
+        start: startOfMonth,
+        end: endOfMonth,
+      })
+      .groupBy('entry.clientId')
+      .orderBy('SUM(entry.durationSec)', 'DESC') // 👈 cambio clave
+      .limit(10)
+      .getRawMany();
+
+    if (!totals.length) return [];
+
+    const clients = await Promise.all(
+      totals.map(async (t) => {
+        const client = await this.clientRepo.findOne({
+          where: { id: t.clientId },
+          select: ['id', 'firstName'],
+        });
+
+        return {
+          clientId: t.clientId,
+          firstName: client?.firstName || 'Desconocido',
+          totalTime: Number(t.totalTime),
+        };
+      }),
+    );
+
+    return clients;
+  }
+  getWeekNumber(date: Date): number {
+    // Cálculo de semana ISO (lunes = primer día de la semana)
+    const d = new Date(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+    );
+    const dayNum = d.getUTCDay() || 7; // domingo = 7
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  }
+
   async getClientDetail(lawyerId: string, clientId: string) {
     if (!lawyerId || !clientId) {
       throw new Error('lawyerId and clientId are required');
@@ -269,91 +353,7 @@ export class EntryDayRepository {
     };
   }
 
-  /* async getByClientId(clientId: string, lawyerId: string) {
-    const entryDays = await this.repo.find({ where: { clientId, lawyerId } });
-    let totalDocumentTime = 0;
-    let totalMeetingTime = 0;
-    let totalAudienceTime = 0;
-    let totalClientTime = 0;
-    let totalProcessTime = 0;
-    let totalStats: { type: string; durationSec: number }[] = [];
-    for (const entryDay of entryDays) {
-      if (entryDay.type === 'Document') {
-        totalDocumentTime += entryDay.durationSec;
-      } else if (entryDay.type === 'Meeting') {
-        totalMeetingTime += entryDay.durationSec;
-      } else if (entryDay.type === 'Audience') {
-        totalAudienceTime += entryDay.durationSec;
-      } else if (entryDay.type === 'Client') {
-        totalClientTime += entryDay.durationSec;
-      } else if (entryDay.type === 'Process') {
-        totalProcessTime += entryDay.durationSec;
-      }
-    }
-    totalStats.push({ type: 'Document', durationSec: totalDocumentTime });
-    totalStats.push({ type: 'Meeting', durationSec: totalMeetingTime });
-    totalStats.push({ type: 'Audience', durationSec: totalAudienceTime });
-    totalStats.push({ type: 'Client', durationSec: totalClientTime });
-    totalStats.push({ type: 'Process', durationSec: totalProcessTime });
-    return totalStats;
-  }
-
-  async getTop10ByLawyerId(lawyerId: string) {
-    console.log(lawyerId);
-
-    if (!lawyerId) {
-      throw new Error('lawyerId is required');
-    }
-
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    const totals = await this.repo
-      .createQueryBuilder('entry')
-      .select('entry.clientId', 'clientId')
-      .addSelect('SUM(entry.durationSec)', 'totalTime')
-      .where('entry.lawyerId = :lawyerId', { lawyerId })
-      .andWhere('entry.day BETWEEN :start AND :end', {
-        start: startOfMonth,
-        end: endOfMonth,
-      })
-      .groupBy('entry.clientId')
-      .orderBy('SUM(entry.durationSec)', 'DESC') // 👈 cambio clave
-      .limit(10)
-      .getRawMany();
-
-    if (!totals.length) return [];
-
-    const clients = await Promise.all(
-      totals.map(async (t) => {
-        const client = await this.clientRepo.findOne({
-          where: { id: t.clientId },
-          select: ['id', 'firstName'],
-        });
-
-        return {
-          clientId: t.clientId,
-          firstName: client?.firstName || 'Desconocido',
-          totalTime: Number(t.totalTime),
-        };
-      }),
-    );
-
-    return clients;
-  }
-  getWeekNumber(date: Date): number {
-    // Cálculo de semana ISO (lunes = primer día de la semana)
-    const d = new Date(
-      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
-    );
-    const dayNum = d.getUTCDay() || 7; // domingo = 7
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  }
-
-  async getClientDetail(lawyerId: string, clientId: string) {
+  /*   async getClientDetail(lawyerId: string, clientId: string) {
     if (!lawyerId || !clientId)
       throw new Error('lawyerId and clientId are required');
 
