@@ -23,6 +23,80 @@ export class EntryDayRepository {
     const updatedEntryDays: EntryDay[] = [];
 
     for (const entry of timeEntries) {
+      // 1) Normalizar el día a DATE (YYYY-MM-DD) en UTC
+      const dayKey = entry.dayKey
+        ? new Date(entry.dayKey).toISOString().slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+
+      // 2) Buscar por (trackableId, day)
+      const existing = await this.repo.findOne({
+        where: { trackableId: entry.trackableId, day: dayKey },
+      });
+
+      // 3) Crear si no existe
+      if (!existing) {
+        const newEntryDay = this.repo.create({
+          day: dayKey, // <-- string "YYYY-MM-DD"
+          durationSec: entry.durationSec,
+          trackableId: entry.trackableId,
+          lawyerId: entry.lawyerId,
+          type: entry.trackableType,
+          clientId: entry.clientId,
+        });
+
+        const saved = await this.repo.save(newEntryDay);
+        updatedEntryDays.push(saved);
+
+        // actualizar activeTime del cliente (atómico)
+        await this.clientRepo.increment(
+          { id: entry.clientId },
+          'activeTime',
+          entry.durationSec,
+        );
+
+        // log útil
+        console.log('🟢 create EntryDay', {
+          trackableId: entry.trackableId,
+          day: dayKey,
+          durationSec: entry.durationSec,
+          type: entry.trackableType,
+        });
+
+        continue;
+      }
+
+      // 4) Validar tipo solo si existe
+      if (entry.trackableType !== existing.type) {
+        throw new Error('Trackable type mismatch');
+      }
+
+      // 5) Mismo (trackableId, day) → acumular
+      existing.durationSec += entry.durationSec;
+      const saved = await this.repo.save(existing);
+      updatedEntryDays.push(saved);
+
+      // actualizar activeTime del cliente (atómico)
+      await this.clientRepo.increment(
+        { id: entry.clientId },
+        'activeTime',
+        entry.durationSec,
+      );
+
+      console.log('🟡 update EntryDay (same day)', {
+        trackableId: entry.trackableId,
+        day: dayKey,
+        addedSec: entry.durationSec,
+        newTotalSec: saved.durationSec,
+      });
+    }
+
+    return updatedEntryDays;
+  }
+
+  /*   async updateEntryDay(timeEntries: CreateTimeEntryDto[]): Promise<EntryDay[]> {
+    const updatedEntryDays: EntryDay[] = [];
+
+    for (const entry of timeEntries) {
       const entryDayDate = entry.dayKey ? new Date(entry.dayKey) : new Date();
 
       // 🔹 Buscar por trackableId (como hacías antes)
@@ -90,9 +164,112 @@ export class EntryDayRepository {
     }
 
     return updatedEntryDays;
+  } */
+
+  async getClientDetail(lawyerId: string, clientId: string) {
+    if (!lawyerId || !clientId) {
+      throw new Error('lawyerId and clientId are required');
+    }
+
+    // Rango: año UTC actual (coincide con tu front)
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const start = `${year}-01-01`;
+    const end = `${year}-12-31`;
+
+    // ===== 1) Acumulado por DÍA (day es DATE, sin TZ) =====
+    const byDay = await this.repo
+      .createQueryBuilder('e')
+      .select('e.day', 'day') // DATE -> 'YYYY-MM-DD'
+      .addSelect('SUM(e.durationSec)', 'total')
+      .where('e.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('e.clientId = :clientId', { clientId })
+      .andWhere('e.day BETWEEN :start AND :end', { start, end })
+      .groupBy('e.day')
+      .orderBy('e.day', 'ASC')
+      .getRawMany<{ day: string; total: string }>();
+
+    // ===== 2) Acumulado por SEMANA ISO (Postgres) =====
+    // EXTRACT(WEEK FROM e.day) evita problemas de zona horaria.
+    const byWeek = await this.repo
+      .createQueryBuilder('e')
+      .select('EXTRACT(WEEK FROM e.day)::int', 'week')
+      .addSelect('SUM(e.durationSec)', 'total')
+      .where('e.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('e.clientId = :clientId', { clientId })
+      .andWhere('e.day BETWEEN :start AND :end', { start, end })
+      .groupBy('week')
+      .orderBy('week', 'ASC')
+      .getRawMany<{ week: number; total: string }>();
+
+    // ===== 3) Acumulado por MES + TIPO (para categorías y total mensual) =====
+    const byMonthType = await this.repo
+      .createQueryBuilder('e')
+      .select('EXTRACT(MONTH FROM e.day)::int', 'month')
+      .addSelect('e.type', 'type')
+      .addSelect('SUM(e.durationSec)', 'total')
+      .where('e.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('e.clientId = :clientId', { clientId })
+      .andWhere('e.day BETWEEN :start AND :end', { start, end })
+      .groupBy('month')
+      .addGroupBy('e.type')
+      .orderBy('month', 'ASC')
+      .getRawMany<{ month: number; type: string; total: string }>();
+
+    // Si no hay nada en el año, devolvemos null como antes
+    if (!byDay.length && !byWeek.length && !byMonthType.length) {
+      return null;
+    }
+
+    // ===== Armado de MAPS =====
+    const totalByDay: Record<string, number> = {};
+    byDay.forEach((r) => {
+      // r.day ya viene como 'YYYY-MM-DD'
+      totalByDay[r.day] = Number(r.total);
+    });
+
+    const totalByWeek: Record<number, number> = {};
+    byWeek.forEach((r) => {
+      totalByWeek[r.week] = Number(r.total);
+    });
+
+    const totalByMonth: Record<number, number> = {};
+    const totalByMonthByType: Record<number, Record<string, number>> = {};
+    let totalByYear = 0;
+
+    byMonthType.forEach((r) => {
+      const m = Number(r.month);
+      const t = r.type;
+      const v = Number(r.total);
+
+      totalByMonth[m] = (totalByMonth[m] ?? 0) + v;
+      if (!totalByMonthByType[m]) totalByMonthByType[m] = {};
+      totalByMonthByType[m][t] = (totalByMonthByType[m][t] ?? 0) + v;
+
+      totalByYear += v;
+    });
+
+    // ===== Datos del cliente (como antes) =====
+    const client = await this.clientRepo.findOne({
+      where: { id: clientId },
+      select: ['id', 'firstName', 'lastName', 'email'],
+    });
+
+    return {
+      clientId,
+      clientName: client
+        ? `${client.firstName} ${client.lastName}`
+        : 'Desconocido',
+      email: client?.email ?? null,
+      totalByDay, // { 'YYYY-MM-DD': seconds }
+      totalByWeek, // { 1..53: seconds } (ISO)
+      totalByMonth, // { 1..12: seconds }
+      totalByYear, // seconds
+      totalByMonthByType, // { month: { type: seconds } }
+    };
   }
 
-  async getByClientId(clientId: string, lawyerId: string) {
+  /* async getByClientId(clientId: string, lawyerId: string) {
     const entryDays = await this.repo.find({ where: { clientId, lawyerId } });
     let totalDocumentTime = 0;
     let totalMeetingTime = 0;
@@ -254,7 +431,7 @@ export class EntryDayRepository {
       totalByYear,
       totalByMonthByType,
     };
-  }
+  } */
 
   async getMonthlyTimeByLawyer(lawyerId: string) {
     if (!lawyerId) throw new Error('lawyerId is required');

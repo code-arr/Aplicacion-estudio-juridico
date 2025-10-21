@@ -13,8 +13,12 @@ export class EntryDay {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  day: Date;
+  /*   @Column()
+  day: Date; */
+
+  // ✅ Solo fecha (YYYY-MM-DD). Evita TZ.
+  @Column({ type: 'date' })
+  day: string;
 
   @Column()
   durationSec: number;
