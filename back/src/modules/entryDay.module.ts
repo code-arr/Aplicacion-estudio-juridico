@@ -7,10 +7,11 @@ import { EntryDayService } from 'src/services/entryDay.service';
 import { ClienteModule } from './cliente.module';
 import { Client } from 'src/entities/client.entity';
 import { clientItemModule } from './clientItem.module';
+import { ClientItem } from 'src/entities/clientItem.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([EntryDay, Client]),
+    TypeOrmModule.forFeature([EntryDay, Client, ClientItem]),
     ClienteModule,
     clientItemModule,
   ],
