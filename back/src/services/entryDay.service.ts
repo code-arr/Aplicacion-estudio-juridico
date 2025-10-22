@@ -3,6 +3,14 @@ import { CreateTimeEntryDto } from 'src/dtos/timeEntry.dto';
 import { EntryDay } from 'src/entities/entryDay.entity';
 import { EntryDayRepository } from 'src/repositories/entryDay.repository';
 
+type CostSummaryInput = {
+  lawyerId: string;
+  clientId: string;
+  clientItemId?: string;
+  year?: number;
+  month?: number;
+};
+
 @Injectable()
 export class EntryDayService {
   constructor(private readonly repo: EntryDayRepository) {}
@@ -36,6 +44,10 @@ export class EntryDayService {
 
   async getCasesExpenses(lawyerId: string, clientId?: string) {
     return this.repo.getCasesExpenses(lawyerId, clientId);
+  }
+
+  async getCostSummary(input: CostSummaryInput) {
+    return this.repo.getCostSummary(input);
   }
 
   async getMonthlyTimeByLawyer(lawyerId: string) {

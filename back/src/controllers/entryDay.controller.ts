@@ -39,6 +39,23 @@ export class EntryDayController {
     return this.service.getCasesExpenses(lawyerId, clientId);
   }
 
+  @Get('getCostSummary')
+  async getCostSummary(
+    @Query('lawyerId') lawyerId: string,
+    @Query('clientId') clientId: string,
+    @Query('clientItemId') clientItemId?: string,
+    @Query('year') year?: string,
+    @Query('month') month?: string, // 1..12
+  ) {
+    return this.service.getCostSummary({
+      lawyerId,
+      clientId,
+      clientItemId,
+      year: year ? Number(year) : undefined,
+      month: month ? Number(month) : undefined,
+    });
+  }
+
   @Get('getMonthlyTimeByLawyerId')
   async getMonthlyTimeByLawyer(@Query('lawyerId') lawyerId: string) {
     return this.service.getMonthlyTimeByLawyer(lawyerId);

@@ -32,6 +32,12 @@ export enum status {
   UNDERREVIEW = 'under_review',
 }
 
+export enum Currency {
+  CLP = 'CLP',
+  USD = 'USD',
+  UF = 'UF',
+}
+
 @Entity('clients')
 export class Client {
   @PrimaryGeneratedColumn('uuid')
@@ -70,6 +76,13 @@ export class Client {
 
   @Column({ type: 'varchar', nullable: true })
   legalRepresentative: string;
+
+  // Tarifa por hora (guardamos numeric, TypeORM sugiere string en TS)
+  @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
+  hourlyRate?: string | null;
+
+  @Column({ type: 'enum', enum: Currency, default: Currency.CLP })
+  currency: Currency;
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
   createdAt!: Date;

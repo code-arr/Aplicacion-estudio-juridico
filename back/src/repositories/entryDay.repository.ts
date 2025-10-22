@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateTimeEntryDto } from 'src/dtos/timeEntry.dto';
-import { Client } from 'src/entities/client.entity';
+import { Client, Currency } from 'src/entities/client.entity';
 import { ClientItem, status as CIStatus } from 'src/entities/clientItem.entity';
 import { EntryDay } from 'src/entities/entryDay.entity';
 import { In, Repository } from 'typeorm';
@@ -642,6 +642,82 @@ export class EntryDayRepository {
     };
   }
 
+  async getCostSummary({
+    lawyerId,
+    clientId,
+    clientItemId,
+    year,
+    month,
+  }: CostSummaryInput) {
+    if (!lawyerId || !clientId)
+      throw new Error('lawyerId and clientId are required');
+
+    // Rango (default = año actual completo)
+    const now = new Date();
+    const y = year ?? now.getUTCFullYear();
+
+    const start = month
+      ? new Date(Date.UTC(y, month - 1, 1))
+      : new Date(Date.UTC(y, 0, 1));
+    const end = month
+      ? new Date(Date.UTC(y, month, 0, 23, 59, 59))
+      : new Date(Date.UTC(y, 11, 31, 23, 59, 59));
+
+    // Sumar segundos
+    const qb = this.repo
+      .createQueryBuilder('e')
+      .select('SUM(e.durationSec)', 'totalSec')
+      .where('e.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('e.clientId = :clientId', { clientId })
+      .andWhere('e.day BETWEEN :start AND :end', {
+        start: start.toISOString().slice(0, 10),
+        end: end.toISOString().slice(0, 10),
+      });
+
+    if (clientItemId) {
+      qb.andWhere('e.clientItemId = :clientItemId', { clientItemId });
+    }
+
+    const row = await qb.getRawOne<{ totalSec: string | null }>();
+    const totalSec = Number(row?.totalSec ?? 0);
+    const totalHours = totalSec / 3600;
+
+    const client = await this.clientRepo.findOne({
+      where: { id: clientId },
+      select: ['id', 'hourlyRate', 'currency', 'firstName', 'lastName'],
+    });
+
+    // Si no hay tarifa → costo 0
+    const hourlyRate = client?.hourlyRate ? Number(client.hourlyRate) : 0;
+    const currency = client?.currency ?? Currency.CLP;
+
+    const totalCost = +(totalHours * hourlyRate).toFixed(2);
+
+    return {
+      scope: {
+        year: y,
+        month: month ?? null,
+        lawyerId,
+        clientId,
+        clientItemId: clientItemId ?? null,
+      },
+      time: {
+        totalSec,
+        totalHours: +totalHours.toFixed(2),
+      },
+      pricing: {
+        hourlyRate,
+        currency,
+      },
+      totalCost,
+      // opcional: string formateado (si querés devolver ya formateado)
+      formatted: {
+        hourlyRate: formatMoney(hourlyRate, currency),
+        totalCost: formatMoney(totalCost, currency),
+      },
+    };
+  }
+
   async getMonthlyTimeByLawyer(lawyerId: string) {
     if (!lawyerId) throw new Error('lawyerId is required');
 
@@ -673,6 +749,29 @@ export class EntryDayRepository {
 
     return result;
   }
+}
 
-  // 🔹 Función helper para obtener número de semana ISO
+// Helper de backend para formatear EXACTO como te pidieron
+function formatMoney(amount: number, currency: Currency): string {
+  if (currency === Currency.CLP) {
+    // $1.345.987  (sin decimales, separador de miles = '.')
+    const parts = Math.round(amount)
+      .toString()
+      .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return `$${parts}`;
+  }
+  if (currency === Currency.UF) {
+    // UF 3,45 (coma decimal, miles con '.')
+    const with2 = amount.toFixed(2).replace('.', ','); // decimal coma
+    // opcional: miles con '.' antes de la coma
+    const [int, dec] = with2.split(',');
+    const intMiles = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return `UF ${intMiles},${dec}`;
+  }
+  // USD → el ejemplo que dieron: "USD 1,600"
+  // (coma de miles y SIN decimales en el ejemplo)
+  const noDec = Math.round(amount)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `USD ${noDec}`;
 }
