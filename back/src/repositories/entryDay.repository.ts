@@ -6,6 +6,14 @@ import { ClientItem, status as CIStatus } from 'src/entities/clientItem.entity';
 import { EntryDay } from 'src/entities/entryDay.entity';
 import { In, Repository } from 'typeorm';
 
+type CostSummaryInput = {
+  lawyerId: string;
+  clientId: string;
+  clientItemId?: string;
+  year?: number;
+  month?: number;
+};
+
 @Injectable()
 export class EntryDayRepository {
   constructor(
