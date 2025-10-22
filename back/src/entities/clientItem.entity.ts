@@ -46,6 +46,9 @@ export class ClientItem {
   @Column({ type: 'int', default: 0 })
   activeTime: number;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  closedAt: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
   createdAt!: Date;
 

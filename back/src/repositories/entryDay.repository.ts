@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateTimeEntryDto } from 'src/dtos/timeEntry.dto';
 import { Client } from 'src/entities/client.entity';
+import { ClientItem, status as CIStatus } from 'src/entities/clientItem.entity';
 import { EntryDay } from 'src/entities/entryDay.entity';
 import { In, Repository } from 'typeorm';
 
@@ -12,6 +13,8 @@ export class EntryDayRepository {
     private repo: Repository<EntryDay>,
     @InjectRepository(Client)
     private clientRepo: Repository<Client>,
+    @InjectRepository(ClientItem)
+    private clientItemRepo: Repository<ClientItem>,
   ) {}
 
   async createEntryDay(entryDay: Partial<EntryDay>): Promise<EntryDay> {
@@ -469,6 +472,176 @@ export class EntryDayRepository {
       totalByMonthByType,
     };
   }
+
+  async getCasesSummary(lawyerId: string, clientId?: string) {
+    // 1) Por caso (cerrados)
+    const qbCase = this.clientItemRepo
+      .createQueryBuilder('ci')
+      .leftJoin('ci.category', 'cat')
+      .leftJoin('ci.section', 'sec')
+      .leftJoin('ci.itemType', 'it')
+      .select([
+        'ci.id AS "clientItemId"',
+        'ci.title AS title',
+        'ci.createdAt AS "openedAt"',
+        'ci.closedAt AS "closedAt"',
+        'ci.clientId AS "clientId"',
+        'cat.id AS "categoryId"',
+        'sec.id AS "sectionId"',
+        'it.id AS "itemTypeId"',
+        // días a cierre (solo si closed)
+        `CASE 
+           WHEN ci.status = :closed AND ci.closedAt IS NOT NULL
+           THEN EXTRACT(EPOCH FROM (ci."closedAt" - ci."createdAt"))/86400
+         END AS "daysToClose"`,
+      ])
+      .where('ci.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('ci.status = :closed', { closed: CIStatus.CLOSED });
+
+    if (clientId) qbCase.andWhere('ci.clientId = :clientId', { clientId });
+
+    const perCase = await qbCase.orderBy('ci.closedAt', 'DESC').getRawMany();
+
+    // 2) Promedio por cliente
+    const qbAvgClient = this.clientItemRepo
+      .createQueryBuilder('ci')
+      .select('ci.clientId', 'clientId')
+      .addSelect(
+        `AVG(EXTRACT(EPOCH FROM (ci."closedAt" - ci."createdAt"))/86400)`,
+        'avgDaysToClose',
+      )
+      .where('ci.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('ci.status = :closed', { closed: CIStatus.CLOSED })
+      .andWhere('ci."closedAt" IS NOT NULL');
+
+    if (clientId) qbAvgClient.andWhere('ci.clientId = :clientId', { clientId });
+
+    const avgByClient = await qbAvgClient
+      .groupBy('ci.clientId')
+      .getRawMany<{ clientId: string; avgDaysToClose: string }>();
+
+    // 3) Promedio global
+    const qbAvgGlobal = this.clientItemRepo
+      .createQueryBuilder('ci')
+      .select(
+        `AVG(EXTRACT(EPOCH FROM (ci."closedAt" - ci."createdAt"))/86400)`,
+        'avgDaysToClose',
+      )
+      .where('ci.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('ci.status = :closed', { closed: CIStatus.CLOSED })
+      .andWhere('ci."closedAt" IS NOT NULL');
+
+    if (clientId) qbAvgGlobal.andWhere('ci.clientId = :clientId', { clientId });
+
+    const avgGlobalRow = await qbAvgGlobal.getRawOne<{
+      avgDaysToClose: string;
+    }>();
+    const avgGlobal = avgGlobalRow ? Number(avgGlobalRow.avgDaysToClose) : null;
+
+    // 4) Casos por práctica (Category/Section/ItemType)
+    const byPractice = await this.clientItemRepo
+      .createQueryBuilder('ci')
+      .leftJoin('ci.category', 'cat')
+      .leftJoin('ci.section', 'sec')
+      .leftJoin('ci.itemType', 'it')
+      .select('ci.clientId', 'clientId')
+      .addSelect('cat.id', 'categoryId')
+      .addSelect('sec.id', 'sectionId')
+      .addSelect('it.id', 'itemTypeId')
+      .addSelect('COUNT(*)', 'cases')
+      .where('ci.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('ci.status IN (:...sts)', {
+        sts: [CIStatus.OPEN, CIStatus.ON_HOLD, CIStatus.CLOSED],
+      })
+      .groupBy('ci.clientId')
+      .addGroupBy('cat.id')
+      .addGroupBy('sec.id')
+      .addGroupBy('it.id')
+      .getRawMany();
+
+    return {
+      perCase: perCase.map((r) => ({
+        ...r,
+        daysToClose: r.daysToClose != null ? Number(r.daysToClose) : null,
+      })),
+      avgByClient: avgByClient.map((r) => ({
+        clientId: r.clientId,
+        avgDaysToClose: Number(r.avgDaysToClose),
+      })),
+      avgGlobal,
+      byPractice: byPractice.map((r) => ({ ...r, cases: Number(r.cases) })),
+    };
+  }
+
+  // Gastos: asumo una tabla "expenses" con FK a clientItems. Si todavía no existe, tomalo como blueprint.
+  async getCasesExpenses(lawyerId: string, clientId?: string) {
+    // reemplazar por @InjectRepository(Expense) si ya la tenés
+    const rowsPerCase = await this.clientItemRepo.query(
+      `
+      SELECT ci.id AS "clientItemId",
+             SUM(e.amount) AS "totalExpense"
+      FROM clientItems ci
+      JOIN expenses e ON e."clientItemId" = ci.id
+      WHERE ci."lawyerId" = $1
+      ${clientId ? 'AND ci."clientId" = $2' : ''}
+      GROUP BY ci.id
+      `,
+      clientId ? [lawyerId, clientId] : [lawyerId],
+    );
+
+    const rowsAvgType = await this.clientItemRepo.query(
+      `
+      SELECT it.id AS "itemTypeId",
+             AVG(x."totalExpense") AS "avgExpense"
+      FROM (
+        SELECT e."clientItemId", SUM(e.amount) AS "totalExpense"
+        FROM expenses e
+        JOIN clientItems ci ON ci.id = e."clientItemId"
+        WHERE ci."lawyerId" = $1
+        ${clientId ? 'AND ci."clientId" = $2' : ''}
+        GROUP BY e."clientItemId"
+      ) x
+      JOIN clientItems ci ON ci.id = x."clientItemId"
+      JOIN "itemTypes" it ON it.id = ci."itemTypeId"
+      GROUP BY it.id
+      `,
+      clientId ? [lawyerId, clientId] : [lawyerId],
+    );
+
+    const rowsAvgClient = await this.clientItemRepo.query(
+      `
+      SELECT ci."clientId" AS "clientId",
+             AVG(x."totalExpense") AS "avgExpense"
+      FROM (
+        SELECT e."clientItemId", SUM(e.amount) AS "totalExpense"
+        FROM expenses e
+        JOIN clientItems ci ON ci.id = e."clientItemId"
+        WHERE ci."lawyerId" = $1
+        ${clientId ? 'AND ci."clientId" = $2' : ''}
+        GROUP BY e."clientItemId"
+      ) x
+      JOIN clientItems ci ON ci.id = x."clientItemId"
+      GROUP BY ci."clientId"
+      `,
+      clientId ? [lawyerId, clientId] : [lawyerId],
+    );
+
+    return {
+      perCase: rowsPerCase.map((r: any) => ({
+        clientItemId: r.clientItemId,
+        totalExpense: Number(r.totalExpense),
+      })),
+      avgByCaseType: rowsAvgType.map((r: any) => ({
+        itemTypeId: r.itemTypeId,
+        avgExpense: Number(r.avgExpense),
+      })),
+      avgByClient: rowsAvgClient.map((r: any) => ({
+        clientId: r.clientId,
+        avgExpense: Number(r.avgExpense),
+      })),
+    };
+  }
+
   async getMonthlyTimeByLawyer(lawyerId: string) {
     if (!lawyerId) throw new Error('lawyerId is required');
 

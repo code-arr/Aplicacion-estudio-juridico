@@ -14,12 +14,15 @@ export class EntryDayService {
   async updateEntryDay(timeEntry: CreateTimeEntryDto[]): Promise<EntryDay[]> {
     return this.repo.updateEntryDay(timeEntry);
   }
+
   async getByClientId(lawyerId: string, clientId: string) {
     return this.repo.getByClientId(lawyerId, clientId);
   }
+
   async getTop10ByLawyerId(lawyerId: string) {
     return this.repo.getTop10ByLawyerId(lawyerId);
   }
+
   async getClientDetail(
     lawyerId: string,
     clientId: string,
@@ -27,10 +30,18 @@ export class EntryDayService {
   ) {
     return this.repo.getClientDetail(lawyerId, clientId, clientItemId);
   }
+  async getCasesSummary(lawyerId: string, clientId?: string) {
+    return this.repo.getCasesSummary(lawyerId, clientId);
+  }
+
+  async getCasesExpenses(lawyerId: string, clientId?: string) {
+    return this.repo.getCasesExpenses(lawyerId, clientId);
+  }
 
   async getMonthlyTimeByLawyer(lawyerId: string) {
     return this.repo.getMonthlyTimeByLawyer(lawyerId);
   }
+
   async upsertBulk(
     dtos: CreateTimeEntryDto[],
   ): Promise<EntryDay[] | { inserted: number; updated: number }> {
