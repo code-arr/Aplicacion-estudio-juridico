@@ -14,8 +14,6 @@ type CostSummaryInput = {
   month?: number;
 };
 
-type Currency = 'CLP' | 'USD' | 'UF';
-
 function toNumber(n?: string | null): number {
   return n ? Number(n) : 0;
 }
