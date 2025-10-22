@@ -56,6 +56,59 @@ export class EntryDayController {
     });
   }
 
+  // 1) ciclo del caso (tiempo calendario + horas)
+  @Get('case-cycle')
+  async statsCaseCycle(@Query('clientItemId') clientItemId: string) {
+    return this.service.statsCaseCycle(clientItemId);
+  }
+
+  // 2) costo estimado del caso (horas * tarifa del cliente)
+  @Get('case-cost')
+  async statsCaseCost(@Query('clientItemId') clientItemId: string) {
+    return this.service.statsCaseCost(clientItemId);
+  }
+
+  // 3) promedios por cliente (horas/costo; opcionales year, closedOnly)
+  @Get('client-averages')
+  async statsClientAverages(
+    @Query('clientId') clientId: string,
+    @Query('year') year?: string,
+    @Query('closedOnly') closedOnly?: string,
+  ) {
+    return this.service.statsClientAverages(
+      clientId,
+      year ? +year : undefined,
+      closedOnly === 'true',
+    );
+  }
+
+  // 4) promedios del estudio (o por abogado) en el año
+  @Get('study-averages')
+  async statsStudyAverages(
+    @Query('year') year?: string,
+    @Query('lawyerId') lawyerId?: string,
+  ) {
+    return this.service.statsStudyAverages(year ? +year : undefined, lawyerId);
+  }
+
+  // 5) áreas de práctica por cliente (category/section/itemType)
+  @Get('practice-areas')
+  async statsPracticeAreas(
+    @Query('clientId') clientId: string,
+    @Query('level') level: 'category' | 'section' | 'itemType' = 'itemType',
+    @Query('includeHours') includeHours?: string,
+    @Query('includeCost') includeCost?: string,
+    @Query('year') year?: string,
+  ) {
+    return this.service.statsPracticeAreas(
+      clientId,
+      level,
+      includeHours === 'true',
+      includeCost === 'true',
+      year ? +year : undefined,
+    );
+  }
+
   @Get('getMonthlyTimeByLawyerId')
   async getMonthlyTimeByLawyer(@Query('lawyerId') lawyerId: string) {
     return this.service.getMonthlyTimeByLawyer(lawyerId);

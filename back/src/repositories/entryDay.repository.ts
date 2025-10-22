@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateTimeEntryDto } from 'src/dtos/timeEntry.dto';
 import { Client, Currency } from 'src/entities/client.entity';
@@ -13,6 +13,18 @@ type CostSummaryInput = {
   year?: number;
   month?: number;
 };
+
+type Currency = 'CLP' | 'USD' | 'UF';
+
+function toNumber(n?: string | null): number {
+  return n ? Number(n) : 0;
+}
+function secToHours(sec: number): number {
+  return Math.round((sec / 3600) * 10) / 10;
+}
+function yearBounds(y: number) {
+  return { start: `${y}-01-01`, end: `${y}-12-31` };
+}
 
 @Injectable()
 export class EntryDayRepository {
@@ -725,6 +737,364 @@ export class EntryDayRepository {
       },
     };
   }
+
+  /* --------------NUEVO----------------------- */
+
+  async statsCaseCycle(clientItemId: string) {
+    if (!clientItemId)
+      throw new BadRequestException('clientItemId is required');
+
+    const item = await this.clientItemRepo.findOne({
+      where: { id: clientItemId },
+      relations: { client: true, lawyer: true },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        createdAt: true,
+        closedAt: true,
+        client: { id: true },
+        lawyer: { id: true },
+      },
+    });
+    if (!item) throw new BadRequestException('clientItem not found');
+
+    const { totalSec }: any = await this.repo
+      .createQueryBuilder('e')
+      .select('COALESCE(SUM(e.durationSec),0)', 'totalSec')
+      .where('e."clientItemId" = :id', { id: clientItemId })
+      .getRawOne<{ totalSec: string }>();
+
+    const created = item.createdAt ? new Date(item.createdAt) : null;
+    const closed = item.closedAt ? new Date(item.closedAt) : null;
+    const now = new Date();
+
+    const daysToClose =
+      created && closed ? Math.ceil((+closed - +created) / 86400000) : null;
+    const daysOpen =
+      created && !closed ? Math.ceil((+now - +created) / 86400000) : null;
+
+    return {
+      clientItemId,
+      title: item.title,
+      status: item.status,
+      createdAt: item.createdAt,
+      closedAt: item.closedAt ?? null,
+      daysToClose,
+      daysOpen,
+      worked: {
+        totalSec: toNumber(totalSec),
+        totalHours: secToHours(toNumber(totalSec)),
+      },
+    };
+  }
+
+  async statsCaseCost(clientItemId: string) {
+    if (!clientItemId)
+      throw new BadRequestException('clientItemId is required');
+
+    const item = await this.clientItemRepo.findOne({
+      where: { id: clientItemId },
+      relations: { client: true },
+      select: {
+        id: true,
+        client: { id: true, hourlyRate: true, currency: true },
+      },
+    });
+    if (!item) throw new BadRequestException('clientItem not found');
+
+    const rate = item.client?.hourlyRate ? Number(item.client.hourlyRate) : 0;
+    const currency: Currency | null =
+      (item.client?.currency as Currency) ?? null;
+
+    const { totalSec }: any = await this.repo
+      .createQueryBuilder('e')
+      .select('COALESCE(SUM(e.durationSec),0)', 'totalSec')
+      .where('e."clientItemId" = :id', { id: clientItemId })
+      .getRawOne<{ totalSec: string }>();
+
+    const hours = secToHours(toNumber(totalSec));
+    const costRaw = Math.round(rate * hours * 100) / 100;
+
+    return {
+      clientItemId,
+      time: { totalHours: hours },
+      pricing: { hourlyRate: rate, currency },
+      cost: { raw: costRaw, currency },
+    };
+  }
+
+  async statsClientAverages(
+    clientId: string,
+    year?: number,
+    closedOnly = false,
+  ) {
+    if (!clientId) throw new BadRequestException('clientId is required');
+
+    const itemWhere: any = { client: { id: clientId } };
+    if (closedOnly) itemWhere.status = CIStatus.CLOSED;
+
+    const items = await this.clientItemRepo.find({
+      where: itemWhere,
+      select: ['id', 'status', 'createdAt', 'closedAt'],
+    });
+
+    const client = await this.clientRepo.findOne({
+      where: { id: clientId },
+      select: ['hourlyRate', 'currency'],
+    });
+    const rate = client?.hourlyRate ? Number(client.hourlyRate) : 0;
+    const currency: Currency | null = (client?.currency as Currency) ?? null;
+
+    if (!items.length) {
+      return {
+        clientId,
+        cases: { total: 0, open: 0, closed: 0 },
+        hours: { total: 0, avgPerCase: 0 },
+        cost: { currency, avgPerCase: 0 },
+        timeToClose: { avgDays: 0 },
+        pricing: { hourlyRate: rate, currency },
+      };
+    }
+
+    const qb = this.repo
+      .createQueryBuilder('e')
+      .select('e."clientItemId"', 'clientItemId')
+      .addSelect('COALESCE(SUM(e.durationSec),0)', 'totalSec')
+      .where('e."clientId" = :clientId', { clientId })
+      .groupBy('e."clientItemId"');
+
+    if (year) {
+      const { start, end } = yearBounds(year);
+      qb.andWhere('e.day BETWEEN :start AND :end', { start, end });
+    }
+
+    const rows = await qb.getRawMany<{
+      clientItemId: string;
+      totalSec: string;
+    }>();
+    const secByItem = new Map(
+      rows.map((r) => [r.clientItemId, toNumber(r.totalSec)]),
+    );
+
+    const totalSec = items.reduce(
+      (acc, it) => acc + (secByItem.get(it.id) ?? 0),
+      0,
+    );
+    const totalHours = secToHours(totalSec);
+    const totalCases = items.length;
+    const openCount = items.filter((i) => i.status !== CIStatus.CLOSED).length;
+    const closedCount = items.length - openCount;
+
+    const avgHoursPerCase = totalCases
+      ? Math.round((totalHours / totalCases) * 10) / 10
+      : 0;
+    const avgCostPerCase = Math.round(avgHoursPerCase * rate * 100) / 100;
+
+    const closedItems = items.filter((i) => i.closedAt && i.createdAt);
+    const avgDaysToClose = closedItems.length
+      ? Math.round(
+          closedItems.reduce(
+            (acc, i) =>
+              acc +
+              Math.ceil(
+                (+new Date(i.closedAt!) - +new Date(i.createdAt)) / 86400000,
+              ),
+            0,
+          ) / closedItems.length,
+        )
+      : 0;
+
+    return {
+      clientId,
+      cases: { total: totalCases, open: openCount, closed: closedCount },
+      hours: { total: totalHours, avgPerCase: avgHoursPerCase },
+      cost: { currency, avgPerCase: avgCostPerCase },
+      timeToClose: { avgDays: avgDaysToClose },
+      pricing: { hourlyRate: rate, currency },
+    };
+  }
+
+  async statsStudyAverages(year?: number, lawyerId?: string) {
+    const qb = this.repo
+      .createQueryBuilder('e')
+      .select('e."clientItemId"', 'clientItemId')
+      .addSelect('e."clientId"', 'clientId')
+      .addSelect('COALESCE(SUM(e.durationSec),0)', 'totalSec')
+      .groupBy('e."clientItemId"')
+      .addGroupBy('e."clientId"');
+
+    if (year) {
+      const { start, end } = yearBounds(year);
+      qb.where('e.day BETWEEN :start AND :end', { start, end });
+    }
+    if (lawyerId) {
+      qb.andWhere('e."lawyerId" = :lawyerId', { lawyerId });
+    }
+
+    const rows = await qb.getRawMany<{
+      clientItemId: string;
+      clientId: string;
+      totalSec: string;
+    }>();
+    if (!rows.length) {
+      return {
+        scope: lawyerId ? 'lawyer' : 'studio',
+        year: year ?? null,
+        totals: {
+          clients: 0,
+          cases: 0,
+          hours: 0,
+          cost: { raw: 0, currency: null },
+        },
+        averages: { costPerClient: { raw: 0 }, costPerCase: { raw: 0 } },
+      };
+    }
+
+    const clientIds = Array.from(new Set(rows.map((r) => r.clientId)));
+    const clients = await this.clientRepo.find({
+      where: { id: In(clientIds) },
+      select: ['id', 'hourlyRate', 'currency'],
+    });
+    const rateByClient = new Map(
+      clients.map((c) => [
+        c.id,
+        {
+          rate: c.hourlyRate ? Number(c.hourlyRate) : 0,
+          currency: (c.currency as Currency) ?? null,
+        },
+      ]),
+    );
+
+    const casesCount = rows.length;
+    const clientSet = new Set<string>();
+    let totalHours = 0;
+    let totalCost = 0;
+    let currency: Currency | null = null;
+
+    for (const r of rows) {
+      clientSet.add(r.clientId);
+      const hrs = secToHours(toNumber(r.totalSec));
+      totalHours += hrs;
+      const info = rateByClient.get(r.clientId) ?? { rate: 0, currency: null };
+      totalCost += info.rate * hrs;
+      if (!currency) currency = info.currency;
+      if (currency && info.currency && info.currency !== currency)
+        currency = null; // monedas mixtas
+    }
+
+    const clientsCount = clientSet.size;
+    const costPerCase = casesCount
+      ? Math.round((totalCost / casesCount) * 100) / 100
+      : 0;
+    const costPerClient = clientsCount
+      ? Math.round((totalCost / clientsCount) * 100) / 100
+      : 0;
+
+    return {
+      scope: lawyerId ? 'lawyer' : 'studio',
+      year: year ?? null,
+      totals: {
+        clients: clientsCount,
+        cases: casesCount,
+        hours: Math.round(totalHours * 10) / 10,
+        cost: { raw: Math.round(totalCost * 100) / 100, currency },
+      },
+      averages: {
+        costPerClient: { raw: costPerClient, currency },
+        costPerCase: { raw: costPerCase, currency },
+      },
+    };
+  }
+
+  async statsPracticeAreas(
+    clientId: string,
+    level: 'category' | 'section' | 'itemType' = 'itemType',
+    includeHours = false,
+    includeCost = false,
+    year?: number,
+  ) {
+    if (!clientId) throw new BadRequestException('clientId is required');
+
+    const alias = { category: 'cat', section: 'sec', itemType: 'it' }[level];
+
+    // Conteo de casos por área
+    const counts = await this.clientItemRepo
+      .createQueryBuilder('ci')
+      .leftJoin('ci.category', 'cat')
+      .leftJoin('ci.section', 'sec')
+      .leftJoin('ci.itemType', 'it')
+      .select(`${alias}.name`, 'name')
+      .addSelect('COUNT(ci.id)', 'cases')
+      .where('ci.client = :clientId', { clientId })
+      .andWhere(`${alias}.name IS NOT NULL`)
+      .groupBy(`${alias}.name`)
+      .orderBy('cases', 'DESC')
+      .getRawMany<{ name: string; cases: string }>();
+
+    let hoursByName = new Map<string, number>();
+    let costByName = new Map<string, number>();
+    let currency: Currency | null = null;
+
+    if (includeHours || includeCost) {
+      // horas por área a partir de EntryDay
+      const ed = this.repo
+        .createQueryBuilder('e')
+        .leftJoin(ClientItem, 'ci', 'ci.id = e."clientItemId"')
+        .leftJoin('ci.category', 'cat')
+        .leftJoin('ci.section', 'sec')
+        .leftJoin('ci.itemType', 'it')
+        .select(`${alias}.name`, 'name')
+        .addSelect('COALESCE(SUM(e.durationSec),0)', 'totalSec')
+        .where('e."clientId" = :clientId', { clientId })
+        .andWhere(`${alias}.name IS NOT NULL`)
+        .groupBy(`${alias}.name`);
+
+      if (year) {
+        const { start, end } = yearBounds(year);
+        ed.andWhere('e.day BETWEEN :start AND :end', { start, end });
+      }
+
+      const rows = await ed.getRawMany<{ name: string; totalSec: string }>();
+      hoursByName = new Map(
+        rows.map((r) => [r.name, secToHours(toNumber(r.totalSec))]),
+      );
+
+      if (includeCost) {
+        const client = await this.clientRepo.findOne({
+          where: { id: clientId },
+          select: ['hourlyRate', 'currency'],
+        });
+        const rate = client?.hourlyRate ? Number(client.hourlyRate) : 0;
+        currency = (client?.currency as Currency) ?? null;
+        for (const [name, hrs] of hoursByName.entries()) {
+          costByName.set(name, Math.round(rate * hrs * 100) / 100);
+        }
+      }
+    }
+
+    const items = counts.map((r) => {
+      const name = r.name;
+      const out: any = { name, cases: Number(r.cases) };
+      if (includeHours)
+        out.hours = Math.round((hoursByName.get(name) ?? 0) * 10) / 10;
+      if (includeCost)
+        out.cost = {
+          raw: Math.round((costByName.get(name) ?? 0) * 100) / 100,
+          currency,
+        };
+      if (includeCost && includeHours) {
+        out.avgCostPerCase = out.cases
+          ? Math.round((out.cost.raw / out.cases) * 100) / 100
+          : 0;
+      }
+      return out;
+    });
+
+    return { clientId, level, items };
+  }
+
+  /* --------------------------- */
 
   async getMonthlyTimeByLawyer(lawyerId: string) {
     if (!lawyerId) throw new Error('lawyerId is required');

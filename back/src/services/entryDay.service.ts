@@ -54,6 +54,35 @@ export class EntryDayService {
     return this.repo.getMonthlyTimeByLawyer(lawyerId);
   }
 
+  // === STATS ===
+  statsCaseCycle(clientItemId: string) {
+    return this.repo.statsCaseCycle(clientItemId);
+  }
+  statsCaseCost(clientItemId: string) {
+    return this.repo.statsCaseCost(clientItemId);
+  }
+  statsClientAverages(clientId: string, year?: number, closedOnly = false) {
+    return this.repo.statsClientAverages(clientId, year, closedOnly);
+  }
+  statsStudyAverages(year?: number, lawyerId?: string) {
+    return this.repo.statsStudyAverages(year, lawyerId);
+  }
+  statsPracticeAreas(
+    clientId: string,
+    level: 'category' | 'section' | 'itemType' = 'itemType',
+    includeHours = false,
+    includeCost = false,
+    year?: number,
+  ) {
+    return this.repo.statsPracticeAreas(
+      clientId,
+      level,
+      includeHours,
+      includeCost,
+      year,
+    );
+  }
+
   async upsertBulk(
     dtos: CreateTimeEntryDto[],
   ): Promise<EntryDay[] | { inserted: number; updated: number }> {
