@@ -240,7 +240,7 @@ export class EntryDayRepository {
         end: endOfMonth.toISOString().slice(0, 10),
       })
       .groupBy('entry.clientId')
-      .orderBy('totalTime', 'DESC')
+      .orderBy('"totalTime"', 'DESC')
       /* .orderBy('SUM(entry.durationSec)', 'DESC') // 👈 cambio clave */
       .limit(10)
       .getRawMany();
