@@ -59,7 +59,8 @@ export default function AudienceViewerPage() {
       ? ({
           type: "Audience",
           id: activeDoc.id,
-          clientId: activeDoc.clientId,
+          clientId: activeDoc.clientId ?? undefined,
+          clientItemId: activeDoc.clientItemId ?? undefined,
         } as Trackable)
       : null
   );
@@ -79,7 +80,13 @@ export default function AudienceViewerPage() {
       .map(audienceToOpenDoc)
       .filter((d) => !already.has(d.id))
       .forEach((d) =>
-        open({ id: d.id, title: d.name, url: d.url, clientId: d.clientId })
+        open({
+          id: d.id,
+          title: d.name,
+          url: d.url,
+          clientId: d.clientId,
+          clientItemId: d.clientItemId ?? null,
+        })
       );
 
     if (activeId) setActiveDoc(activeId, null);
@@ -117,7 +124,13 @@ export default function AudienceViewerPage() {
       .map(audienceToOpenDoc)
       .filter((d) => !alreadyOpen.has(d.id))
       .forEach((d) =>
-        open({ id: d.id, title: d.name, url: d.url, clientId: d.clientId })
+        open({
+          id: d.id,
+          title: d.name,
+          url: d.url,
+          clientId: d.clientId,
+          clientItemId: d.clientItemId ?? null,
+        })
       );
 
     const nextActive =

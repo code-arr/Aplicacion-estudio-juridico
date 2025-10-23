@@ -26,6 +26,7 @@ import {
   Library,
   EllipsisVertical,
 } from "lucide-react";
+import { formatDateChileShort } from "@/lib/formatDate";
 
 interface ItemCardProps {
   item: ClientItem;
@@ -167,8 +168,8 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
             {StatusBadge(item.status)}
             <p className="text-sm text-gray-500">
               {item.updatedAt
-                ? `Última actualización: ${item.updatedAt}`
-                : `Creado: ${item.createdAt}`}
+                ? `Actualizado: ${formatDateChileShort(item.updatedAt)}`
+                : `Creado: ${formatDateChileShort(item.createdAt!)}`}
             </p>
           </div>
         </div>

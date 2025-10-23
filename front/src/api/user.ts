@@ -38,14 +38,14 @@ export async function getRecentLogins(token: string): Promise<LoginEntry[]> {
 }
 
 /* export const getUserFromToken = async (token: string): Promise<User> => {
-  try {
-    const response = await axios.post("/auth/getUserFromToken", { token });
-    return response.data;
-  } catch (error) {
-    console.log("No se pudo restaurar la sesión:", error);
-    throw error;
-  }
-}; */
+    try {
+      const response = await axios.post("/auth/getUserFromToken", { token });
+      return response.data;
+    } catch (error) {
+      console.log("No se pudo restaurar la sesión:", error);
+      throw error;
+    }
+  }; */
 
 export const getUserById = async (id: string): Promise<User> => {
   try {

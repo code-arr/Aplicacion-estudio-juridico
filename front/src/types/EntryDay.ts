@@ -42,5 +42,99 @@ export interface ClientDetailRaw {
   totalByMonthByType: Record<number, Partial<Record<TrackableType, number>>>; // mes -> tipo -> sec
 }
 
+export type Currency = "CLP" | "USD" | "UF";
+
+export interface CostSummary {
+  scope: {
+    year: number;
+    month: number | null;
+    lawyerId: string;
+    clientId: string;
+    clientItemId: string | null;
+  };
+  time: {
+    totalSec: number;
+    totalHours: number;
+  };
+  pricing: {
+    hourlyRate: number;
+    currency: Currency;
+  };
+  totalCost: number;
+  formatted: {
+    hourlyRate: string;
+    totalCost: string;
+  };
+}
+
+export interface CaseCycleRes {
+  clientItemId: string;
+  title: string;
+  status: "open" | "on_hold" | "closed";
+  createdAt: string;
+  closedAt: string | null;
+  daysToClose: number | null;
+  daysOpen: number | null;
+  worked: { totalSec: number; totalHours: number };
+}
+
+export interface CaseCostRes {
+  clientItemId: string;
+  time: { totalHours: number };
+  pricing: { hourlyRate: number; currency: Currency | null };
+  cost: { raw: number; currency: Currency | null };
+}
+
+export interface ClientAveragesRes {
+  clientId: string;
+  cases: { total: number; open: number; closed: number };
+  hours: { total: number; avgPerCase: number };
+  cost: { currency: Currency | null; avgPerCase: number };
+  timeToClose: { avgDays: number };
+  pricing: { hourlyRate: number; currency: Currency | null };
+}
+
+export interface StudyAveragesRes {
+  scope: "studio" | "lawyer";
+  year: number | null;
+  totals: {
+    clients: number;
+    cases: number;
+    hours: number;
+    cost: { raw: number; currency: Currency | null };
+  };
+  averages: {
+    costPerClient: { raw: number; currency: Currency | null };
+    costPerCase: { raw: number; currency: Currency | null };
+  };
+}
+
+export interface PracticeAreasItem {
+  name: string;
+  cases: number;
+  hours?: number;
+  cost?: { raw: number; currency: Currency | null };
+  avgCostPerCase?: number;
+}
+export interface PracticeAreasRes {
+  clientId: string;
+  level: "category" | "section" | "itemType";
+  items: PracticeAreasItem[];
+}
+
+export interface CostSummaryRes {
+  scope: {
+    year: number;
+    month: number | null;
+    lawyerId: string;
+    clientId: string;
+    clientItemId: string | null;
+  };
+  time: { totalSec: number; totalHours: number };
+  pricing: { hourlyRate: number; currency: Currency };
+  totalCost: number;
+  formatted: { hourlyRate: string; totalCost: string };
+}
+
 // GET /entry-day/getMonthlyTimeByLawyerId?lawyerId=...
 export type MonthlyTimeByLawyerRaw = Record<number, number>; // 1..12 -> sec

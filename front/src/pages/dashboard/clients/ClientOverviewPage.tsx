@@ -27,23 +27,27 @@ import { useJoinMeeting } from "@/hooks/useJoinMeeting";
 import { useMeetingStore } from "@/store/useMeetingStore";
 import { pickNextAndLast } from "@/utils/meetings";
 import { formatDateChileShort } from "@/lib/formatDate";
+import { useStatsStore } from "@/store/useStatsStore";
+import { useClientTime } from "@/hooks/useClientTime";
+import { formatHHMMFromSeconds } from "@/lib/time";
 
 const ClientOverviewPage = () => {
-  /*   const { id } = useParams(); */
   const navigate = useNavigate();
   const location = useLocation();
-  /*   const setClientDetail = useClientStore((s) => s.setClientDetail); */
+
   const clientDetail = useClientStore(selectClientDetail);
   const categories = useCatalogStore(selectCategories);
+
   const fetchClientItemsByClientId = useClientItemStore(
     (s) => s.fetchClientItemsByClientId
   );
-  /*   const clientItemsByClientId = useClientItemStore(
-    (s) => s.clientItemsByClientId
-  ); */
   const all = useClientItemStore(selectClientItemsByClientId);
   const isLoadingItems = useClientItemStore(selectIsClientItemsLoading);
   const recent = useClientItemStore(selectRecentClientItemsByClientId);
+
+  const fetchClientDetailStats = useStatsStore((s) => s.fetchClientDetail);
+
+  const { totalSeconds } = useClientTime(clientDetail?.id ?? null);
 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,6 +65,11 @@ const ClientOverviewPage = () => {
       state: { prevRoute: location.pathname },
     });
   };
+
+  useEffect(() => {
+    if (!clientDetail?.id) return;
+    fetchClientDetailStats(clientDetail?.id);
+  }, [clientDetail, fetchClientDetailStats]);
 
   useEffect(() => {
     setLoading(true);
@@ -434,7 +443,9 @@ const ClientOverviewPage = () => {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-[hsl(225,10%,50%)]">Tiempo Total</p>
-                <p className="font-semibold text-[hsl(225,15%,15%)]">00:00</p>
+                <p className="font-semibold text-[hsl(225,15%,15%)]">
+                  {formatHHMMFromSeconds(totalSeconds)}
+                </p>
               </div>
               <div>
                 <p className="text-[hsl(225,10%,50%)]">Ítems Registrados</p>

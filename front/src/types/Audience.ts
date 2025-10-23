@@ -8,6 +8,7 @@ export interface Audience {
   date?: string;
 
   clientId: string;
+  clientItemId: string | null; // ➕ nuevo
 
   updatedAt?: Date;
   createdAt?: Date;
@@ -21,5 +22,6 @@ export type OpenAud = {
   title: string;
   url: string;
   clientId: string;
+  clientItemId: string | null; // ➕ nuevo
   versionId?: string;
 };

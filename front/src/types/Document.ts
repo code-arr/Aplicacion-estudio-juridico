@@ -18,6 +18,7 @@ export interface Document {
   fileUrl: string;
 
   clientId: string;
+  clientItemId: string | null; // ➕ nuevo
 
   createdAt?: Date;
   updatedAt?: Date;
@@ -31,5 +32,6 @@ export type OpenDoc = {
   title: string;
   url: string;
   clientId: string;
+  clientItemId: string | null; // ➕ nuevo
   versionId?: string;
 };

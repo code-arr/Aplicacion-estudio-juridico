@@ -16,6 +16,7 @@ export type Trackable = {
   type: TrackableType;
   id: string;
   clientId?: string;
+  clientItemId?: string;
 };
 
 export type TimeEntry = {
@@ -24,6 +25,7 @@ export type TimeEntry = {
   trackableId: string;
   lawyerId: string;
   clientId?: string;
+  clientItemId?: string;
   dayKey: string; //YYYY-MM-DD del inicio
   startedAtUTC: string; // ISO
   endedAtUTC: string; // ISO

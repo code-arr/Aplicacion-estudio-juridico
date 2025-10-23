@@ -8,7 +8,12 @@ import type {
 
 const IDLE_LIMIT_MS = 90_000 as const;
 
-export type Trackable = { type: TrackableType; id: string; clientId?: string };
+export type Trackable = {
+  type: TrackableType;
+  id: string;
+  clientId?: string;
+  clientItemId?: string;
+};
 
 export type TimerState = {
   lawyerId?: string | null;

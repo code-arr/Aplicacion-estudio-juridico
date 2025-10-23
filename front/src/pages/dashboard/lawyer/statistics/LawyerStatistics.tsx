@@ -8,6 +8,7 @@ import {
   selectClientItems,
   useClientItemStore,
 } from "@/store/useClientItemStore";
+import ClientCasesStatsCard from "@/components/clients/ClientCasesStatsCard";
 
 // =============================
 // Types
@@ -200,7 +201,6 @@ const LawyerStatistics = ({ className = "" }: LawyerStatisticsProps) => {
             hint="últimos 90 días"
           />
         </div>
-
         {/* 2 columnas */}
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Horas por semana */}
@@ -275,10 +275,13 @@ const LawyerStatistics = ({ className = "" }: LawyerStatisticsProps) => {
             </div>
           </Card>
         </div>
-
         {/* Tiempo por cliente */}
         <div className="mt-4 grid grid-cols-1 gap-4 ">
           <ClientStatsCard />
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 ">
+          <ClientCasesStatsCard />
         </div>
       </div>
     </div>

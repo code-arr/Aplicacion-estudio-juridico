@@ -62,7 +62,8 @@ const DocumentViewerPage = () => {
       ? ({
           type: "Document",
           id: activeDoc.id,
-          clientId: activeDoc.clientId,
+          clientId: activeDoc.clientId ?? undefined,
+          clientItemId: activeDoc.clientItemId ?? undefined,
         } as Trackable)
       : null
   );
@@ -96,6 +97,7 @@ const DocumentViewerPage = () => {
             title: d.name,
             url: d.fileUrl,
             clientId: d.clientId,
+            clientItemId: d.clientItemId ?? null,
           })
         );
     }
@@ -152,7 +154,13 @@ const DocumentViewerPage = () => {
     pdfs
       .filter((d) => !alreadyOpen.has(d.id))
       .forEach((d) =>
-        open({ id: d.id, title: d.name, url: d.fileUrl, clientId: d.clientId })
+        open({
+          id: d.id,
+          title: d.name,
+          url: d.fileUrl,
+          clientId: d.clientId,
+          clientItemId: d.clientItemId ?? null,
+        })
       );
 
     const nextActive =

@@ -9,7 +9,9 @@ export const getAllDocuments = async (): Promise<Document[]> => {
 export const getDocumentsByClientItem = async (
   itemId: string
 ): Promise<Document[]> => {
-  return (await axios.get(`document/getByClientItemId/${itemId}`)).data;
+  const data = (await axios.get(`document/getByClientItemId/${itemId}`)).data;
+  console.log(data);
+  return data;
 };
 
 export const createDocument = async (

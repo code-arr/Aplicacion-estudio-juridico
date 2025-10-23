@@ -27,6 +27,8 @@ import {
   currentMonthNumber,
   secToHours,
 } from "@/utils/timeMaps";
+import type { CostSummary } from "@/types/EntryDay";
+import { getCostSummary } from "@/api/entryDay";
 
 // ====== Tipos locales (UI) ======
 type CategoryRow = { label: string; hours: number };
@@ -121,7 +123,7 @@ const demoCategories: CategoryRow[] = [
   { label: "Documents", hours: 0 },
   { label: "Audiences", hours: 0 },
   { label: "Meetings", hours: 0 },
-  { label: "Process", hours: 0 }, // 👈
+  { label: "Process", hours: 0 },
   { label: "Client", hours: 0 },
 ];
 
@@ -164,6 +166,7 @@ export default function ClientStatsCard({
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [range, setRange] = useState<RangeKey>("days");
   const [resizeKey, setResizeKey] = useState(0);
+  const [cost, setCost] = React.useState<CostSummary | null>(null);
 
   const { clientDetails, fetchClientDetail, isLoading, error } =
     useStatsStore();
@@ -200,7 +203,22 @@ export default function ClientStatsCard({
 
   const detail = scId ? clientDetails[scId] : undefined;
 
-  console.log(detail);
+  useEffect(() => {
+    async function loadCost() {
+      if (!selectedClient?.id) return;
+      // mes actual por default
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth() + 1;
+      const data = await getCostSummary({
+        clientId: selectedClient.id,
+        year,
+        month,
+      });
+      setCost(data);
+    }
+    loadCost();
+  }, [selectedClient?.id]);
 
   const categories: CategoryRow[] = useMemo(() => {
     if (categoriesProp) return categoriesProp;
@@ -294,14 +312,14 @@ export default function ClientStatsCard({
     "Documents",
     "Audiences",
     "Meetings",
-    "Process",
+    "Processes",
     "Client",
   ] as const;
   const LABELS_ES: Record<(typeof ORDER)[number], string> = {
     Documents: "Documentos",
     Audiences: "Audiencias",
     Meetings: "Reuniones",
-    Process: "Trámites", // 👈 singular en key, texto libre en español
+    Processes: "Trámites", // 👈 singular en key, texto libre en español
     Client: "Extra",
   };
 
@@ -461,12 +479,12 @@ export default function ClientStatsCard({
             </div>
           </div>
 
-          <div className="rounded-xl bg-slate-50 p-4">
+          {/* <div className="rounded-xl bg-slate-50 p-4">
             <div className="text-slate-600 text-sm">Total hs x mes</div>
             <div className="text-2xl font-semibold text-slate-900">
               {fmtH(stats.totalMonth, 1)}
             </div>
-          </div>
+          </div> */}
         </div>
         <div className="space-y-2">
           <div className="rounded-xl bg-slate-50 p-4">
@@ -481,6 +499,26 @@ export default function ClientStatsCard({
             <div className="text-2xl font-semibold text-slate-900">
               {fmtH(stats.avgMonth ?? 0, 1)}
             </div>
+          </div>
+        </div>
+      </div>
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-xl bg-slate-50 p-4">
+          <div className="text-slate-600 text-sm">Tarifa por hora</div>
+          <div className="text-2xl font-semibold text-slate-900">
+            {cost ? cost.formatted.hourlyRate : "—"}
+          </div>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-4">
+          <div className="text-slate-600 text-sm">Horas (mes)</div>
+          <div className="text-2xl font-semibold text-slate-900">
+            {cost ? `${cost.time.totalHours.toFixed(1)}hs` : "—"}
+          </div>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-4">
+          <div className="text-slate-600 text-sm">Costo (mes)</div>
+          <div className="text-2xl font-semibold text-slate-900">
+            {cost ? cost.formatted.totalCost : "—"}
           </div>
         </div>
       </div>

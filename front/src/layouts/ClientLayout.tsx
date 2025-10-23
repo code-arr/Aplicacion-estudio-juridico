@@ -6,6 +6,8 @@ import ClientHeader from "@/components/clients/ClientHeader"; // tu componente c
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorScreen from "@/components/shared/ErrorScreen";
 import { useFocusContext } from "@/hooks/useFocusContext";
+import { useClientTime } from "@/hooks/useClientTime";
+import { formatHHMMFromSeconds } from "@/lib/time";
 
 const ClientLayout = () => {
   const { clientId } = useParams();
@@ -15,6 +17,10 @@ const ClientLayout = () => {
 
   const setClientDetail = useClientStore((s) => s.setClientDetail);
   const clientDetail = useClientStore(selectClientDetail);
+
+  const { monthSeconds } = useClientTime(clientDetail?.id ?? null);
+  const monthTimer = formatHHMMFromSeconds(monthSeconds);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,7 +41,7 @@ const ClientLayout = () => {
       <ClientHeader
         client={clientDetail}
         prevRoute={location.state?.prevRoute ? location.state.prevRoute : null}
-        timer="00:00" // más adelante podrías sacarlo de un hook
+        timer={monthTimer} // ← ahora muestra el acumulado del mes
       />
       <main className="p-6">
         <Outlet />
