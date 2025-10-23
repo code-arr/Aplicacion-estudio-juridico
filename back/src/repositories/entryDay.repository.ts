@@ -917,6 +917,7 @@ export class EntryDayRepository {
   }
 
   async statsStudyAverages(year?: number, lawyerId?: string) {
+    // --- 1) Horas y costos agregados por caso (EntryDay) ---
     const qb = this.repo
       .createQueryBuilder('e')
       .select('e."clientItemId"', 'clientItemId')
@@ -938,20 +939,58 @@ export class EntryDayRepository {
       clientId: string;
       totalSec: string;
     }>();
+
+    // --- Si no hay horas registradas, igual devolvemos estructura completa ---
+    const emptyResponse = {
+      scope: lawyerId ? 'lawyer' : 'studio',
+      year: year ?? null,
+      totals: {
+        clients: 0,
+        cases: 0,
+        hours: 0,
+        cost: { raw: 0, currency: null as Currency | null },
+      },
+      averages: {
+        costPerClient: { raw: 0, currency: null as Currency | null },
+        costPerCase: { raw: 0, currency: null as Currency | null },
+        resolutionDaysAvg: 0,
+      },
+    };
+
+    // --- 2) Promedio de resolución (clientItems cerrados) ---
+    // Tomamos CLOSED y filtramos opcionalmente por lawyerId y/o por year (en closedAt)
+    const qbRes = this.clientItemRepo
+      .createQueryBuilder('ci')
+      .select(
+        `AVG(EXTRACT(EPOCH FROM (ci."closedAt" - ci."createdAt"))/86400)`,
+        'avgDaysToClose',
+      )
+      .where('ci.status = :closed', { closed: CIStatus.CLOSED })
+      .andWhere('ci."closedAt" IS NOT NULL');
+
+    if (lawyerId) qbRes.andWhere('ci."lawyerId" = :lawyerId', { lawyerId });
+    if (year) {
+      const { start, end } = yearBounds(year);
+      qbRes.andWhere('ci."closedAt" BETWEEN :start AND :end', { start, end });
+    }
+
+    const rowRes = await qbRes.getRawOne<{ avgDaysToClose: string | null }>();
+    const resolutionDaysAvg = rowRes?.avgDaysToClose
+      ? Math.round(Number(rowRes.avgDaysToClose))
+      : 0;
+
+    // --- 3) Si no hubo horas (rows vacío), retornar con resolutionDaysAvg calculado arriba ---
     if (!rows.length) {
       return {
-        scope: lawyerId ? 'lawyer' : 'studio',
-        year: year ?? null,
-        totals: {
-          clients: 0,
-          cases: 0,
-          hours: 0,
-          cost: { raw: 0, currency: null },
+        ...emptyResponse,
+        averages: {
+          ...emptyResponse.averages,
+          resolutionDaysAvg,
         },
-        averages: { costPerClient: { raw: 0 }, costPerCase: { raw: 0 } },
       };
     }
 
+    // --- 4) Cargar tarifas por cliente para costo total ---
     const clientIds = Array.from(new Set(rows.map((r) => r.clientId)));
     const clients = await this.clientRepo.find({
       where: { id: In(clientIds) },
@@ -962,7 +1001,7 @@ export class EntryDayRepository {
         c.id,
         {
           rate: c.hourlyRate ? Number(c.hourlyRate) : 0,
-          currency: (c.currency as Currency) ?? null,
+          currency: c.currency ?? null,
         },
       ]),
     );
@@ -1004,6 +1043,8 @@ export class EntryDayRepository {
       averages: {
         costPerClient: { raw: costPerClient, currency },
         costPerCase: { raw: costPerCase, currency },
+        // 👇 NUEVO
+        resolutionDaysAvg,
       },
     };
   }
