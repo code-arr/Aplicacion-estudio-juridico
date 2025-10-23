@@ -232,7 +232,7 @@ export class EntryDayRepository {
       .createQueryBuilder('entry')
       .select('entry.clientId', 'clientId')
       .addSelect('SUM(entry.durationSec)', 'totalTime')
-      .where('entry.lawyerId = :lawyerId', { lawyerId })
+      .where('entry."lawyerId" = :lawyerId::uuid', { lawyerId })
       .andWhere('entry.day BETWEEN :start AND :end', {
         start: startOfMonth,
         end: endOfMonth,
@@ -1024,7 +1024,7 @@ export class EntryDayRepository {
       .leftJoin('ci.itemType', 'it')
       .select(`${alias}.name`, 'name')
       .addSelect('COUNT(ci.id)', 'cases')
-      .where('ci.client = :clientId::uuid', { clientId })
+      .where('ci."clientId" = :clientId::uuid', { clientId })
       .andWhere(`${alias}.name IS NOT NULL`)
       .groupBy(`${alias}.name`)
       .orderBy('cases', 'DESC')
