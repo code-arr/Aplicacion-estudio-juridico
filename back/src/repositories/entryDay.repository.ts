@@ -218,8 +218,6 @@ export class EntryDayRepository {
   }
 
   async getTop10ByLawyerId(lawyerId: string) {
-    console.log(lawyerId);
-
     if (!lawyerId) {
       throw new Error('lawyerId is required');
     }
@@ -233,12 +231,17 @@ export class EntryDayRepository {
       .select('entry.clientId', 'clientId')
       .addSelect('SUM(entry.durationSec)', 'totalTime')
       .where('entry."lawyerId" = :lawyerId::uuid', { lawyerId })
-      .andWhere('entry.day BETWEEN :start AND :end', {
+      /* .andWhere('entry.day BETWEEN :start AND :end', {
         start: startOfMonth,
         end: endOfMonth,
+      }) */
+      .andWhere('entry.day BETWEEN :start::date AND :end::date', {
+        start: startOfMonth.toISOString().slice(0, 10),
+        end: endOfMonth.toISOString().slice(0, 10),
       })
       .groupBy('entry.clientId')
-      .orderBy('SUM(entry.durationSec)', 'DESC') // 👈 cambio clave
+      .orderBy('totalTime', 'DESC')
+      /* .orderBy('SUM(entry.durationSec)', 'DESC') // 👈 cambio clave */
       .limit(10)
       .getRawMany();
 
@@ -1038,7 +1041,7 @@ export class EntryDayRepository {
       // horas por área a partir de EntryDay
       const ed = this.repo
         .createQueryBuilder('e')
-        .leftJoin(ClientItem, 'ci', 'ci.id = e."clientItemId"')
+        .leftJoin(ClientItem, 'ci', 'ci.id = e."clientItemId"::uuid')
         .leftJoin('ci.category', 'cat')
         .leftJoin('ci.section', 'sec')
         .leftJoin('ci.itemType', 'it')
@@ -1051,6 +1054,9 @@ export class EntryDayRepository {
       if (year) {
         const { start, end } = yearBounds(year);
         ed.andWhere('e.day BETWEEN :start AND :end', { start, end });
+        /*         ed.andWhere('entry.day BETWEEN :start::date AND :end::date', {
+  start: startOfMonth.toISOString().slice(0,10), // 'YYYY-MM-DD'
+  end: endOfMonth.toISOString().slice(0,10), */
       }
 
       const rows = await ed.getRawMany<{ name: string; totalSec: string }>();
@@ -1107,9 +1113,13 @@ export class EntryDayRepository {
       .select('EXTRACT(MONTH FROM entry.day)', 'month')
       .addSelect('SUM(entry.durationSec)', 'totalTime')
       .where('entry.lawyerId = :lawyerId::uuid', { lawyerId })
-      .andWhere('entry.day BETWEEN :start AND :end', {
+      /* .andWhere('entry.day BETWEEN :start AND :end', {
         start: startOfYear,
         end: endOfYear,
+      }) */
+      .andWhere('entry.day BETWEEN :start::date AND :end::date', {
+        start: startOfYear.toISOString().slice(0, 10),
+        end: endOfYear.toISOString().slice(0, 10),
       })
       .groupBy('month')
       .orderBy('month', 'ASC')

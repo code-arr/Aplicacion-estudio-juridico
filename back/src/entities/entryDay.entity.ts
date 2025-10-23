@@ -23,16 +23,16 @@ export class EntryDay {
   @Column()
   durationSec: number;
 
-  @Column()
+  @Column('uuid')
   trackableId: string;
 
-  @Column()
+  @Column('uuid')
   lawyerId: string;
 
-  @Column()
+  @Column('uuid')
   clientId: string;
 
-  @Column({nullable: true})
+  @Column('uuid', { nullable: true })
   clientItemId: string;
 
   @Column()
