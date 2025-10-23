@@ -1,5 +1,5 @@
 // src/components/clients/ClientCasesStatsCard.tsx
-import React from "react";
+import React, { startTransition } from "react";
 import {
   UserCircle2,
   FolderOpen,
@@ -24,6 +24,7 @@ import {
 } from "@/api/entryDay";
 import { formatMoney } from "@/utils/money";
 import { useCatalogStore } from "@/store/useCatalogStore";
+import { useSlidingUI } from "@/hooks/useSlidingUI";
 
 function buildNameMaps(
   categories: { id: string; name: string }[] | undefined,
@@ -80,6 +81,8 @@ function Card({
 }
 
 export default function ClientCasesStatsCard() {
+  const sliding = useSlidingUI(240);
+
   const categories = useCatalogStore((s) => s.categories);
   const sections = useCatalogStore((s) => s.sections);
   const itemTypes = useCatalogStore((s) => s.itemTypes);
@@ -93,7 +96,6 @@ export default function ClientCasesStatsCard() {
     [categories, sections, itemTypes]
   );
 
-  // ⭐ helpers seguros que aceptan string | null | undefined
   const categoryNamed = React.useCallback(
     (id?: string | null) => (id ? catMap.get(id) ?? null : null),
     [catMap]
@@ -153,8 +155,11 @@ export default function ClientCasesStatsCard() {
           includeCost: true,
         }),
       ]);
-      setAvg(a);
-      setAreas(p);
+      // Commiteamos en transición para no impactar animación
+      startTransition(() => {
+        setAvg(a);
+        setAreas(p);
+      });
     };
     run();
   }, [selectedClient?.id]);
@@ -167,12 +172,14 @@ export default function ClientCasesStatsCard() {
         if (!it.id) continue;
         if (!cycleByItem[it.id]) {
           getCaseCycle(it.id).then((r) =>
-            setCycleByItem((s) => ({ ...s, [it.id!]: r }))
+            startTransition(() =>
+              setCycleByItem((s) => ({ ...s, [it.id!]: r }))
+            )
           );
         }
         if (!costByItem[it.id]) {
           getCaseCost(it.id).then((r) =>
-            setCostByItem((s) => ({ ...s, [it.id!]: r }))
+            startTransition(() => setCostByItem((s) => ({ ...s, [it.id!]: r })))
           );
         }
       }
@@ -182,7 +189,7 @@ export default function ClientCasesStatsCard() {
   }, [clientItems.map((x) => x.id).join(",")]);
 
   return (
-    <Card className="p-5">
+    <Card className={`p-5 ${sliding ? "shadow-none" : ""}`}>
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <UserCircle2 className="w-5 h-5 text-blue-700" />
@@ -254,7 +261,13 @@ export default function ClientCasesStatsCard() {
         <h4 className="text-slate-900 font-semibold mb-2">
           Áreas de práctica (por tipo de caso)
         </h4>
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          style={{
+            contain: "layout paint",
+            pointerEvents: sliding ? "none" : "auto",
+          }}
+        >
           <table className="min-w-[600px] w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-slate-500">
@@ -308,7 +321,7 @@ export default function ClientCasesStatsCard() {
               categoryNamed(it.categoryId) ??
               "—";
             return (
-              <Card key={it.id} className="p-4">
+              <Card key={it.id} className={sliding ? "p-4 shadow-none" : "p-4"}>
                 <div className="text-slate-900 font-medium">
                   {it.title ?? "(Sin título)"}
                 </div>

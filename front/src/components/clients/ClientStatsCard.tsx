@@ -1,5 +1,5 @@
 // src/components/clients/ClientStatsCard.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, startTransition } from "react";
 import type { Client } from "@/types/Client";
 import { UserCircle2 } from "lucide-react";
 import {
@@ -29,6 +29,7 @@ import {
 } from "@/utils/timeMaps";
 import type { CostSummary } from "@/types/EntryDay";
 import { getCostSummary } from "@/api/entryDay";
+import { useSlidingUI } from "@/hooks/useSlidingUI";
 
 // ====== Tipos locales (UI) ======
 type CategoryRow = { label: string; hours: number };
@@ -167,6 +168,7 @@ export default function ClientStatsCard({
   const [range, setRange] = useState<RangeKey>("days");
   const [resizeKey, setResizeKey] = useState(0);
   const [cost, setCost] = React.useState<CostSummary | null>(null);
+  const sliding = useSlidingUI(240);
 
   const { clientDetails, fetchClientDetail, isLoading, error } =
     useStatsStore();
@@ -174,11 +176,10 @@ export default function ClientStatsCard({
 
   const defaultClient = useMemo(() => {
     if (!clients || clients.length === 0) return null;
-    return clients.find((c) => !!c.id) ?? clients[0]; // FIX: elegimos uno que tenga id
+    return clients.find((c) => !!c.id) ?? clients[0];
   }, [clients]);
 
   const handleSelectedClient = (clientId: string) => {
-    // FIX: clientId siempre string; buscamos y si existe pedimos el detail
     const c = clients?.find((x) => x.id === clientId) ?? null;
     setSelectedClient(c);
     if (c?.id) fetchClientDetail(c.id);
@@ -187,7 +188,7 @@ export default function ClientStatsCard({
   useEffect(() => {
     if (defaultClient) {
       setSelectedClient(defaultClient);
-      if (defaultClient.id) fetchClientDetail(defaultClient.id); // FIX: guard clause por id
+      if (defaultClient.id) fetchClientDetail(defaultClient.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultClient]);
@@ -198,15 +199,12 @@ export default function ClientStatsCard({
     return () => window.removeEventListener("sidebar:transition-end", handler);
   }, []);
 
-  // FIX: scId nunca es undefined cuando lo usamos para indexar
   const scId: string | null = selectedClient?.id ?? null;
-
   const detail = scId ? clientDetails[scId] : undefined;
 
   useEffect(() => {
     async function loadCost() {
       if (!selectedClient?.id) return;
-      // mes actual por default
       const today = new Date();
       const year = today.getFullYear();
       const month = today.getMonth() + 1;
@@ -215,7 +213,8 @@ export default function ClientStatsCard({
         year,
         month,
       });
-      setCost(data);
+      // Commiteamos en transición para no pelear con la animación
+      startTransition(() => setCost(data));
     }
     loadCost();
   }, [selectedClient?.id]);
@@ -233,14 +232,13 @@ export default function ClientStatsCard({
     return {
       days: mapDaysToSeries(detail.totalByDay, {
         mode: "rolling7",
-        onlyWeekDays: true, // ← excluye sábados y domingos
+        onlyWeekDays: true,
       }),
       weeks: mapWeeksToSeries(detail.totalByWeek),
       months: mapMonthlyToSeries(detail.totalByMonth, 12),
     };
   }, [seriesProp, detail]);
 
-  // === KPIs fijos (hoy/semana/mes) derivados del detail ===
   const stats = useMemo(() => {
     if (fixedStats) {
       const dpm = daysInMonth();
@@ -266,22 +264,14 @@ export default function ClientStatsCard({
       };
     }
 
-    const todayIso = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const todayIso = new Date().toISOString().slice(0, 10);
     const totalDay = secToHours(detail.totalByDay[todayIso] ?? 0);
 
-    /* const weekNumber = getIsoWeekNumber(new Date());
-    const totalWeek = secToHours(detail.totalByWeek[weekNumber] ?? 0); */
-
     const weekNumber = getIsoWeekNumber(new Date());
-
-    // 1) intento usar el mapa que viene del back
     let totalWeekSec = detail.totalByWeek[weekNumber];
-
-    // 2) fallback: si no está esa key, sumo la semana a partir de totalByDay (l→d)
     if (totalWeekSec == null) {
       totalWeekSec = sumWeekFromDays(detail.totalByDay, new Date());
     }
-
     const totalWeek = secToHours(totalWeekSec ?? 0);
 
     const month = currentMonthNumber();
@@ -304,9 +294,8 @@ export default function ClientStatsCard({
     []
   );
 
-  // Helpers para estados por cliente (evitan index con undefined)
-  const isLoadingDetail = scId ? !!isLoading.clientDetail[scId] : false; // FIX
-  const errorDetail = scId ? error.clientDetail[scId] : undefined; // FIX
+  const isLoadingDetail = scId ? !!isLoading.clientDetail[scId] : false;
+  const errorDetail = scId ? error.clientDetail[scId] : undefined;
 
   const ORDER = [
     "Documents",
@@ -319,7 +308,7 @@ export default function ClientStatsCard({
     Documents: "Documentos",
     Audiences: "Audiencias",
     Meetings: "Reuniones",
-    Processes: "Trámites", // 👈 singular en key, texto libre en español
+    Processes: "Trámites",
     Client: "Extra",
   };
 
@@ -329,18 +318,19 @@ export default function ClientStatsCard({
     );
     return ORDER.map((key) => ({
       label: LABELS_ES[key],
-      hours: map.get(key) ?? 0, // si no vino, mostramos 0
+      hours: map.get(key) ?? 0,
     }));
   }, [categories]);
 
   return (
-    <div className="rounded-2xl border border-black/10 bg-white shadow-sm p-5">
+    <div
+      className={`rounded-2xl border border-black/10 bg-white shadow-sm p-5 ${
+        sliding ? "shadow-none" : ""
+      }`}
+      style={{ contain: "layout paint" }}
+    >
       {/* Header con selector de cliente */}
-      <Select
-        // FIX: nunca undefined (Select espera string)
-        value={scId ?? ""}
-        onValueChange={handleSelectedClient}
-      >
+      <Select value={scId ?? ""} onValueChange={handleSelectedClient}>
         <SelectTrigger className="flex items-center gap-2 mb-2 py-1 px-2 border border-slate-200 rounded-lg shadow-xs cursor-pointer">
           <div className="flex items-center gap-2">
             <UserCircle2 className="w-5 h-5 text-blue-700" />
@@ -355,7 +345,7 @@ export default function ClientStatsCard({
         </SelectTrigger>
         <SelectContent>
           {(clients ?? [])
-            .filter((c): c is Client & { id: string } => !!c.id) // FIX: filtramos sin id
+            .filter((c): c is Client & { id: string } => !!c.id)
             .map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.type === "Fisica"
@@ -412,7 +402,12 @@ export default function ClientStatsCard({
 
           <div
             className="h-56 w-full rounded-lg border border-slate-100 bg-slate-50/40 p-2"
-            style={{ isolation: "isolate", contain: "layout paint" }}
+            style={{
+              isolation: "isolate",
+              contain: "layout paint",
+              willChange: "contents",
+              pointerEvents: sliding ? "none" : "auto",
+            }}
           >
             <ResponsiveContainer
               width="100%"
@@ -434,14 +429,16 @@ export default function ClientStatsCard({
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip
-                  formatter={(v: number) => fmtH(v as number)}
-                  labelStyle={{ color: "#0f172a" }}
-                  contentStyle={{
-                    borderRadius: 10,
-                    border: "1px solid #e2e8f0",
-                  }}
-                />
+                {!sliding && (
+                  <Tooltip
+                    formatter={(v: number) => fmtH(v as number)}
+                    labelStyle={{ color: "#0f172a" }}
+                    contentStyle={{
+                      borderRadius: 10,
+                      border: "1px solid #e2e8f0",
+                    }}
+                  />
+                )}
                 <Line
                   type="monotone"
                   dataKey="hours"
@@ -478,13 +475,6 @@ export default function ClientStatsCard({
               {fmtH(stats.totalWeek, 1)}
             </div>
           </div>
-
-          {/* <div className="rounded-xl bg-slate-50 p-4">
-            <div className="text-slate-600 text-sm">Total hs x mes</div>
-            <div className="text-2xl font-semibold text-slate-900">
-              {fmtH(stats.totalMonth, 1)}
-            </div>
-          </div> */}
         </div>
         <div className="space-y-2">
           <div className="rounded-xl bg-slate-50 p-4">
