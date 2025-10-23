@@ -70,7 +70,10 @@ const LawyerSidebar = ({ lawyer, onLogout }: LawyerSidebarProps) => {
     >
       <SidebarHeader className="py-6 justify-center items-center flex-row gap-0">
         <button
-          onClick={() => setCollapsed((prev) => !prev)}
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent("sidebar:transition-start")); // 👈 NUEVO
+            setCollapsed((prev) => !prev);
+          }}
           className="focus:outline-none transition-opacity hover:opacity-80 cursor-pointer"
         >
           <div className="law-gradient p-2 rounded-lg">
