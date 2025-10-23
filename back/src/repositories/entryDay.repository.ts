@@ -1024,7 +1024,7 @@ export class EntryDayRepository {
       .leftJoin('ci.itemType', 'it')
       .select(`${alias}.name`, 'name')
       .addSelect('COUNT(ci.id)', 'cases')
-      .where('ci.client = :clientId', { clientId })
+      .where('ci.client = :clientId::uuid', { clientId })
       .andWhere(`${alias}.name IS NOT NULL`)
       .groupBy(`${alias}.name`)
       .orderBy('cases', 'DESC')
@@ -1044,7 +1044,7 @@ export class EntryDayRepository {
         .leftJoin('ci.itemType', 'it')
         .select(`${alias}.name`, 'name')
         .addSelect('COALESCE(SUM(e.durationSec),0)', 'totalSec')
-        .where('e."clientId" = :clientId', { clientId })
+        .where('e."clientId" = :clientId::uuid', { clientId })
         .andWhere(`${alias}.name IS NOT NULL`)
         .groupBy(`${alias}.name`);
 
@@ -1106,7 +1106,7 @@ export class EntryDayRepository {
       .createQueryBuilder('entry')
       .select('EXTRACT(MONTH FROM entry.day)', 'month')
       .addSelect('SUM(entry.durationSec)', 'totalTime')
-      .where('entry.lawyerId = :lawyerId', { lawyerId })
+      .where('entry.lawyerId = :lawyerId::uuid', { lawyerId })
       .andWhere('entry.day BETWEEN :start AND :end', {
         start: startOfYear,
         end: endOfYear,
