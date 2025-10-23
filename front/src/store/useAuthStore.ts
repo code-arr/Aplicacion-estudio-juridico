@@ -12,21 +12,27 @@ export async function restoreSession() {
   try {
     const authData = await window.electronAPI?.invoke("auth:get");
     if (authData?.token) {
-      // ✅ ahora validamos el token contra el back
-      const user = await getMe();
-      /* const user = await getUserById(authData.id); */
+      const user = await getMe(); // valida token contra el back
 
-      // 1) Primero login (para que el interceptor ya tenga token del store)
+      // 🚫 Si es admin, NO restaurar nunca
+      if (user.role === "admin") {
+        await window.electronAPI?.invoke("auth:clear"); // limpia persistencia
+        useAuthStore.setState({
+          user: null,
+          token: null,
+          isLoggedIn: false,
+          isAdmin: false,
+          isLawyer: false,
+        });
+        return; // salimos sin loguear
+      }
+
+      // ✅ Solo lawyer: continuar login y preparativos
       await useAuthStore.getState().login(user, authData.token);
 
-      // ✅ SOLO si es lawyer, hidrato el store del abogado
       if (user.role === "lawyer") {
-        // Si tenés lawyerId, mejor hidratar por id:
-        // await useLawyerStore.getState().hydrateById(user.lawyerId!);
         useLawyerStore.getState().setLawyer(user.email);
       }
-      // Dejo que login unifique flags y estado
-      /*   await useAuthStore.getState().login(user, authData.token); */
     }
   } catch (error) {
     console.error("Error al restaurar sesión:", error);
@@ -46,12 +52,18 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
   // 🔐 login: deriva flags SIEMPRE desde user.role
   login: async (user: User, token: string) => {
-    await window.electronAPI.invoke("auth:save", {
-      token,
-      id: user.id,
-      role: user.role,
-    });
+    if (user.role !== "admin") {
+      await window.electronAPI.invoke("auth:save", {
+        token,
+        id: user.id,
+        role: user.role,
+      });
+    } else {
+      // Por seguridad: admin nunca queda persistido
+      await window.electronAPI?.invoke("auth:clear");
+    }
 
+    // Estado en memoria igual que siempre
     set(() => ({
       user,
       token,

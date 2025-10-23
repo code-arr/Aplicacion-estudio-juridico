@@ -106,6 +106,8 @@ export interface StudyAveragesRes {
   averages: {
     costPerClient: { raw: number; currency: Currency | null };
     costPerCase: { raw: number; currency: Currency | null };
+    // 👇 NUEVO: promedio de resolución en días
+    resolutionDaysAvg: number | null;
   };
 }
 

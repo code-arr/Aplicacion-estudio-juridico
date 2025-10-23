@@ -3,11 +3,13 @@ import type {
   TopClientRaw,
   ClientDetailRaw,
   MonthlyTimeByLawyerRaw,
+  StudyAveragesRes,
 } from "@/types/EntryDay";
 import {
   getTop10ByLawyer,
   getClientDetail,
   getMonthlyByLawyer,
+  getStudyAverages,
 } from "@/api/entryDay";
 
 // TTL de cache (ms)
@@ -17,18 +19,21 @@ type LoadingMap = {
   topClients: boolean;
   monthly: boolean;
   clientDetail: Record<string, boolean>; // por clientId
+  studyAveragesLawyer?: boolean;
 };
 
 type ErrorMap = {
   topClients?: string;
   monthly?: string;
   clientDetail: Record<string, string | undefined>;
+  studyAveragesLawyer?: string;
 };
 
 type CacheTimes = {
   topClients?: number;
   monthly?: number;
   clientDetail: Record<string, number | undefined>;
+  studyAveragesLawyer?: number;
 };
 
 type StatsState = {
@@ -36,6 +41,7 @@ type StatsState = {
   topClients: TopClientRaw[] | null;
   monthlyByLawyer: MonthlyTimeByLawyerRaw | null;
   clientDetails: Record<string, ClientDetailRaw | undefined>;
+  studyAveragesLawyer: StudyAveragesRes | null;
 
   isLoading: LoadingMap;
   error: ErrorMap;
@@ -44,12 +50,14 @@ type StatsState = {
   fetchTopClients: (force?: boolean) => Promise<void>;
   fetchMonthlyByLawyer: (force?: boolean) => Promise<void>;
   fetchClientDetail: (clientId: string, force?: boolean) => Promise<void>;
+  fetchStudyAveragesLawyer: (force?: boolean) => Promise<void>;
 };
 
 export const useStatsStore = create<StatsState>((set, get) => ({
   topClients: null,
   monthlyByLawyer: null,
   clientDetails: {},
+  studyAveragesLawyer: null,
 
   isLoading: {
     topClients: false,
@@ -173,6 +181,43 @@ export const useStatsStore = create<StatsState>((set, get) => ({
           ...s.isLoading,
           clientDetail: { ...s.isLoading.clientDetail, [clientId]: false },
         },
+      }));
+    }
+  },
+
+  fetchStudyAveragesLawyer: async (force = false) => {
+    const { _cacheAt, isLoading } = get();
+    const now = Date.now();
+    if (
+      !force &&
+      _cacheAt.studyAveragesLawyer &&
+      now - _cacheAt.studyAveragesLawyer < TTL_MS
+    )
+      return;
+    if (isLoading.studyAveragesLawyer) return;
+
+    set((s) => ({
+      isLoading: { ...s.isLoading, studyAveragesLawyer: true },
+      error: { ...s.error, studyAveragesLawyer: undefined },
+    }));
+    try {
+      // Si tu axios base ya inyecta ?lawyerId=..., no pases nada.
+      const data = await getStudyAverages(); // { lawyerId } opcional
+      set((s) => ({
+        studyAveragesLawyer: data,
+        _cacheAt: { ...s._cacheAt, studyAveragesLawyer: now },
+      }));
+    } catch (err: any) {
+      set((s) => ({
+        error: {
+          ...s.error,
+          studyAveragesLawyer:
+            err?.message ?? "Error al cargar promedios del abogado",
+        },
+      }));
+    } finally {
+      set((s) => ({
+        isLoading: { ...s.isLoading, studyAveragesLawyer: false },
       }));
     }
   },

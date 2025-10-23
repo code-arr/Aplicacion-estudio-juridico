@@ -9,6 +9,7 @@ import {
   useClientItemStore,
 } from "@/store/useClientItemStore";
 import ClientCasesStatsCard from "@/components/clients/ClientCasesStatsCard";
+import { formatMoney } from "@/utils/money";
 
 // =============================
 // Types
@@ -80,46 +81,6 @@ function StatCard({
   );
 }
 
-/* function ProgressBar({
-  value,
-  className = "",
-}: {
-  value: number;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`h-2 w-full rounded-full bg-slate-200 ${className}`}
-      aria-hidden
-    >
-      <div
-        className="h-2 rounded-full bg-slate-800"
-        style={{ width: `${clamp(value, 0, 100)}%` }}
-      />
-    </div>
-  );
-} */
-
-// =============================
-// Demo fallbacks (solo por si no hay datos aún)
-// =============================
-const demoKpis: LawyerKpis = {
-  activeItems: 0,
-  billableHoursThisMonth: 0,
-  collectionRate: null,
-  avgResolutionDays: 0,
-};
-
-const demoMonthly: WeekHours[] = [
-  { label: "Ene", hours: 0 },
-  { label: "Feb", hours: 0 },
-  { label: "Mar", hours: 0 },
-  { label: "Abr", hours: 0 },
-  { label: "May", hours: 0 },
-  { label: "Jun", hours: 0 },
-  { label: "Jul", hours: 0 },
-];
-
 // =============================
 // Main component
 // =============================
@@ -131,38 +92,39 @@ const LawyerStatistics = ({ className = "" }: LawyerStatisticsProps) => {
   const {
     topClients,
     monthlyByLawyer,
+    studyAveragesLawyer,
     isLoading,
     error,
     fetchTopClients,
     fetchMonthlyByLawyer,
+    fetchStudyAveragesLawyer,
   } = useStatsStore();
 
   useEffect(() => {
     fetchTopClients();
     fetchMonthlyByLawyer();
-  }, [fetchTopClients, fetchMonthlyByLawyer]);
+    fetchStudyAveragesLawyer();
+  }, [fetchTopClients, fetchMonthlyByLawyer, fetchStudyAveragesLawyer]);
 
   // ✨ CAMBIO: calcular KPIs con datos reales (solo “Horas (mes act.)” por ahora)
   const kpis: LawyerKpis = useMemo(() => {
     const billableHoursThisMonth = monthlyByLawyer
-      ? sumMonth(monthlyByLawyer) // convierte a horas adentro
+      ? sumMonth(monthlyByLawyer)
       : 0;
 
-    // Los otros KPI aún no tienen endpoint → los dejamos en 0/N/A
     return {
-      ...demoKpis,
+      activeItems: itemsByLawyer.length, // si aún no es real, dejalo en 0
       billableHoursThisMonth,
+      collectionRate: null, // sin endpoint, N/A
+      avgResolutionDays: 0, // sin endpoint, 0
     };
-  }, [monthlyByLawyer]);
+  }, [monthlyByLawyer, itemsByLawyer.length]);
 
   // ✨ CAMBIO: serie “Horas por mes (año)” mapeada desde el back
   const monthlySeries: WeekHours[] = useMemo(() => {
-    if (!monthlyByLawyer) return demoMonthly;
+    if (!monthlyByLawyer) return [];
 
-    // Traigo 10 últimos del helper (orden ASC por defecto)…
     const pts10 = mapMonthlyToSeries(monthlyByLawyer, 10);
-
-    // …me quedo con los últimos 7 y los invierto para mostrar: más reciente → más viejo (arriba→abajo)
     const last7Desc = pts10.slice(-7).reverse();
 
     return last7Desc.map((p) => ({ label: p.label, hours: p.hours }));
@@ -181,24 +143,51 @@ const LawyerStatistics = ({ className = "" }: LawyerStatisticsProps) => {
       <div className={`w-full p-4 lg:p-6 ${className}`}>
         {/* KPIs */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Item activos" value={itemsByLawyer.length} />
           <StatCard
-            label="Horas (mes at.)"
+            label="Item activos"
+            value={itemsByLawyer.length} /* value={
+              studyAveragesLawyer?.totals.cases
+            } */
+          />
+          <StatCard
+            label="Horas totales"
             value={formatNumber(kpis.billableHoursThisMonth)}
+            hint="mes actual"
           />
-          <StatCard
-            label="Tasa de cobro"
-            value={
-              kpis.collectionRate == null
-                ? "N/A"
-                : `${formatNumber(kpis.collectionRate, 0)}%`
-            }
-            hint="% mes actual"
-          />
+          {/* Prom. resolución (abogado) */}
           <StatCard
             label="Prom. resolución"
-            value={kpis.avgResolutionDays}
-            hint="últimos 90 días"
+            value={
+              studyAveragesLawyer?.averages?.resolutionDaysAvg != null
+                ? `${formatNumber(
+                    studyAveragesLawyer.averages.resolutionDaysAvg,
+                    0
+                  )} días`
+                : "—"
+            }
+            hint={
+              studyAveragesLawyer?.year
+                ? `año ${studyAveragesLawyer.year}`
+                : "año actual"
+            }
+          />
+          {/* Prom. costo por clientes (abogado) */}
+          <StatCard
+            label="Prom. costo/clientes"
+            value={
+              studyAveragesLawyer?.averages?.costPerClient?.raw != null &&
+              studyAveragesLawyer?.averages?.costPerClient?.currency
+                ? formatMoney(
+                    studyAveragesLawyer.averages.costPerClient.raw,
+                    studyAveragesLawyer.averages.costPerClient.currency
+                  )
+                : "—"
+            }
+            hint={
+              studyAveragesLawyer?.year
+                ? `año ${studyAveragesLawyer.year}`
+                : "año actual"
+            }
           />
         </div>
         {/* 2 columnas */}
