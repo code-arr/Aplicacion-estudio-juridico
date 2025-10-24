@@ -8,6 +8,7 @@ import { EntryDayRepository } from 'src/repositories/entryDay.repository';
 import { Client, Currency } from 'src/entities/client.entity';
 import { ClientItem } from 'src/entities/clientItem.entity';
 import { Lawyer } from 'src/entities/lawyer.entity'; // si existe tu entidad de Lawyer
+import { EntryDay } from 'src/entities/entryDay.entity';
 
 type BuildOpts = {
   lawyerId: string;
@@ -20,11 +21,19 @@ type BuildOpts = {
 @Injectable()
 export class ReportsService {
   constructor(
-    private readonly entryRepo: EntryDayRepository,
-    @InjectRepository(Client) private readonly clientRepo: Repository<Client>,
+    private readonly entryDayRepoAgg: EntryDayRepository, // tu repo “agregado” con queries ya hechas
+
+    @InjectRepository(Client)
+    private readonly clientRepo: Repository<Client>,
+
     @InjectRepository(ClientItem)
-    private readonly itemRepo: Repository<ClientItem>,
-    @InjectRepository(Lawyer) private readonly lawyerRepo: Repository<Lawyer>, // si no tienes Lawyer, elimina esta línea y su uso
+    private readonly clientItemRepo: Repository<ClientItem>,
+
+    @InjectRepository(Lawyer)
+    private readonly lawyerRepo: Repository<Lawyer>,
+
+    @InjectRepository(EntryDay)
+    private readonly entryRepo: Repository<EntryDay>,
   ) {}
 
   /** Punto único para generar el PDF y el nombre de archivo */
