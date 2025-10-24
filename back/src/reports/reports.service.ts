@@ -21,19 +21,19 @@ type BuildOpts = {
 @Injectable()
 export class ReportsService {
   constructor(
-    private readonly entryDayRepoAgg: EntryDayRepository, // tu repo “agregado” con queries ya hechas
+    private readonly entryRepo: EntryDayRepository, // tu repo “agregado” con queries ya hechas
 
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,
 
     @InjectRepository(ClientItem)
-    private readonly clientItemRepo: Repository<ClientItem>,
+    private readonly itemRepo: Repository<ClientItem>,
 
     @InjectRepository(Lawyer)
     private readonly lawyerRepo: Repository<Lawyer>,
 
     @InjectRepository(EntryDay)
-    private readonly entryRepo: Repository<EntryDay>,
+    private readonly entryDayRepo: Repository<EntryDay>,
   ) {}
 
   /** Punto único para generar el PDF y el nombre de archivo */
