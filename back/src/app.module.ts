@@ -24,6 +24,7 @@ import { AudienceModule } from './modules/audience.module';
 import { OpenSignModule } from './openSign/openSign.module';
 import { EntryDayModule } from './modules/entryDay.module';
 import { UserLoginsModule } from './userLogins/userLogins.module';
+import { ReportsModule } from './reports/reports.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './guards/auth.guard';
 
@@ -61,8 +62,9 @@ import { AuthGuard } from './guards/auth.guard';
     OpenSignModule,
     EntryDayModule,
     UserLoginsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
-  providers: [AppService]//, { provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [AppService], //, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule {}
