@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import PDFDocument from 'pdfkit';
+import PDFDocument = require('pdfkit'); // ✅ CommonJS import correcto
 import axios from 'axios';
 import { Repository } from 'typeorm';
 
