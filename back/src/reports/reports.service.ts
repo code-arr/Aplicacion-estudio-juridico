@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import PDFDocument = require('pdfkit');
+import PDFDocument = require('pdfkit'); // ✅ CommonJS import correcto
 import axios from 'axios';
 import { Repository } from 'typeorm';
 
@@ -32,9 +32,11 @@ export class ReportsService {
     private readonly entryDayRepo: Repository<EntryDay>,
   ) {}
 
+  /** Punto único para generar el PDF y el nombre de archivo */
   async buildClientCostSummaryPdf(opts: BuildOpts) {
     const { lawyerId, clientId, year, month, logoUrl } = opts;
 
+    // Datos base
     const [client, lawyer] = await Promise.all([
       this.clientRepo.findOne({
         where: { id: clientId },
@@ -60,15 +62,19 @@ export class ReportsService {
 
     if (!client) throw new NotFoundException('Cliente no encontrado');
 
+    // Resumen de costos
     const summary = await this.entryRepo.getCostSummary({
       lawyerId,
       clientId,
       year,
       month,
     });
+
+    // Conteo general de casos
     const [totalCases, openCases, closedCases] =
       await this.getVeryLightCasesStats(clientId);
 
+    // Documento PDF
     const doc = new PDFDocument({
       size: 'A4',
       margin: 56,
@@ -78,30 +84,35 @@ export class ReportsService {
         Subject: 'Resumen de honorarios y horas trabajadas',
       },
     });
+
     const pageWidth =
       doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
+    // Header con logo y fecha
     await this.drawHeader(doc, logoUrl);
-    doc.x = doc.page.margins.left;
+    doc.x = doc.page.margins.left; // fuerza que lo que venga vaya desde la izquierda
 
-    // Título
-    doc.moveDown(0.5);
-    doc
-      .font(this.fontBold())
-      .fontSize(18)
-      .text('Resumen de Honorarios', { align: 'left', width: pageWidth });
+    // Título principal
+    doc.moveDown(1);
+    doc.font(this.fontBold()).fontSize(18).text('Resumen de Honorarios', {
+      align: 'left',
+      width: pageWidth,
+    });
 
     // Periodo
     doc
-      .moveDown(0.2)
+      .moveDown(0.3)
       .font(this.fontRegular())
       .fontSize(11)
       .fillColor('#64748b')
-      .text(this.periodoLabel(year, month), { align: 'left', width: pageWidth })
+      .text(this.periodoLabel(year, month), {
+        align: 'left',
+        width: pageWidth,
+      })
       .fillColor('#0f172a');
 
     // Datos del cliente
-    doc.moveDown(0.5);
+    doc.moveDown(1);
     this.drawSectionTitle(doc, 'Datos del cliente', pageWidth);
     this.kv(
       doc,
@@ -116,7 +127,7 @@ export class ReportsService {
 
     // Responsable (abogado)
     if (lawyer) {
-      doc.moveDown(0.3);
+      doc.moveDown(0.6);
       this.drawSectionTitle(doc, 'Responsable', pageWidth);
       this.kv(
         doc,
@@ -127,7 +138,7 @@ export class ReportsService {
     }
 
     // Resumen ejecutivo
-    doc.moveDown(0.5);
+    doc.moveDown(1);
     this.drawSectionTitle(doc, 'Resumen ejecutivo', pageWidth);
     if (!opts.month) throw new Error('month is required');
 
@@ -137,9 +148,12 @@ export class ReportsService {
       opts.month,
       opts.year,
     );
+
     const rate = summary.pricing.hourlyRate;
     const currency =
       summary.pricing.currency ?? client.currency ?? Currency.CLP;
+
+    // Total estimado
     const totalEstimated = rate ? hrs * rate : 0;
 
     if (rate)
@@ -157,57 +171,68 @@ export class ReportsService {
       pageWidth,
     );
 
-    // Total estimado
-    doc.moveDown(0.3);
+    // Total a cobrar: horas * tarifa con abreviatura de moneda
+    doc.moveDown(0.6);
     doc
       .font(this.fontBold())
       .fontSize(14)
       .fillColor('#0f172a')
-      .text('Total estimado a facturar', { continued: true, width: pageWidth })
+      .text('Total estimado a facturar', {
+        continued: true,
+        width: pageWidth,
+      })
       .text(
         `: ${this.formatMoney(totalEstimated, currency, { noSymbol: true })}`,
         { width: pageWidth },
       );
 
     // Notas / aclaraciones
-    doc.moveDown(0.5);
+    doc.moveDown(1.2);
     this.drawSectionTitle(doc, 'Notas', pageWidth);
+
     const notas = [
       'Este documento expresa una estimación basada en horas registradas y tarifa vigente.',
       'Los valores podrían ajustarse por gastos administrativos o tributos aplicables.',
       'El detalle granular de tareas se resguarda por razones de confidencialidad.',
     ];
+
     const bulletX = doc.page.margins.left + 4;
-    doc.font(this.fontRegular()).fontSize(9.5).fillColor('#334155');
+    doc.font(this.fontRegular()).fontSize(10).fillColor('#334155');
     notas.forEach((n) => {
-      doc.circle(bulletX, doc.y + 5, 1.5).fill('#334155');
+      doc.circle(bulletX, doc.y + 6, 1.5).fill('#334155');
       doc
         .text(n, bulletX + 8, doc.y, { align: 'left', width: pageWidth - 16 })
-        .moveDown(0.15);
+        .moveDown(0.2);
     });
     doc.fillColor('#0f172a');
 
-    // Footer
+    // Footer con numeración
     this.decorateFooter(doc);
 
     const filename = this.buildFilename(client, year, month);
     return { filename, doc };
   }
 
+  /** -----------------------------------------
+   * Helpers de composición / estilo PDF
+   * ---------------------------------------- */
+
   private async drawHeader(doc: PDFDocument, logoUrl?: string) {
     const marginLeft = doc.page.margins.left;
     const marginRight = doc.page.margins.right;
     const y0 = doc.y;
 
+    // Logo a la izquierda
     if (logoUrl) {
       try {
         const res = await axios.get<ArrayBuffer>(logoUrl, {
           responseType: 'arraybuffer',
         });
         doc.image(Buffer.from(res.data), marginLeft, y0, { width: 120 });
-      } catch {}
+      } catch (e) {}
     }
 
+    // Fecha a la derecha
     const fechaWidth = 160;
     const rightX = doc.page.width - marginRight - fechaWidth;
     doc
@@ -226,7 +251,8 @@ export class ReportsService {
       .strokeColor('#e2e8f0')
       .lineWidth(1)
       .stroke();
-    doc.y = afterY + 6;
+
+    doc.y = afterY + 8;
     doc.x = marginLeft;
     doc.fillColor('#0f172a');
   }
@@ -241,7 +267,7 @@ export class ReportsService {
           width ??
           doc.page.width - doc.page.margins.left - doc.page.margins.right,
       })
-      .moveDown(0.15);
+      .moveDown(0.2);
   }
 
   private kv(doc: PDFDocument, k: string, v: string, width?: number) {
@@ -255,26 +281,34 @@ export class ReportsService {
       .text(k, margin, doc.y, { continued: true, width: contentWidth })
       .fillColor('#0f172a')
       .text(`: ${v}`, { width: contentWidth })
-      .moveDown(0.15);
+      .moveDown(0.2);
   }
 
   private decorateFooter(doc: PDFDocument) {
-    const footerY = doc.page.height - 40;
-    doc
-      .strokeColor('#e2e8f0')
-      .lineWidth(1)
-      .moveTo(56, footerY - 12)
-      .lineTo(doc.page.width - 56, footerY - 12)
-      .stroke();
-    doc
-      .font(this.fontRegular())
-      .fontSize(9)
-      .fillColor('#64748b')
-      .text(`Página 1`, 56, footerY, {
-        width: doc.page.width - 112,
-        align: 'right',
-      });
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
+      doc.switchToPage(i);
+      const footerY = 842 - 40;
+      doc
+        .strokeColor('#e2e8f0')
+        .lineWidth(1)
+        .moveTo(56, footerY - 12)
+        .lineTo(595 - 56, footerY - 12)
+        .stroke();
+      doc
+        .font(this.fontRegular())
+        .fontSize(9)
+        .fillColor('#64748b')
+        .text(`Página ${i + 1} de ${range.count}`, 56, footerY, {
+          width: 595 - 56 * 2,
+          align: 'right',
+        });
+    }
   }
+
+  /** -----------------------------------------
+   * Helpers de datos / formato
+   * ---------------------------------------- */
 
   private async getVeryLightCasesStats(clientId: string) {
     const rows = await this.itemRepo.find({
@@ -328,30 +362,33 @@ export class ReportsService {
   }
 
   private formatClientName(c: Client) {
-    if (c.type === 'Fisica')
+    if (c.type === 'Fisica') {
       return (
         [c.firstName, c.lastName].filter(Boolean).join(' ').trim() || 'Cliente'
       );
+    }
     return c.companyName || 'Cliente';
   }
 
   private formatMoney(
     amount: number,
     currency: Currency | null,
-    opts?: { noSymbol?: boolean },
+    options?: { noSymbol?: boolean; decimals?: number },
   ) {
     const cur = currency ?? Currency.CLP;
-    if (cur === Currency.CLP)
-      return opts?.noSymbol
-        ? `${Math.round(amount)}`
-        : `$${Math.round(amount).toLocaleString('es-CL')}`;
-    if (cur === Currency.UF)
-      return opts?.noSymbol
-        ? `${amount.toFixed(1)}`
-        : `UF ${amount.toFixed(1)}`;
-    return opts?.noSymbol
-      ? `${Math.round(amount)}`
-      : `USD ${Math.round(amount).toLocaleString('en-US')}`;
+    const dec = options?.decimals ?? (cur === Currency.CLP ? 0 : 2);
+
+    if (cur === Currency.CLP) {
+      return options?.noSymbol
+        ? `${amount.toLocaleString('es-CL', { minimumFractionDigits: dec, maximumFractionDigits: dec })} CLP`
+        : `$${amount.toLocaleString('es-CL', { minimumFractionDigits: dec, maximumFractionDigits: dec })}`;
+    }
+
+    if (cur === Currency.UF) {
+      return `UF ${amount.toLocaleString('es-CL', { minimumFractionDigits: dec, maximumFractionDigits: dec })}`;
+    }
+
+    return `USD ${amount.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })}`;
   }
 
   private slug(s: string) {
