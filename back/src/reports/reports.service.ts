@@ -175,7 +175,7 @@ export class ReportsService {
    * Helpers de composición / estilo PDF
    * ---------------------------------------- */
 
-  private async drawHeader(doc: PDFKit.PDFDocument, logoUrl?: string) {
+  private async drawHeader(doc: PDFDocument, logoUrl?: string) {
     const y0 = doc.y;
     if (logoUrl) {
       try {
@@ -211,7 +211,7 @@ export class ReportsService {
       .moveDown(0.5);
   }
 
-  private drawSectionTitle(doc: PDFKit.PDFDocument, title: string) {
+  private drawSectionTitle(doc: PDFDocument, title: string) {
     doc
       .font(this.fontBold())
       .fontSize(12)
@@ -220,7 +220,7 @@ export class ReportsService {
       .moveDown(0.2);
   }
 
-  private kv(doc: PDFKit.PDFDocument, k: string, v: string) {
+  private kv(doc: PDFDocument, k: string, v: string) {
     const startX = doc.x;
     const width = 595 - 56 * 2;
     doc
@@ -233,7 +233,7 @@ export class ReportsService {
     doc.moveDown(0.2);
   }
 
-  private decorateFooter(doc: PDFKit.PDFDocument) {
+  private decorateFooter(doc: PDFDocument) {
     const range = doc.bufferedPageRange(); // { start: 0, count: N }
     for (let i = range.start; i < range.start + range.count; i++) {
       doc.switchToPage(i);
