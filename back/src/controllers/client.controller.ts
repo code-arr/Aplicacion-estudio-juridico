@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -79,5 +80,12 @@ export class ClienteController {
   //@UseGuards(AuthGuard , AdminGuard)
   async getClienteById(@Param('id') id: string) {
     return this.clienteService.getClienteById(id);
+  }
+  @Put(':clientId')
+  async updateClient(
+    @Param('clientId') clientId: string,
+    @Body() updateData: CreateClienteDto,
+  ): Promise<any> {
+    return this.clienteService.updateClient(clientId, updateData);
   }
 }

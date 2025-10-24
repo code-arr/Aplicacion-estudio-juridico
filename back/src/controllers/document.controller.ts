@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   Param,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseInterceptors,
@@ -59,5 +61,18 @@ export class DocumentController {
     @Param('clientItemId') clientItemId: string,
   ): Promise<Document[]> {
     return this.documentService.getDocumentsByClientItemId(clientItemId);
+  }
+
+  @Put(':documentId')
+  async updateDocument(
+    @Param('documentId') documentId: string,
+    @Body('newName') newName: string,
+    @Query('lawyerId') lawyerId: string,
+  ) {
+    if (!newName || !newName.trim()) {
+      throw new BadRequestException('New name is required');
+    }
+
+    return this.documentService.updateDocument(documentId, newName.trim(), lawyerId);
   }
 }

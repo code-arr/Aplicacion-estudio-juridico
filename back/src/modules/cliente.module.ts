@@ -12,6 +12,7 @@ import { ClienteService } from '../services/cliente.service';
 import { UserService } from '../services/user.service';
 import { MyMailerService } from '../mailer/mailer.service';
 import { MyMailerModule } from '../mailer/mailer.module';
+import { ParentTouchService } from 'src/services/parent-touch.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Client, Lawyer, User]), MyMailerModule],
@@ -24,6 +25,7 @@ import { MyMailerModule } from '../mailer/mailer.module';
     UserService,
     UserRepository,
     MyMailerService,
+    ParentTouchService,
   ],
   exports: [ClienteService, ClienteRepository],
 })

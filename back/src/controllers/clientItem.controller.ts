@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ClientItemDto } from '../dtos/clientItem.dto';
 import { ItemType } from '../entities/itemType.entity';
 import { ClientItemService } from '../services/clientItem.service';
@@ -18,14 +18,14 @@ export class ClientItemController {
         clientItem,
         clientItem.sectionId,
         lawyerId,
-        clientItem.clientId
+        clientItem.clientId,
       );
     } else if (clientItem.categoryId) {
       return this.ClientItemService.createClientItemCategory(
         clientItem,
         clientItem.categoryId,
         lawyerId,
-        clientItem.clientId
+        clientItem.clientId,
       );
     }
   }
@@ -52,5 +52,13 @@ export class ClientItemController {
     @Param('lawyerId') lawyerId: string,
   ): Promise<any> {
     return this.ClientItemService.getClientItemsByLawyerId(lawyerId);
+  }
+
+  @Put('/:clientItemId')
+  async updateClientItem(
+    @Param('clientItemId') clientItemId: string,
+    @Body() updateData: any,
+  ): Promise<any> {
+    return this.ClientItemService.updateClientItem(clientItemId, updateData);
   }
 }

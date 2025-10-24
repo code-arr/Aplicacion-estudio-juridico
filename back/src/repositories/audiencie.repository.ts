@@ -155,4 +155,51 @@ export class AudiencieRepository {
       );
     }
   }
+
+  async updateAudienceName(
+    audienceId: string,
+    newName: string,
+    lawyerId: string,
+  ): Promise<Audience> {
+    return this.dataSource.transaction(async (manager) => {
+      try {
+        const audienceRepo = manager.getRepository(Audience);
+
+        // 1) Buscar la audiencia
+        const audience = await audienceRepo.findOne({
+          where: { id: audienceId },
+          relations: ['clientItem'],
+        });
+        if (!audience) throw new NotFoundException('Audience not found');
+
+        // 2) Actualizar el nombre
+        audience.name = newName;
+
+        // 3) Guardar cambios
+        const updated = await audienceRepo.save(audience);
+
+        // 4) Crear evento
+        const eventData: EventDto = {
+          action: 'update',
+          entityName: updated.name,
+          entityId: updated.id,
+          entityType: 'Audience',
+          lawyerId,
+        };
+        await this.eventService.createEvent(eventData);
+
+        // 5) TOCAR padres
+        const clientItemId = updated.clientItem?.id;
+        const clientId = updated.clientId;
+        if (clientItemId)
+          await this.parentTouch.touchClientItem(manager, clientItemId);
+        if (clientId) await this.parentTouch.touchClient(manager, clientId);
+
+        return updated;
+      } catch (error) {
+        console.error('Error updating audience name:', error);
+        throw new InternalServerErrorException('Error updating audience name');
+      }
+    });
+  }
 }

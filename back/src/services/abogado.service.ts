@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { AbogadoDto } from "../dtos/lawyer.dto";
 import { Lawyer } from "../entities/lawyer.entity";
 import { AbogadoRepository } from "../repositories/lawyer.repository";
+import { UpdateLawyerDto } from "src/dtos/updateLawyer.dto";
 
 @Injectable()
 export class AbogadoService {
@@ -26,5 +27,17 @@ export class AbogadoService {
   }
   async getAllLawyers():Promise<Lawyer[]> {
     return await this.abogadoRepository.getAllLawyers();
+  }
+  async deleteClientFromLawyer(lawyerId: string, clientId: string): Promise<Lawyer | null> {
+    return this.abogadoRepository.deleteClientFromLawyer(lawyerId, clientId);
+  }
+  async updateLawyer(
+    lawyerId: string,
+    updateData: UpdateLawyerDto,
+  ): Promise<Lawyer> {
+    return this.abogadoRepository.updateLawyer(
+      lawyerId,
+      updateData,
+    );
   }
 }

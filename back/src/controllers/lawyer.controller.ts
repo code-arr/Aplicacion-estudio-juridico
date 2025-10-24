@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { Lawyer } from '../entities/lawyer.entity';
 import { AbogadoService } from '../services/abogado.service';
+import { UpdateLawyerDto } from 'src/dtos/updateLawyer.dto';
 
 @Controller('lawyer')
 export class AbogadoController {
@@ -12,6 +13,13 @@ export class AbogadoController {
   @Post('seederClientes')
   async seedAbogadosClientes() {
     return this.abogadoService.seedClienteAbogados();
+  }
+  @Post('deleteClient/:clientId')
+  async deleteClientFromLawyer(
+    @Query('lawyerId') lawyerId: string,
+    @Param('clientId') clientId: string,
+  ): Promise<Lawyer | null> {
+    return this.abogadoService.deleteClientFromLawyer(lawyerId, clientId);
   }
   @Get('getAll')
   //@UseGuards(AuthGuard)
@@ -32,5 +40,12 @@ export class AbogadoController {
   @Get(':id')
   async getAbogadoById(@Param('id') id: string) {
     return this.abogadoService.getAbogadoById(id);
+  }
+ @Put('')
+  async updateLawyer(
+    @Query('lawyerId') lawyerId: string,
+    @Body() updateData: UpdateLawyerDto,
+  ): Promise<Lawyer> {
+    return this.abogadoService.updateLawyer(lawyerId, updateData);
   }
 }

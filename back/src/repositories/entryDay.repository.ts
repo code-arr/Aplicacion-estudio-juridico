@@ -4,7 +4,7 @@ import { CreateTimeEntryDto } from 'src/dtos/timeEntry.dto';
 import { Client, Currency } from 'src/entities/client.entity';
 import { ClientItem, status as CIStatus } from 'src/entities/clientItem.entity';
 import { EntryDay } from 'src/entities/entryDay.entity';
-import { In, Repository } from 'typeorm';
+import { Between, In, Repository } from 'typeorm';
 
 type CostSummaryInput = {
   lawyerId: string;
@@ -38,6 +38,54 @@ export class EntryDayRepository {
   async createEntryDay(entryDay: Partial<EntryDay>): Promise<EntryDay> {
     const entity = this.repo.create(entryDay);
     return this.repo.save(entity);
+  }
+  async getTotalHoursByMonth(
+    lawyerId: string,
+    clientId: string,
+    month: number,
+    year: number,
+  ): Promise<number> {
+    if (!lawyerId) throw new Error('lawyerId is required');
+    if (!clientId) throw new Error('clientId is required');
+    if (!month || !year) throw new Error('month and year are required');
+
+    // Formato YYYY-MM-DD para evitar problemas de TZ
+    const start = `${year}-${month.toString().padStart(2, '0')}-01`;
+    const endDate = new Date(year, month, 0).getDate(); // último día del mes
+    const end = `${year}-${month.toString().padStart(2, '0')}-${endDate}`;
+
+    console.log('==== DEBUG TOTAL HOURS BY MONTH ====');
+    console.log('lawyerId:', lawyerId);
+    console.log('clientId:', clientId);
+    console.log('month/year:', month, year);
+    console.log('start date:', start);
+    console.log('end date:', end);
+
+    const qb = this.repo
+      .createQueryBuilder('entry')
+      .select('SUM(entry.durationSec)', 'totalTime')
+      .where('LOWER(entry."lawyerId"::text) = LOWER(:lawyerId)', { lawyerId })
+      .andWhere('LOWER(entry."clientId"::text) = LOWER(:clientId)', {
+        clientId,
+      })
+      .andWhere('entry.day BETWEEN :start AND :end', { start, end });
+
+    console.log('Generated SQL:', qb.getSql());
+    console.log('Parameters:', qb.getParameters());
+
+    const result = await qb.getRawOne();
+
+    console.log('Raw result from DB:', result);
+
+    const total = result?.totalTime ? Number(result.totalTime) : 0;
+    console.log('Computed totalTime:', total);
+    console.log('====================================');
+
+    const totalHours = total / 3600; // Convertir segundos a horas
+    const totalRounded = Number(totalHours.toFixed(1)); // Redondea a 1 decimal
+    console.log("total rounded " , totalRounded);
+    
+    return totalRounded;
   }
 
   async updateEntryDay(timeEntries: CreateTimeEntryDto[]): Promise<EntryDay[]> {
@@ -114,79 +162,6 @@ export class EntryDayRepository {
 
     return updatedEntryDays;
   }
-
-  /*   async updateEntryDay(timeEntries: CreateTimeEntryDto[]): Promise<EntryDay[]> {
-    const updatedEntryDays: EntryDay[] = [];
-
-    for (const entry of timeEntries) {
-      const entryDayDate = entry.dayKey ? new Date(entry.dayKey) : new Date();
-
-      // 🔹 Buscar por trackableId (como hacías antes)
-      const existingEntryDay = await this.repo.findOne({
-        where: { trackableId: entry.trackableId },
-        order: { day: 'DESC' },
-      });
-
-      if (entry.trackableType != existingEntryDay?.type) {
-        throw new Error('Trackable type mismatch');
-      }
-
-      // 🟢 Caso 1: no existe ninguno con ese trackableId → crear nuevo
-      if (!existingEntryDay) {
-        const newEntryDay = this.repo.create({
-          day: entryDayDate,
-          durationSec: entry.durationSec,
-          trackableId: entry.trackableId,
-          lawyerId: entry.lawyerId,
-          type: entry.trackableType,
-          clientId: entry.clientId,
-        });
-        const saved = await this.repo.save(newEntryDay);
-        updatedEntryDays.push(saved);
-        console.log('🟢 Se crea un entry day (no existía ninguno)');
-        continue;
-      }
-
-      // 🟠 Caso 2: existe pero con otro día → crear nuevo
-      const existingDay = new Date(existingEntryDay.day);
-      if (existingDay.getTime() !== entryDayDate.getTime()) {
-        const newEntryDay = this.repo.create({
-          day: entryDayDate,
-          durationSec: entry.durationSec,
-          trackableId: entry.trackableId,
-          lawyerId: entry.lawyerId,
-          type: entry.trackableType,
-          clientId: entry.clientId,
-        });
-        const saved = await this.repo.save(newEntryDay);
-        updatedEntryDays.push(saved);
-        console.log('🟠 Se crea un nuevo entry day porque cambió el día');
-        continue;
-      }
-
-      // 🟡 Caso 3: mismo día → actualizar el existente
-      existingEntryDay.durationSec += entry.durationSec;
-      const saved = await this.repo.save(existingEntryDay);
-      updatedEntryDays.push(saved);
-      console.log('🟡 Se actualiza el entry day existente');
-    }
-
-    for (const entry of updatedEntryDays) {
-      this.clientRepo
-        .findOne({ where: { id: entry.clientId } })
-        .then((client) => {
-          if (client) {
-            client.activeTime += entry.durationSec;
-            this.clientRepo.save(client);
-            console.log(
-              `🟡 Se actualiza el tiempo activo del cliente ${client.id} tiempo total del cliente : ${client.activeTime}`,
-            );
-          }
-        });
-    }
-
-    return updatedEntryDays;
-  } */
 
   async getByClientId(clientId: string, lawyerId: string) {
     const entryDays = await this.repo.find({ where: { clientId, lawyerId } });

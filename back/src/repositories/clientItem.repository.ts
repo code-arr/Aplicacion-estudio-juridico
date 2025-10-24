@@ -9,7 +9,7 @@ import { ClientItemDto } from '../dtos/clientItem.dto';
 import { ClientItem } from '../entities/clientItem.entity';
 import { ClienteService } from '../services/cliente.service';
 import { ItemTypeService } from '../services/itemType.service';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { AbogadoRepository } from './lawyer.repository';
 import {
   ArbitrajesEnCursoClientItems,
@@ -45,6 +45,8 @@ import {
 import { CategoryService } from 'src/services/category.service';
 import { SectionService } from 'src/services/section.service';
 import { EventService } from 'src/services/event.service';
+import { ParentTouchService } from 'src/services/parent-touch.service';
+import { UpdateClientItemDto } from 'src/dtos/updateClientItem.dto';
 
 @Injectable()
 export class ClientItemRepository implements OnModuleInit {
@@ -57,6 +59,8 @@ export class ClientItemRepository implements OnModuleInit {
     private readonly categoryService: CategoryService,
     private readonly sectionService: SectionService,
     private readonly eventService: EventService,
+    private readonly parentTouch: ParentTouchService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async onModuleInit() {
@@ -506,5 +510,30 @@ export class ClientItemRepository implements OnModuleInit {
         }
       }
     }
+  }
+  async updateClientItemSimple(
+    clientItemId: string,
+    updateData: UpdateClientItemDto,
+  ): Promise<ClientItem> {
+    return this.dataSource.transaction(async (manager) => {
+      const clientItem = await manager.getRepository(ClientItem).findOne({
+        where: { id: clientItemId },
+        relations: ['client'],
+      });
+      if (!clientItem) throw new NotFoundException('ClientItem no encontrado');
+
+      // Actualizar solo los campos recibidos
+      Object.assign(clientItem, updateData);
+
+      const updated = await manager.getRepository(ClientItem).save(clientItem);
+
+
+      // TOCAR padre usando el manager
+      if (clientItem.client?.id) {
+        await this.parentTouch.touchClient(manager, clientItem.client.id);
+      }
+
+      return updated;
+    });
   }
 }

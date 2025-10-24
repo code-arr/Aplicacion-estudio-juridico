@@ -1,46 +1,40 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import PDFDocument = require('pdfkit'); // ✅ CommonJS import correcto
+import PDFDocument = require('pdfkit');
 import axios from 'axios';
 import { Repository } from 'typeorm';
 
 import { EntryDayRepository } from 'src/repositories/entryDay.repository';
 import { Client, Currency } from 'src/entities/client.entity';
 import { ClientItem } from 'src/entities/clientItem.entity';
-import { Lawyer } from 'src/entities/lawyer.entity'; // si existe tu entidad de Lawyer
+import { Lawyer } from 'src/entities/lawyer.entity';
 import { EntryDay } from 'src/entities/entryDay.entity';
 
 type BuildOpts = {
   lawyerId: string;
   clientId: string;
   year: number;
-  month?: number; // si no viene => período anual
+  month?: number;
   logoUrl?: string;
 };
 
 @Injectable()
 export class ReportsService {
   constructor(
-    private readonly entryRepo: EntryDayRepository, // tu repo “agregado” con queries ya hechas
-
+    private readonly entryRepo: EntryDayRepository,
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,
-
     @InjectRepository(ClientItem)
     private readonly itemRepo: Repository<ClientItem>,
-
     @InjectRepository(Lawyer)
     private readonly lawyerRepo: Repository<Lawyer>,
-
     @InjectRepository(EntryDay)
     private readonly entryDayRepo: Repository<EntryDay>,
   ) {}
 
-  /** Punto único para generar el PDF y el nombre de archivo */
   async buildClientCostSummaryPdf(opts: BuildOpts) {
     const { lawyerId, clientId, year, month, logoUrl } = opts;
 
-    // Datos base
     const [client, lawyer] = await Promise.all([
       this.clientRepo.findOne({
         where: { id: clientId },
@@ -66,213 +60,223 @@ export class ReportsService {
 
     if (!client) throw new NotFoundException('Cliente no encontrado');
 
-    // Resumen de costos (ya redondeado del repo)
     const summary = await this.entryRepo.getCostSummary({
       lawyerId,
       clientId,
       year,
       month,
     });
-
-    // Conteo MUY general de casos del cliente (no listados, sólo números)
     const [totalCases, openCases, closedCases] =
       await this.getVeryLightCasesStats(clientId);
 
-    // Documento PDF
     const doc = new PDFDocument({
       size: 'A4',
-      margin: 56, // ~2cm
+      margin: 56,
       info: {
         Title: 'Resumen de honorarios',
         Author: 'Estudio Jurídico',
         Subject: 'Resumen de honorarios y horas trabajadas',
       },
     });
+    const pageWidth =
+      doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
-    // Header (logo + título + fecha)
     await this.drawHeader(doc, logoUrl);
+    doc.x = doc.page.margins.left;
 
     // Título
-    doc.moveDown(1);
+    doc.moveDown(0.5);
     doc
       .font(this.fontBold())
       .fontSize(18)
-      .text('Resumen de Honorarios', { align: 'left' });
+      .text('Resumen de Honorarios', { align: 'left', width: pageWidth });
 
     // Periodo
     doc
-      .moveDown(0.3)
+      .moveDown(0.2)
       .font(this.fontRegular())
       .fontSize(11)
-      .fillColor('#64748b') // slate-500
-      .text(this.periodoLabel(year, month), { align: 'left' })
-      .fillColor('#0f172a'); // slate-900
+      .fillColor('#64748b')
+      .text(this.periodoLabel(year, month), { align: 'left', width: pageWidth })
+      .fillColor('#0f172a');
 
-    // Datos del cliente (bloque formal y breve)
-    doc.moveDown(1);
-    this.drawSectionTitle(doc, 'Datos del cliente');
-    this.kv(doc, 'Nombre / Razón social', this.formatClientName(client));
-    if (client.rut) this.kv(doc, 'RUT', client.rut);
-    if (client.email) this.kv(doc, 'Email', client.email);
-    if (client.phone) this.kv(doc, 'Teléfono', client.phone);
-    if (client.address) this.kv(doc, 'Dirección', client.address);
+    // Datos del cliente
+    doc.moveDown(0.5);
+    this.drawSectionTitle(doc, 'Datos del cliente', pageWidth);
+    this.kv(
+      doc,
+      'Nombre / Razón social',
+      this.formatClientName(client),
+      pageWidth,
+    );
+    if (client.rut) this.kv(doc, 'RUT', client.rut, pageWidth);
+    if (client.email) this.kv(doc, 'Email', client.email, pageWidth);
+    if (client.phone) this.kv(doc, 'Teléfono', client.phone, pageWidth);
+    if (client.address) this.kv(doc, 'Dirección', client.address, pageWidth);
 
-    // Datos del responsable (abogado)
+    // Responsable (abogado)
     if (lawyer) {
-      doc.moveDown(0.6);
-      this.drawSectionTitle(doc, 'Responsable');
-      this.kv(doc, 'Abogado/a', `${lawyer.firstName} ${lawyer.lastName}`);
+      doc.moveDown(0.3);
+      this.drawSectionTitle(doc, 'Responsable', pageWidth);
+      this.kv(
+        doc,
+        'Abogado/a',
+        `${lawyer.firstName} ${lawyer.lastName}`,
+        pageWidth,
+      );
     }
 
-    // Resumen ejecutivo (sin detalles sensibles)
-    doc.moveDown(1);
-    this.drawSectionTitle(doc, 'Resumen ejecutivo');
-    const hrs = summary.time.totalHours;
+    // Resumen ejecutivo
+    doc.moveDown(0.5);
+    this.drawSectionTitle(doc, 'Resumen ejecutivo', pageWidth);
+    if (!opts.month) throw new Error('month is required');
+
+    const hrs = await this.entryRepo.getTotalHoursByMonth(
+      opts.lawyerId,
+      opts.clientId,
+      opts.month,
+      opts.year,
+    );
     const rate = summary.pricing.hourlyRate;
     const currency =
       summary.pricing.currency ?? client.currency ?? Currency.CLP;
+    const totalEstimated = rate ? hrs * rate : 0;
 
-    // Tarifa mostrada solo si tiene valor (> 0)
-    if (rate) this.kv(doc, 'Tarifa horaria', this.formatMoney(rate, currency));
-
-    this.kv(doc, 'Horas registradas', `${this.formatNumber(hrs, 1)} h`);
+    if (rate)
+      this.kv(
+        doc,
+        'Tarifa horaria',
+        this.formatMoney(rate, currency),
+        pageWidth,
+      );
+    this.kv(doc, 'Horas registradas', `${hrs} h`, pageWidth);
     this.kv(
       doc,
       'Casos del cliente (total/abiertos/cerrados)',
       `${totalCases} / ${openCases} / ${closedCases}`,
+      pageWidth,
     );
 
-    // Total a cobrar
-    doc.moveDown(0.6);
+    // Total estimado
+    doc.moveDown(0.3);
     doc
       .font(this.fontBold())
       .fontSize(14)
       .fillColor('#0f172a')
-      .text('Total estimado a facturar', { continued: true })
-      .font(this.fontBold())
-      .text(`  ${this.formatMoney(summary.totalCost, currency)}`, {
-        align: 'left',
-      });
+      .text('Total estimado a facturar', { continued: true, width: pageWidth })
+      .text(
+        `: ${this.formatMoney(totalEstimated, currency, { noSymbol: true })}`,
+        { width: pageWidth },
+      );
 
     // Notas / aclaraciones
-    doc.moveDown(1.2);
-    this.drawSectionTitle(doc, 'Notas');
+    doc.moveDown(0.5);
+    this.drawSectionTitle(doc, 'Notas', pageWidth);
     const notas = [
       'Este documento expresa una estimación basada en horas registradas y tarifa vigente.',
       'Los valores podrían ajustarse por gastos administrativos o tributos aplicables.',
       'El detalle granular de tareas se resguarda por razones de confidencialidad.',
     ];
-    doc.font(this.fontRegular()).fontSize(10).fillColor('#334155'); // slate-700
-    notas.forEach((n) =>
+    const bulletX = doc.page.margins.left + 4;
+    doc.font(this.fontRegular()).fontSize(9.5).fillColor('#334155');
+    notas.forEach((n) => {
+      doc.circle(bulletX, doc.y + 5, 1.5).fill('#334155');
       doc
-        .circle(doc.x - 6, doc.y + 6, 1.5)
-        .fill('#334155')
-        .fillColor('#334155')
-        .text(` ${n}`)
-        .fillColor('#334155'),
-    );
+        .text(n, bulletX + 8, doc.y, { align: 'left', width: pageWidth - 16 })
+        .moveDown(0.15);
+    });
     doc.fillColor('#0f172a');
 
-    // pie de página con numeración
+    // Footer
     this.decorateFooter(doc);
 
     const filename = this.buildFilename(client, year, month);
     return { filename, doc };
   }
 
-  /** -----------------------------------------
-   * Helpers de composición / estilo PDF
-   * ---------------------------------------- */
-
   private async drawHeader(doc: PDFDocument, logoUrl?: string) {
+    const marginLeft = doc.page.margins.left;
+    const marginRight = doc.page.margins.right;
     const y0 = doc.y;
+
     if (logoUrl) {
       try {
         const res = await axios.get<ArrayBuffer>(logoUrl, {
           responseType: 'arraybuffer',
         });
-        doc.image(Buffer.from(res.data), doc.x, y0, { width: 120 });
-      } catch {
-        // si falla cargar logo, seguimos sin logo
-      }
+        doc.image(Buffer.from(res.data), marginLeft, y0, { width: 120 });
+      } catch {}
     }
-    // a la derecha, fecha de emisión
-    const right = 540; // A4 width - margin aprox (595 - 56 ~ 539)
+
+    const fechaWidth = 160;
+    const rightX = doc.page.width - marginRight - fechaWidth;
     doc
       .font(this.fontRegular())
       .fontSize(10)
-      .fillColor('#64748b') // slate-500
-      .text(`Emitido: ${this.formatDateES(new Date())}`, right - 160, y0, {
-        width: 160,
+      .fillColor('#64748b')
+      .text(`Emitido: ${this.formatDateES(new Date())}`, rightX, y0, {
+        width: fechaWidth,
         align: 'right',
-      })
-      .moveDown(1.2)
-      .fillColor('#0f172a');
+      });
 
-    // línea divisoria
+    const afterY = Math.max(doc.y, y0 + 20);
     doc
-      .moveDown(0.5)
-      .strokeColor('#e2e8f0') // slate-200
+      .moveTo(marginLeft, afterY)
+      .lineTo(doc.page.width - marginRight, afterY)
+      .strokeColor('#e2e8f0')
       .lineWidth(1)
-      .moveTo(56, doc.y)
-      .lineTo(595 - 56, doc.y)
-      .stroke()
-      .moveDown(0.5);
+      .stroke();
+    doc.y = afterY + 6;
+    doc.x = marginLeft;
+    doc.fillColor('#0f172a');
   }
 
-  private drawSectionTitle(doc: PDFDocument, title: string) {
+  private drawSectionTitle(doc: PDFDocument, title: string, width?: number) {
     doc
       .font(this.fontBold())
       .fontSize(12)
       .fillColor('#0f172a')
-      .text(title)
-      .moveDown(0.2);
+      .text(title, {
+        width:
+          width ??
+          doc.page.width - doc.page.margins.left - doc.page.margins.right,
+      })
+      .moveDown(0.15);
   }
 
-  private kv(doc: PDFDocument, k: string, v: string) {
-    const startX = doc.x;
-    const width = 595 - 56 * 2;
+  private kv(doc: PDFDocument, k: string, v: string, width?: number) {
+    const margin = doc.page.margins.left;
+    const contentWidth =
+      width ?? doc.page.width - doc.page.margins.left - doc.page.margins.right;
     doc
       .font(this.fontRegular())
       .fontSize(10.5)
-      .fillColor('#64748b') // key
-      .text(`${k}`, startX, doc.y, { continued: true })
-      .fillColor('#0f172a') // value
-      .text(`: ${v}`, startX, doc.y);
-    doc.moveDown(0.2);
+      .fillColor('#64748b')
+      .text(k, margin, doc.y, { continued: true, width: contentWidth })
+      .fillColor('#0f172a')
+      .text(`: ${v}`, { width: contentWidth })
+      .moveDown(0.15);
   }
 
   private decorateFooter(doc: PDFDocument) {
-    const range = doc.bufferedPageRange(); // { start: 0, count: N }
-    for (let i = range.start; i < range.start + range.count; i++) {
-      doc.switchToPage(i);
-      const footerY = 842 - 40; // A4 height - ~1.4cm
-      // línea superior
-      doc
-        .strokeColor('#e2e8f0')
-        .lineWidth(1)
-        .moveTo(56, footerY - 12)
-        .lineTo(595 - 56, footerY - 12)
-        .stroke();
-
-      // numeración
-      doc
-        .font(this.fontRegular())
-        .fontSize(9)
-        .fillColor('#64748b')
-        .text(`Página ${i + 1} de ${range.count}`, 56, footerY, {
-          width: 595 - 56 * 2,
-          align: 'right',
-        });
-    }
+    const footerY = doc.page.height - 40;
+    doc
+      .strokeColor('#e2e8f0')
+      .lineWidth(1)
+      .moveTo(56, footerY - 12)
+      .lineTo(doc.page.width - 56, footerY - 12)
+      .stroke();
+    doc
+      .font(this.fontRegular())
+      .fontSize(9)
+      .fillColor('#64748b')
+      .text(`Página 1`, 56, footerY, {
+        width: doc.page.width - 112,
+        align: 'right',
+      });
   }
 
-  /** -----------------------------------------
-   * Helpers de datos / formato
-   * ---------------------------------------- */
-
   private async getVeryLightCasesStats(clientId: string) {
-    // Conteo general de casos del cliente (sin detalles sensibles).
     const rows = await this.itemRepo.find({
       where: { client: { id: clientId } },
       select: ['status'],
@@ -324,35 +328,30 @@ export class ReportsService {
   }
 
   private formatClientName(c: Client) {
-    if (c.type === 'Fisica') {
+    if (c.type === 'Fisica')
       return (
         [c.firstName, c.lastName].filter(Boolean).join(' ').trim() || 'Cliente'
       );
-    }
     return c.companyName || 'Cliente';
   }
 
-  private formatNumber(n: number, dec = 0) {
-    return n.toLocaleString('es-CL', {
-      minimumFractionDigits: dec,
-      maximumFractionDigits: dec,
-    });
-  }
-
-  private formatMoney(amount: number, currency: Currency | null) {
+  private formatMoney(
+    amount: number,
+    currency: Currency | null,
+    opts?: { noSymbol?: boolean },
+  ) {
     const cur = currency ?? Currency.CLP;
-    if (cur === Currency.CLP) {
-      // $1.234.567 (sin decimales)
-      const entero = Math.round(amount);
-      return `$${entero.toLocaleString('es-CL')}`;
-    }
-    if (cur === Currency.UF) {
-      // UF 1.234,56
-      return `UF ${amount.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }
-    // USD 1,600 (sin decimales)
-    const entero = Math.round(amount);
-    return `USD ${entero.toLocaleString('en-US')}`;
+    if (cur === Currency.CLP)
+      return opts?.noSymbol
+        ? `${Math.round(amount)}`
+        : `$${Math.round(amount).toLocaleString('es-CL')}`;
+    if (cur === Currency.UF)
+      return opts?.noSymbol
+        ? `${amount.toFixed(1)}`
+        : `UF ${amount.toFixed(1)}`;
+    return opts?.noSymbol
+      ? `${Math.round(amount)}`
+      : `USD ${Math.round(amount).toLocaleString('en-US')}`;
   }
 
   private slug(s: string) {
@@ -364,9 +363,7 @@ export class ReportsService {
   }
 
   private fontRegular() {
-    // usa la built-in o cambia por font file si quieres
     return 'Helvetica';
-    // ejemplo con archivo: doc.font(path.join(__dirname,'fonts','Inter-Regular.ttf'))
   }
   private fontBold() {
     return 'Helvetica-Bold';

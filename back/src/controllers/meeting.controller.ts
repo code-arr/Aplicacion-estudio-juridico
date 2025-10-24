@@ -15,6 +15,7 @@ import { GoogleCalendarService } from '../lib/google/calendar';
 import { MeetingDto } from 'src/dtos/meeting.dto';
 import { MeetingService } from 'src/services/meeting.service';
 import { Meeting } from 'src/entities/meeting.entity';
+import { UpdateMeetingDto } from 'src/dtos/updateMeeting.dto';
 // Asegúrate de que la ruta sea correcta
 
 @Controller('meeting')
@@ -86,5 +87,10 @@ export class MeetingsController {
     @Query('lawyerId') lawyerId: string,
   ) {
     return this.meetingService.getByClientId(clientId, lawyerId);
+  }
+
+  @Put('/:id')
+  async update(@Param('id') id: string, @Body() updateData: UpdateMeetingDto) {
+    return this.meetingService.updateMeetingNameOrStatus(id, updateData);
   }
 }

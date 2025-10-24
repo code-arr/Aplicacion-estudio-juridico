@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ClientItemDto } from '../dtos/clientItem.dto';
 import { ClientItem } from '../entities/clientItem.entity';
 import { ClientItemRepository } from '../repositories/clientItem.repository';
+import { UpdateClientItemDto } from 'src/dtos/updateClientItem.dto';
 
 @Injectable()
 export class ClientItemService {
@@ -58,5 +59,14 @@ export class ClientItemService {
   }
   async getByClientId(clientId: string): Promise<ClientItem[]> {
     return this.clientItemRepository.getByClientId(clientId);
+  }
+  async updateClientItem(
+    clientItemId: string,
+    updateData: UpdateClientItemDto,
+  ): Promise<ClientItem> {
+    return this.clientItemRepository.updateClientItemSimple(
+      clientItemId,
+      updateData
+    );
   }
 }

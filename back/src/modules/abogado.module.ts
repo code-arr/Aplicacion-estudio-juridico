@@ -11,11 +11,12 @@ import { AbogadoService } from "../services/abogado.service";
 import { ClienteService } from "../services/cliente.service";
 import { UserService } from "../services/user.service";
 import { EventModule } from "./event.module";
+import { ParentTouchService } from "src/services/parent-touch.service";
 
 @Module({
   imports: [TypeOrmModule.forFeature([Lawyer , User , Client]) , forwardRef(() => EventModule)],
   controllers: [AbogadoController],
-  providers: [AbogadoService, AbogadoRepository , UserService , UserRepository , ClienteService , ClienteRepository  ],
+  providers: [AbogadoService, AbogadoRepository , UserService , UserRepository , ClienteService , ClienteRepository , ParentTouchService   ],
   exports: [AbogadoService, AbogadoRepository], 
 })
 export class AbogadoModule {}

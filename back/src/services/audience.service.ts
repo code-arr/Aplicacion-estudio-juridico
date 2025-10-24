@@ -45,4 +45,17 @@ export class AudienceService {
   async getByClientItemId(clientItemId: string): Promise<Audience[]> {
     return this.audiencieRepository.getByClientItemId(clientItemId);
   }
+
+  async updateAudienceName(
+    audienceId: string,
+    newName: string,
+    lawyerId: string,
+  ): Promise<Audience> {
+    return this.audiencieRepository.updateAudienceName(
+      audienceId,
+      newName,
+      lawyerId,
+    );
+  }
+
 }

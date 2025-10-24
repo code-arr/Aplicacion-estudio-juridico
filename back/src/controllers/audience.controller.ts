@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   Param,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseInterceptors,
@@ -65,9 +67,25 @@ export class AudienceController {
   ): Promise<Audience[]> {
     return this.audienceService.getByClientItemId(clientItemId);
   }
+  @Put(':audienceId')
+  async updateAudienceName(
+    @Param('audienceId') audienceId: string,
+    @Body('newName') newName: string,
+    @Query('lawyerId') lawyerId: string,
+  ) {
+    if (!newName || !newName.trim()) {
+      throw new BadRequestException('New name is required');
+    }
 
-  //   @Get('getById/:id')
-  //   async getAudienceById(@Param('id') id: string): Promise<Audience> {
-  //     return this.audienceService.getAudienceById(id);
-  //   }
+    return await this.audienceService.updateAudienceName(
+      audienceId,
+      newName.trim(),
+      lawyerId,
+    );
+  }
 }
+
+//   @Get('getById/:id')
+//   async getAudienceById(@Param('id') id: string): Promise<Audience> {
+//     return this.audienceService.getAudienceById(id);
+//   }

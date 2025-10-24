@@ -9,6 +9,7 @@ import { Meeting } from '../entities/meeting.entity';
 import { DataSource, Repository } from 'typeorm';
 import { ClientItemService } from 'src/services/clientItem.service';
 import { ParentTouchService } from 'src/services/parent-touch.service';
+import { UpdateMeetingDto } from 'src/dtos/updateMeeting.dto';
 @Injectable()
 export class MeetingRepository {
   constructor(
@@ -133,6 +134,44 @@ export class MeetingRepository {
       where: {
         clientItem: { client: { id: clientId }, lawyer: { id: lawyerId } },
       },
+    });
+  }
+
+  async updateMeetingNameOrStatus(
+    id: string,
+    updateData: UpdateMeetingDto
+  ): Promise<Meeting> {
+    return this.dataSource.transaction(async (manager) => {
+      try {
+        const repo = manager.getRepository(Meeting);
+
+        // Buscar reunión
+        const meeting = await repo.findOne({
+          where: { id },
+          relations: ['clientItem'],
+        });
+        if (!meeting) throw new NotFoundException('Meeting not found');
+
+        // Actualizar campos permitidos
+        if (updateData.name !== undefined) meeting.name = updateData.name;
+        if (updateData.status !== undefined) meeting.status = updateData.status;
+
+        // Guardar cambios
+        const updated = await repo.save(meeting);
+
+        // Tocar parent: clientItem y client
+        const clientItemId = meeting.clientItem?.id;
+        const clientId = meeting.clientId;
+
+        if (clientItemId)
+          await this.parentTouch.touchClientItem(manager, clientItemId);
+        if (clientId) await this.parentTouch.touchClient(manager, clientId);
+
+        return updated;
+      } catch (error) {
+        console.error('Error updating meeting:', error);
+        throw new InternalServerErrorException('Error updating meeting');
+      }
     });
   }
 }

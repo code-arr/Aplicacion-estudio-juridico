@@ -172,4 +172,14 @@ export class MeetingService {
   async getByClientId(clientId: string, lawyerId: string): Promise<Meeting[]> {
     return this.meetingRepository.getByClientId(clientId, lawyerId);
   }
+
+  async updateMeetingNameOrStatus(
+    id: string,
+    updateData: {
+      name?: string;
+      status?: 'scheduled' | 'completed' | 'canceled';
+    },
+  ): Promise<Meeting> {
+    return this.meetingRepository.updateMeetingNameOrStatus(id, updateData);
+  }
 }

@@ -10,6 +10,7 @@ import { AbogadoModule } from './abogado.module';
 import { SectionModule } from './sectionModule';
 import { CategoryModule } from './category.module';
 import { EventModule } from './event.module';
+import { ParentTouchService } from 'src/services/parent-touch.service';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { EventModule } from './event.module';
     EventModule,
   ],
   controllers: [ClientItemController],
-  providers: [ClientItemService, ClientItemRepository],
+  providers: [ClientItemService, ClientItemRepository , ParentTouchService],
   exports: [ClientItemService, ClientItemRepository],
 })
 export class clientItemModule {}

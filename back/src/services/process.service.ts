@@ -54,4 +54,7 @@ export class ProcessService {
   getProcessesByClientItemId(clientItemId: string) {
     return this.processRepository.getProcessesByClientItemId(clientItemId);
   }
+  getAllProcesses() {
+    return this.processRepository.getAllProcesses();
+  }
 }

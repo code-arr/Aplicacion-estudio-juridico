@@ -167,4 +167,52 @@ export class DocumentRepository {
   }
 
   async seedDocuments() {}
+
+  async updateDocument(
+  documentId: string,
+  newName: string,
+  lawyerId: string,
+): Promise<Document> {
+  return this.dataSource.transaction(async (manager) => {
+    try {
+      const documentRepo = manager.getRepository(Document);
+
+      // 1) Buscar documento
+      const existing = await documentRepo.findOne({
+        where: { id: documentId },
+        relations: ['clientItem'],
+      });
+      if (!existing) throw new NotFoundException('Document not found');
+
+      // 2) Actualizar solo el nombre
+      existing.name = newName;
+
+      // 3) Guardar cambios
+      const saved = await documentRepo.save(existing);
+
+      // 4) Registrar evento
+      const eventData: EventDto = {
+        action: 'update',
+        entityName: saved.name,
+        entityId: saved.id,
+        entityType: saved.type,
+        lawyerId,
+      };
+      await this.eventService.createEvent(eventData);
+
+      // 5) TOCAR padres
+      if (existing.clientItem?.id) {
+        await this.parentTouch.touchClientItem(manager, existing.clientItem.id);
+      }
+      if (existing.clientId) {
+        await this.parentTouch.touchClient(manager, existing.clientId);
+      }
+
+      return saved;
+    } catch (error) {
+      console.error('Error updating document name:', error);
+      throw new InternalServerErrorException('Error updating document name');
+    }
+  });
+}
 }

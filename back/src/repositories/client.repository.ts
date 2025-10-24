@@ -3,14 +3,17 @@ import {
   NotFoundException,
   Inject,
   forwardRef,
+  InternalServerErrorException,
 } from '@nestjs/common'; // Asegúrate de importar Inject y forwardRef
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateClienteDto } from '../dtos/cliente';
 import { Client } from '../entities/client.entity';
 import { AbogadoService } from '../services/abogado.service'; // Este es el servicio que causa la circularidad
 import { clientesSeedData } from '../utils/clientes';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { log } from 'node:console';
+import { ParentTouchService } from 'src/services/parent-touch.service';
+import { UpdateClienteDto } from 'src/dtos/updateClient.dto';
 
 @Injectable()
 export class ClienteRepository {
@@ -19,6 +22,8 @@ export class ClienteRepository {
 
     @Inject(forwardRef(() => AbogadoService))
     private readonly abogadoService: AbogadoService,
+    private readonly dataSource: DataSource, // 👈 inyectar
+    private readonly parentTouch: ParentTouchService, // 👈 inyectar
   ) {}
 
   async createCliente(
@@ -77,7 +82,12 @@ export class ClienteRepository {
 
   async getAllClientes(): Promise<Client[]> {
     return this.clienteRepository.find({
-      relations: ['lawyers', 'clientItems', 'clientItems.audiences', 'clientItems.documents'],
+      relations: [
+        'lawyers',
+        'clientItems',
+        'clientItems.audiences',
+        'clientItems.documents',
+      ],
     });
   }
 
@@ -88,7 +98,11 @@ export class ClienteRepository {
   async getClienteById(id: string): Promise<Client | null> {
     return await this.clienteRepository.findOne({
       where: { id },
-      relations: ['clientItems', "clientItems.audiences", "clientItems.documents"],
+      relations: [
+        'clientItems',
+        'clientItems.audiences',
+        'clientItems.documents',
+      ],
     });
   }
 
@@ -103,20 +117,58 @@ export class ClienteRepository {
     });
   }
 
-  async createClient(createClientDto: CreateClienteDto, lawyerId: string): Promise<any> {
-    
-    log("Lawyer ID recibido en createClient:", lawyerId); // Depuración
-    
+  async createClient(
+    createClientDto: CreateClienteDto,
+    lawyerId: string,
+  ): Promise<any> {
+    log('Lawyer ID recibido en createClient:', lawyerId); // Depuración
+
     const lawyer = await this.abogadoService.getAbogadoById(lawyerId);
-    console.log('Lawyer found:', lawyer , "lawyer ID : ", lawyerId); // Depuración
-    
+    console.log('Lawyer found:', lawyer, 'lawyer ID : ', lawyerId); // Depuración
+
     if (!lawyer) {
       throw new NotFoundException('Abogado no encontrado');
     }
-    console.log("Paso el if");
-    
+    console.log('Paso el if');
+
     const client = this.clienteRepository.create(createClientDto);
     client.lawyers = [lawyer];
     return await this.clienteRepository.save(client);
+  }
+
+  async updateClient(
+    clientId: string,
+    updateData: UpdateClienteDto,
+  ): Promise<Client> {
+    return this.dataSource.transaction(async (manager) => {
+      try {
+        const clientRepo = manager.getRepository(Client);
+
+        // Buscar cliente
+        const client = await clientRepo.findOne({
+          where: { id: clientId },
+          relations: ['clientItems'],
+        });
+        if (!client) throw new NotFoundException('Client not found');
+
+        // Actualizar solo los campos recibidos
+        Object.assign(client, updateData);
+
+        // Guardar cambios
+        const saved = await clientRepo.save(client);
+
+        // TOCAR padres si hay clientItems
+        if (client.clientItems?.length) {
+          for (const item of client.clientItems) {
+            await this.parentTouch.touchClientItem(manager, item.id);
+          }
+        }
+
+        return saved;
+      } catch (error) {
+        console.error('Error updating client:', error);
+        throw new InternalServerErrorException('Error updating client');
+      }
+    });
   }
 }

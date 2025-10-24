@@ -43,4 +43,8 @@ export class ProcessController {
   getProcessesByClientItemId(@Param('clientItemId') clientItemId: string) {
     return this.processService.getProcessesByClientItemId(clientItemId);
   }
+  @Get('getAll')
+  getAllProcesses() {
+    return this.processService.getAllProcesses();
+  }
 }

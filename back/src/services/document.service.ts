@@ -44,4 +44,15 @@ export class DocumentService {
   async getDocumentsByClientItemId(clientItemId: string): Promise<Document[]> {
     return this.documentRepository.getDocumentsByClientItemId(clientItemId);
   }
+  async updateDocument(
+    documentId: string,
+    newName: string,
+    lawyerId: string,
+  ): Promise<Document> {
+    return this.documentRepository.updateDocument(
+      documentId,
+      newName,
+      lawyerId,
+    );
+  }
 }
