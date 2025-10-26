@@ -22,6 +22,13 @@ export const createDocument = async (
     .data;
 };
 
+export const updateDocument = async (
+  documentId: string,
+  newName: string
+): Promise<void> => {
+  return (await axios.put(`document/${documentId}`, { newName })).data;
+};
+
 export const deleteDocument = async (
   documentId: string,
   fileUrl: string

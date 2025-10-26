@@ -63,7 +63,6 @@ export const getPracticeAreas = async (
 };
 
 export const getCostSummary = async (params: {
-  lawyerId: string;
   clientId: string;
   clientItemId?: string;
   year?: number;

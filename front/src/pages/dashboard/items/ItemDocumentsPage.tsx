@@ -16,6 +16,9 @@ import { FilePlus2, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import DocumentCard from "@/components/documents/DocumentCard";
 import RowSkeleton from "@/components/shared/RowSkeleton";
+import { useToast } from "@/hooks/useToast";
+import { updateDocument } from "@/api/document";
+import RenameDocumentModal from "@/components/documents/RenameDocumentModal";
 
 function EmptyItemDocuments() {
   return (
@@ -39,6 +42,12 @@ const ItemDocumentsPage = () => {
   const [clientOrder, setClientOrder] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const { toast } = useToast?.() ?? { toast: () => {} };
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +81,41 @@ const ItemDocumentsPage = () => {
       setDocumentsByClientItem([]);
     };
   }, [clientItemId, fetchDocumentsByClientItemId, setDocumentsByClientItem]);
+
+  const handleEdit = (doc: Document) => {
+    setSelectedDoc(doc);
+    setEditOpen(true);
+  };
+
+  const handleConfirmRename = async (newName: string) => {
+    if (!selectedDoc) return;
+    const id = selectedDoc.id;
+
+    // 1) optimistic update
+    const prev = documentsByClientItem;
+    const next = documentsByClientItem.map((d) =>
+      d.id === id ? { ...d, name: newName } : d
+    );
+    setDocumentsByClientItem(next);
+
+    try {
+      setSaving(true);
+      await updateDocument(id, newName);
+      toast?.({ title: "Nombre actualizado" });
+      setEditOpen(false);
+      setSelectedDoc(null);
+    } catch (err: any) {
+      // 2) rollback
+      setDocumentsByClientItem(prev);
+      toast?.({
+        title: "No se pudo actualizar",
+        description: err?.response?.data?.message ?? "Probá otra vez",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDelete = async (doc: Document) => {
     const ok = window.confirm(
@@ -202,12 +246,20 @@ const ItemDocumentsPage = () => {
                     doc={doc}
                     openInViewer={openInViewer}
                     onDelete={handleDelete}
+                    onEdit={handleEdit}
                     deleting={deletingId === doc.id}
                   />
                 ))
               ) : (
                 <EmptyItemDocuments />
               )}
+              <RenameDocumentModal
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                initialName={selectedDoc?.name ?? ""}
+                onConfirm={handleConfirmRename}
+                loading={saving}
+              />
             </>
           )}
         </ul>

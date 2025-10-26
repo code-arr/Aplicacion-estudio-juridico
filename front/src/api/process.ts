@@ -24,6 +24,13 @@ export const createProcess = async (
   ).data;
 };
 
+export const updateProcess = async (
+  processId: string,
+  data: Partial<Process>
+) => {
+  return (await axios.put(`process/update/${processId}`, { data })).data;
+};
+
 export const deleteProcess = async (processId: string): Promise<void> => {
   return (await axios.delete(`process/delete/${processId}`)).data;
 };

@@ -15,21 +15,32 @@ const ClientLayout = () => {
 
   useFocusContext(clientId ? { type: "Client", id: clientId } : null);
 
-  const setClientDetail = useClientStore((s) => s.setClientDetail);
+  // ⚙️ Store: leemos el detalle y sus flags
   const clientDetail = useClientStore(selectClientDetail);
+  const hydrateByDetail = useClientStore((s) => s.hydrateByDetail);
+  const invalidateById = useClientStore((s) => s.invalidateById);
+  const isLoadingDetail = useClientStore((s) => s.isLoadingDetail);
+  const errorDetail = useClientStore((s) => s.errorDetail);
 
   const { monthSeconds } = useClientTime(clientDetail?.id ?? null);
   const monthTimer = formatHHMMFromSeconds(monthSeconds);
 
   const [loading, setLoading] = useState(true);
 
+  // 🚀 Al montar/cambiar clientId: asegurar el detalle (TTL + dedupe)
   useEffect(() => {
     setLoading(true);
     if (!clientId) return;
-    setClientDetail(clientId);
+    // No hace falta setear loading local: el store maneja isLoadingDetail
+    void hydrateByDetail(clientId);
     setLoading(false);
-    return () => setClientDetail("");
-  }, [clientId, setClientDetail]);
+
+    // 🧹 Al desmontar o cambiar de clientId, invalidamos el TTL del detail
+    // (no deja basura y permite re-hidratar la próxima vez si hiciera falta)
+    return () => {
+      invalidateById(clientId);
+    };
+  }, [clientId, hydrateByDetail, invalidateById]);
 
   if (loading) return <LoadingSpinner />;
 

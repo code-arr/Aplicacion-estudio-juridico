@@ -19,6 +19,13 @@ export const createAudience = async (
     .data;
 };
 
+export const updateAudience = async (
+  audienceId: string,
+  newName: string
+): Promise<void> => {
+  return (await axios.put(`audience/${audienceId}`, { newName })).data;
+};
+
 export const deleteAudience = async (
   audienceId: string,
   fileUrl: string

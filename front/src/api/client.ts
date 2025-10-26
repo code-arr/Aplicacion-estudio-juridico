@@ -1,7 +1,7 @@
 import type { Client } from "@/types/Client";
 import axios from "./axios";
 
-export const getClients = async (): Promise<Client[]> => {
+export const getAllClients = async (): Promise<Client[]> => {
   return (await axios.get("/client/getAll")).data;
 };
 
@@ -19,7 +19,7 @@ export const updateClient = async (
   id: string,
   client: Partial<Client>
 ): Promise<Client> => {
-  return (await axios.put(`/client/update/${id}`, client)).data;
+  return (await axios.put(`/client/${id}`, client)).data;
 };
 
 export const deleteClient = async (id: string): Promise<void> => {

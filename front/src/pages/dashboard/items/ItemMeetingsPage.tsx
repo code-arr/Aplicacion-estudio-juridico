@@ -14,6 +14,9 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import MeetingDetailPanel from "@/components/meetings/MeetingDetailPanel";
 import RowSkeleton from "@/components/shared/RowSkeleton";
+import { updateMeeting } from "@/api/meeting";
+import EditMeetingModal from "@/components/meetings/EditMeetingModal";
+import { useToast } from "@/hooks/useToast";
 
 const ItemMeetingsPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
@@ -21,6 +24,12 @@ const ItemMeetingsPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const { toast } = useToast?.() ?? { toast: () => {} };
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [selected, setSelected] = useState<Meeting | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,13 +98,55 @@ const ItemMeetingsPage = () => {
     });
   }, [openMeeting]);
 
+  const handleOpenEdit = (m: Meeting) => {
+    setSelected(m);
+    setEditOpen(true);
+  };
+
+  const handleConfirmEdit = async (patch: Partial<Meeting>) => {
+    if (!selected) return;
+    const id = selected.id;
+
+    const prev = meetingsByClientItem;
+    const next = meetingsByClientItem.map((x) =>
+      x.id === id ? { ...x, ...patch } : x
+    );
+    setMeetingsByClientItem(next);
+
+    try {
+      setSavingEdit(true);
+      const isGoogle = selected.type === "google-meet";
+      const updated = await updateMeeting(
+        id!,
+        patch,
+        isGoogle ? user?.email : undefined
+      );
+
+      const merged = next.map((x) => (x.id === id ? { ...x, ...updated } : x));
+      setMeetingsByClientItem(merged);
+
+      toast?.({ title: "Reunión actualizada" });
+      setEditOpen(false);
+      setSelected(null);
+    } catch (err: any) {
+      setMeetingsByClientItem(prev);
+      toast?.({
+        title: "No se pudo actualizar",
+        description: err?.response?.data?.message ?? "Probá de nuevo",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const handleCancel = async (m: Meeting) => {
     if (m.status === "canceled") return;
     const ok = window.confirm(`¿Cancelar “${m.name}”?`);
     if (!ok) return;
 
     try {
-      setCancellingId(m.id);
+      setCancellingId(m.id!);
       await cancelMeetingById(m, user?.email);
       if (openId === m.id) setOpenId(null); // cierro panel si era esa
     } catch {
@@ -290,11 +341,16 @@ const ItemMeetingsPage = () => {
         onClose={() => setOpenId(null)}
         lawyerFullName={lawyerFullName}
         lawyerEmail={lawyerEmail}
-        onEdit={(m) => {
-          /* ... */
-        }}
+        onEdit={handleOpenEdit}
         onCancel={(m) => handleCancel(m)}
         canceling={cancellingId === openId}
+      />
+      <EditMeetingModal
+        open={editOpen && !!(selected ?? openMeeting)}
+        onOpenChange={setEditOpen}
+        meeting={selected ?? openMeeting ?? null}
+        onConfirm={handleConfirmEdit}
+        loading={savingEdit}
       />
     </div>
   );

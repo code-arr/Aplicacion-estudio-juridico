@@ -13,6 +13,7 @@ import { formatDateChileNumeric } from "@/lib/formatDate";
 interface DocumentCardProps {
   doc: Document;
   openInViewer: (docs: Document[], activeId?: string) => void;
+  onEdit?: (doc: Document) => void;
   onDelete?: (doc: Document) => void;
   deleting?: boolean;
 }
@@ -20,6 +21,7 @@ interface DocumentCardProps {
 const DocumentCard = ({
   doc,
   openInViewer,
+  onEdit,
   onDelete,
   deleting,
 }: DocumentCardProps) => {
@@ -104,13 +106,7 @@ const DocumentCard = ({
                 Ver detalles
               </DropdownMenuItem>
 
-              <DropdownMenuItem
-                onSelect={() => {
-                  // Abrí tu modal de edición o navegá a la ruta de edición
-                  // openEditModal(item.id) / navigate(...)
-                }}
-                shortcut="⌘ E"
-              >
+              <DropdownMenuItem onSelect={() => onEdit?.(doc)} shortcut="⌘ E">
                 Editar
               </DropdownMenuItem>
 

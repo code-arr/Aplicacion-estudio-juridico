@@ -59,7 +59,7 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
 
   const lawyerId = useLawyerStore((s) => s.lawyer?.id);
 
-  const clients = useClientStore((state) => state.clients);
+  const clients = useClientStore((state) => state.clientsAll);
   const actualLawyerClients = useClientStore((state) => state.clientsByLawyer);
   const hydrateByLawyer = useClientStore((state) => state.hydrateByLawyer);
 

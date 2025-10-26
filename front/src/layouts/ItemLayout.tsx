@@ -7,6 +7,7 @@ import {
   useClientItemStore,
 } from "@/store/useClientItemStore";
 import { useClientStore } from "@/store/useClientStore";
+
 import ItemHeader from "@/components/items/ItemHeader";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorScreen from "@/components/shared/ErrorScreen";
@@ -16,33 +17,43 @@ const ItemLayout = () => {
   const { clientItemId } = useParams();
   const location = useLocation();
 
+  // ====== STORE: ITEMS ======
   const setItemDetail = useClientItemStore((s) => s.setClientItemDetail);
   const itemDetail = useClientItemStore(selectClientItemDetail);
-  const setClientDetail = useClientStore((s) => s.setClientDetail);
+  const isHydratedItems = useClientItemStore((s) => s.isHydrated);
+
+  // ====== STORE: CLIENT ======
+  const hydrateClientDetail = useClientStore((s) => s.hydrateByDetail);
   const clientDetail = useClientStore((s) => s.clientDetail);
-  const isHydrated = useClientItemStore((s) => s.isHydrated);
+  // Si tenés flags de detalle de cliente, podrías leerlos así:
+  // const isLoadingClientDetail = useClientStore((s) => s.isLoadingDetail);
+  // const errorClientDetail = useClientStore((s) => s.errorDetail);
+
   const [loading, setLoading] = useState(true);
 
   useFocusContext(
     clientDetail ? { type: "Client", id: clientDetail.id ?? "" } : null
   );
 
+  // 1) Cuando la lista de items ya está hidratada y cambia el itemId => seteo el item detail
   useEffect(() => {
     setLoading(true);
-    if (!isHydrated) return;
+    if (!isHydratedItems) return;
     if (!clientItemId) return;
     setItemDetail(clientItemId);
     setLoading(false);
-  }, [clientItemId, setItemDetail, isHydrated]);
+  }, [clientItemId, setItemDetail, isHydratedItems]);
 
+  // 2) Cuando ya conozco el clientId del item => hidrato el detalle del cliente
   useEffect(() => {
-    if (!isHydrated) return;
-    if (itemDetail?.clientId) {
-      setClientDetail(itemDetail.clientId);
-    }
-  }, [isHydrated, itemDetail?.clientId, setClientDetail]);
+    if (!isHydratedItems) return;
+    if (!itemDetail?.clientId) return;
+    // Esto usa cache si ya tenés el cliente; si no, cuando agregues getClientById,
+    // va a traerlo del back automáticamente sin tocar este componente.
+    void hydrateClientDetail(itemDetail.clientId);
+  }, [isHydratedItems, itemDetail?.clientId, hydrateClientDetail]);
 
-  if (loading || !isHydrated) return <LoadingSpinner />;
+  if (loading || !isHydratedItems) return <LoadingSpinner />;
 
   if (!itemDetail)
     return <ErrorScreen message="Ocurrió un error al encontrar el item" />;

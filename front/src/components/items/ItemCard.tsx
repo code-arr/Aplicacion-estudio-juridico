@@ -1,7 +1,10 @@
 import { useState, memo } from "react";
 import type { ClientItem } from "@/types/ClientItem";
 import { CLIENTITEM_STATUS_MAP } from "@/types/ClientItem";
-import { selectClientName, useClientStore } from "@/store/useClientStore";
+import {
+  selectClientFromCacheById,
+  useClientStore,
+} from "@/store/useClientStore";
 import {
   selectCategory,
   selectItemType,
@@ -35,7 +38,13 @@ interface ItemCardProps {
 
 const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-  const clientName = useClientStore(selectClientName(item.clientId));
+  const clientById = useClientStore((s) =>
+    selectClientFromCacheById(s, item.clientId)
+  );
+  const clientName =
+    clientById?.type === "Fisica"
+      ? `${clientById.firstName}  ${clientById.lastName}`
+      : clientById?.companyName;
 
   const itemType = useCatalogStore(selectItemType(item.itemTypeId ?? ""));
   const section = useCatalogStore(

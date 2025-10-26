@@ -8,6 +8,9 @@ import { FilePlus2, Search } from "lucide-react";
 import { useParams } from "react-router-dom";
 import AudienceCard from "@/components/audiences/AudienceCard";
 import RowSkeleton from "@/components/shared/RowSkeleton";
+import RenameAudienceModal from "@/components/audiences/RenameAudienceModal";
+import { updateAudience } from "@/api/audience";
+import { useToast } from "@/hooks/useToast";
 
 function EmptyItemAudiences() {
   return (
@@ -28,6 +31,12 @@ const ItemAudiencesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const { toast } = useToast?.() ?? { toast: () => {} };
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [selected, setSelected] = useState<Audience | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +70,41 @@ const ItemAudiencesPage = () => {
       setAudiencesByClientItem([]);
     };
   }, [clientItemId, fetchAudiencesByClientItemId, setAudiencesByClientItem]);
+
+  const handleEdit = (aud: Audience) => {
+    setSelected(aud);
+    setEditOpen(true);
+  };
+
+  const handleConfirmRename = async (newName: string) => {
+    if (!selected) return;
+    const id = selected.id;
+
+    // 1) optimistic
+    const prev = audiencesByClientItem;
+    const next = audiencesByClientItem.map((a) =>
+      a.id === id ? { ...a, name: newName } : a
+    );
+    setAudiencesByClientItem(next);
+
+    try {
+      setSaving(true);
+      await updateAudience(id, newName);
+      toast?.({ title: "Nombre actualizado" });
+      setEditOpen(false);
+      setSelected(null);
+    } catch (err: any) {
+      // 2) rollback
+      setAudiencesByClientItem(prev);
+      toast?.({
+        title: "No se pudo actualizar",
+        description: err?.response?.data?.message ?? "Probá de nuevo",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDelete = async (aud: Audience) => {
     const ok = window.confirm(
@@ -156,12 +200,20 @@ const ItemAudiencesPage = () => {
                     aud={aud}
                     openInViewer={openInViewer}
                     onDelete={handleDelete}
+                    onEdit={handleEdit}
                     deleting={deletingId === aud.id}
                   />
                 ))
               ) : (
                 <EmptyItemAudiences />
               )}
+              <RenameAudienceModal
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                initialName={selected?.name ?? ""}
+                onConfirm={handleConfirmRename}
+                loading={saving}
+              />
             </>
           )}
         </ul>

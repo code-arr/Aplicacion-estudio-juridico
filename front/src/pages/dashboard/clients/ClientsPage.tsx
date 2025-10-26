@@ -3,13 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import type { Client } from "@/types/Client";
 
-import {
-  useClientStore,
-  selectIsClientsHydrated,
-  selectIsLoadingClients,
-  selectClientsByLawyer,
-  selectClientsError,
-} from "@/store/useClientStore";
+import { useClientStore, selectClientsByLawyer } from "@/store/useClientStore";
 import { useClientItemStore } from "@/store/useClientItemStore";
 
 import ClientCard from "@/components/clients/ClientCard";
@@ -50,10 +44,16 @@ const ClientsPage = () => {
   const [clientOrder, setClientOrder] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // ====== CLIENTS (store nueva) ======
   const clients = useClientStore(selectClientsByLawyer);
-  const isClientsHydrated = useClientStore(selectIsClientsHydrated);
-  const isClientsLoading = useClientStore(selectIsLoadingClients);
-  const clientsError = useClientStore(selectClientsError);
+  const isClientsHydratedByLawyer = useClientStore((s) => s.isHydratedByLawyer); // ✅ nuevo
+  const isClientsLoadingByLawyer = useClientStore((s) => s.isLoadingByLawyer); // ✅ nuevo
+  const clientsError = useClientStore((s) => s.errorByLawyer); // ✅ nuevo
+
+  // Nota: la hidratación inicial de clientes ocurre en DashboardLayout.
+  // Si quisieras auto-hidratar acá por las dudas:
+  // const hydrateByLawyer = useClientStore((s) => s.hydrateByLawyer);
+  // useEffect(() => { if (!isHydratedByLawyer && !isLoadingByLawyer) hydrateByLawyer(""); }, [isHydratedByLawyer, isLoadingByLawyer, hydrateByLawyer]);
 
   const resetClientItemsByClientId = useClientItemStore(
     (s) => s.resetClientItemsByClientId
@@ -108,12 +108,13 @@ const ClientsPage = () => {
     resetClientItemsByClientId();
   }, [resetClientItemsByClientId]);
 
-  if (isClientsLoading) return <LoadingSpinner />;
+  if (!isClientsHydratedByLawyer && isClientsLoadingByLawyer)
+    return <LoadingSpinner />;
 
   if (clientsError)
     return <ErrorScreen message="Ocurrió un error al cargar los clientes" />;
 
-  if (isClientsHydrated && clients.length === 0)
+  if (isClientsHydratedByLawyer && clients.length === 0)
     return <EmptyArray title="No hay clientes para mostrar" />;
 
   return (

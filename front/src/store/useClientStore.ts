@@ -1,149 +1,322 @@
 import type { Client } from "@/types/Client";
-import { getClients, getClientsByLawyerId } from "@/api/client";
+import {
+  getAllClients,
+  getClientsByLawyerId,
+  // ⚠️ Descomentar cuando exista en tu API:
+  // getClientById,
+} from "@/api/client";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import { create } from "zustand";
 
-const EMPTY_CLIENTS = Object.freeze([]);
-const ttlMs = 86400000;
+const EMPTY_LIST = Object.freeze([] as Client[]);
+const TTL_MS = 5 * 60 * 1000; // 5 min
 
 interface ClientState {
-  clients: Client[] | null;
-  clientsByLawyer: Client[] | null;
-  clientDetail: Client | null;
+  // ===== Colección GLOBAL (Admin) =====
+  clientsAll: Client[];
+  isLoadingAll: boolean;
+  isRefreshingAll: boolean;
+  isHydratedAll: boolean;
+  errorAll: string | null;
+  _inFlightAll: boolean; // privado: dedupe
+  _lastAllAt?: number; // TTL
 
+  // ===== Colección POR LAWYER =====
+  clientsByLawyer: Client[] | null;
+  isLoadingByLawyer: boolean;
+  isRefreshingByLawyer: boolean;
+  isHydratedByLawyer: boolean;
+  errorByLawyer: string | null;
+  _inFlightByLawyer: boolean; // privado: dedupe
+  _lastByLawyerAt: number; // TTL por lawyer
+
+  // ===== DETALLE por ID =====
+  clientDetail: Client | null;
+  isLoadingDetail: boolean;
+  isRefreshingDetail: boolean;
+  isHydratedDetail: boolean;
+  errorDetail: string | null;
+  _inFlightDetail: boolean; // privado: dedupe
+  _lastByDetailAt: number; // TTL por id
+
+  // ===== Filtros UI (simples) =====
   filters: { query: string; status?: string };
   setFilters: (p: Partial<ClientState["filters"]>) => void;
 
-  isLoading: boolean;
-  isHydrated: boolean;
-  isRefreshing: boolean;
-  inFlight: boolean;
-
-  error: string | null;
-
-  lastFetched: number;
-
-  setClients: (clients: Client[]) => void;
-  setClientsByLawyer: (clients: Client[]) => void;
-  setClientDetail: (clientId: string) => void;
-  resetClientDetail: () => void;
-
+  // -------------------------------------------------------------
+  // Acciones públicas: orquestan carga (TTL + dedupe) y escriben
+  // -------------------------------------------------------------
+  hydrateAll: (opts?: { force?: boolean }) => Promise<void>;
   hydrateByLawyer: (
     lawyerId: string,
     opts?: { force?: boolean }
   ) => Promise<void>;
+  hydrateByDetail: (
+    clientId: string,
+    opts?: { force?: boolean }
+  ) => Promise<void>;
+
+  // Setters públicos
+  setAllClients: (clients: Client[]) => void;
+  setClientsByLawyer: (clients: Client[]) => void;
+  setClientDetail: (client: Client) => void;
+
+  // Invalidadores (útiles para forzar reload)
+  invalidateAll: () => void;
+  invalidateByLawyer: (lawyerId: string) => void;
+  invalidateById: (clientId: string) => void;
 }
 
 export const useClientStore = create<ClientState>()((set, get) => ({
-  clients: null,
+  // ----------------------- Estado inicial -----------------------
+  clientsAll: [],
+  isLoadingAll: false,
+  isRefreshingAll: false,
+  isHydratedAll: false,
+  errorAll: null,
+  _inFlightAll: false,
+  _lastAllAt: undefined,
+
   clientsByLawyer: null,
+  isLoadingByLawyer: false,
+  isRefreshingByLawyer: false,
+  isHydratedByLawyer: false,
+  errorByLawyer: null,
+  _inFlightByLawyer: false,
+  _lastByLawyerAt: 0,
+
   clientDetail: null,
+  isLoadingDetail: false,
+  isRefreshingDetail: false,
+  isHydratedDetail: false,
+  errorDetail: null,
+  _inFlightDetail: false,
+  _lastByDetailAt: 0,
+
   filters: { query: "", status: undefined },
-  isLoading: false,
-  isHydrated: false,
-  isRefreshing: false,
-  inFlight: false,
-  error: null,
-  lastFetched: 0,
-
-  setClients: (clients: Client[]) => {
-    set({
-      clients,
-      isLoading: false,
-      isHydrated: true,
-      isRefreshing: false,
-      inFlight: false,
-      error: null,
-      lastFetched: Date.now(),
-    });
-  },
-  setClientsByLawyer: (clients: Client[]) => {
-    set({
-      clientsByLawyer: clients,
-      isLoading: false,
-      isHydrated: true,
-      isRefreshing: false,
-      inFlight: false,
-      error: null,
-      lastFetched: Date.now(),
-    });
-  },
-  setClientDetail: (clientId: string) => {
-    const clientDetail = get().clientsByLawyer?.find(
-      (client) => client.id === clientId
-    );
-    if (!clientDetail) {
-      set({ clientDetail: null });
-      return;
-    }
-    set({ clientDetail });
-  },
-
   setFilters: (p) => set((s) => ({ filters: { ...s.filters, ...p } })),
 
-  resetClientDetail: () => set({ clientDetail: null }),
+  // ======================= HYDRATE: ALL =========================
+  // Carga global para Admin. Respeta TTL y evita llamadas duplicadas.
+  hydrateAll: async ({ force = false } = {}) => {
+    const s = get();
+    if (s._inFlightAll) return; // dedupe
 
-  hydrateByLawyer: async (lawyerId: string, opts?: { force?: boolean }) => {
-    if (get().inFlight) return;
-    const isFresh =
-      get().lastFetched > 0 && Date.now() - get().lastFetched < ttlMs;
-    if (!opts?.force && isFresh) return;
+    const fresh = !force && s._lastAllAt && Date.now() - s._lastAllAt < TTL_MS;
+    if (fresh && s.isHydratedAll) return;
 
-    if (get().isHydrated)
-      set({ isRefreshing: true, inFlight: true, error: null });
-    else set({ isLoading: true, inFlight: true, error: null });
+    // Mostrar "loading" en primera carga y "refreshing" si ya hay data
+    if (s.isHydratedAll) {
+      set({ isRefreshingAll: true, errorAll: null, _inFlightAll: true });
+    } else {
+      set({ isLoadingAll: true, errorAll: null, _inFlightAll: true });
+    }
 
     try {
-      const data = await getClientsByLawyerId(lawyerId);
-      get().setClientsByLawyer(data);
-    } catch (error) {
-      console.error(error);
-      const message =
-        error instanceof Error
-          ? error.message
-          : "No fue posible cargar los datos: Clientes";
-
+      const rows = await getAllClients();
+      get().setAllClients(rows);
+    } catch (e: any) {
       set({
-        inFlight: false,
-        isLoading: false,
-        isRefreshing: false,
-        error: message,
+        errorAll: e?.message ?? "No fue posible cargar los clientes (admin).",
+        isHydratedAll: false,
       });
     } finally {
-      set({ inFlight: false, isLoading: false, isRefreshing: false });
+      set({ isLoadingAll: false, isRefreshingAll: false, _inFlightAll: false });
     }
   },
+
+  // ==================== HYDRATE: BY LAWYER ======================
+  // Carga por abogado. Si no pasás lawyerId, usa el del store actual.
+  hydrateByLawyer: async (lawyerIdParam: string, { force = false } = {}) => {
+    const s = get();
+    if (s._inFlightByLawyer) return; // dedupe (simplificado a un in-flight global)
+
+    const lawyerId =
+      lawyerIdParam ?? useLawyerStore.getState().lawyer?.id ?? "";
+
+    if (!lawyerId) {
+      set({
+        errorByLawyer:
+          "No hay abogado activo. No es posible cargar los clientes.",
+      });
+      return;
+    }
+
+    const fresh =
+      !force && s._lastByLawyerAt && Date.now() - s._lastByLawyerAt < TTL_MS;
+    if (fresh && s.isHydratedByLawyer) return;
+
+    // Mostrar "loading" en primera carga y "refreshing" si ya hay data
+    if (s.isHydratedByLawyer) {
+      set({
+        isRefreshingByLawyer: true,
+        errorByLawyer: null,
+        _inFlightByLawyer: true,
+      });
+    } else {
+      set({
+        isLoadingByLawyer: true,
+        errorByLawyer: null,
+        _inFlightByLawyer: true,
+      });
+    }
+
+    try {
+      const rows = await getClientsByLawyerId(lawyerId);
+      get().setClientsByLawyer(rows);
+    } catch (e: any) {
+      set({
+        errorByLawyer:
+          e?.message ?? "No fue posible cargar los clientes del abogado.",
+        isHydratedByLawyer: false,
+      });
+    } finally {
+      set({
+        isLoadingByLawyer: false,
+        isRefreshingByLawyer: false,
+        _inFlightByLawyer: false,
+      });
+    }
+  },
+
+  // ==================== HYDRATE: DETAIL BY ID ===================
+  // Carga el detalle de un cliente. Si no tenés endpoint, intenta
+  // resolverlo desde las listas ya cargadas (ALL / BY_LAWYER).
+  hydrateByDetail: async (clientId, { force = false } = {}) => {
+    const s = get();
+    if (s._inFlightDetail) return; // dedupe
+
+    const fresh =
+      !force && s._lastByDetailAt && Date.now() - s._lastByDetailAt < TTL_MS;
+    if (fresh && s.isHydratedDetail && s.clientDetail?.id === clientId) return;
+
+    // Mostrar "loading" en primera carga y "refreshing" si ya hay data
+    if (s.isHydratedDetail && s.clientDetail?.id === clientId) {
+      set({
+        isRefreshingDetail: true,
+        errorDetail: null,
+        _inFlightDetail: true,
+      });
+    } else {
+      set({
+        isLoadingDetail: true,
+        errorDetail: null,
+        _inFlightDetail: true,
+      });
+    }
+
+    try {
+      // const row = await getClientById(clientId);
+      // get().setClientDetail(row);
+
+      const fromAll = get().clientsAll.find((c) => c.id === clientId);
+      if (fromAll) {
+        get().setClientDetail(fromAll);
+      } else {
+        const fromByLawyer = get().clientsByLawyer?.find(
+          (c) => c.id === clientId
+        );
+        if (fromByLawyer) get().setClientDetail(fromByLawyer);
+        else
+          set({
+            clientDetail: null,
+            isHydratedDetail: false,
+            errorDetail:
+              "Cliente no encontrado en cache. Habilitá getClientById para traerlo del servidor.",
+          });
+      }
+    } catch (e: any) {
+      set({
+        errorDetail: e?.message ?? "No se pudo cargar el cliente.",
+        isHydratedDetail: false,
+      });
+    }
+  },
+
+  // =========================== SETTERS ==========================
+  // Útiles para sincronizar UI después de un CRUD sin re-fetch completo.
+  setAllClients: (clients) =>
+    set({
+      clientsAll: clients,
+      isHydratedAll: true,
+      errorAll: null,
+      _lastAllAt: Date.now(),
+    }),
+
+  setClientsByLawyer: (clients) =>
+    set({
+      clientsByLawyer: clients,
+      isHydratedByLawyer: true,
+      errorByLawyer: null,
+      _lastByLawyerAt: Date.now(),
+    }),
+
+  setClientDetail: (client: Client) =>
+    set({
+      clientDetail: client,
+      isHydratedDetail: true,
+      errorDetail: null,
+      _lastByDetailAt: Date.now(),
+    }),
+
+  // ======================== INVALIDADORES =======================
+  // Dejan el TTL vencido para que el próximo hydrate haga fetch real.
+  invalidateAll: () => set({ _lastAllAt: undefined, isHydratedAll: false }),
+  invalidateByLawyer: () =>
+    set({ _lastByLawyerAt: 0, isHydratedByLawyer: false }),
+  invalidateById: () => set({ _lastByDetailAt: 0, isHydratedDetail: false }),
 }));
 
+// ========================= SELECTORES ===========================
+
+export const selectClientsAll = (s: ClientState) => s.clientsAll;
 export const selectClientsByLawyer = (s: ClientState) =>
-  s.clientsByLawyer ?? EMPTY_CLIENTS;
+  s.clientsByLawyer ?? EMPTY_LIST;
+
 export const selectClientDetail = (s: ClientState) => s.clientDetail;
 
-export const selectClientName = (clientId: string) => (s: ClientState) => {
-  const client = s.clientsByLawyer?.find((client) => client.id === clientId);
+export const selectFilters = (s: ClientState) => s.filters;
 
-  if (client?.type === "Fisica")
-    return `${client.firstName}  ${client.lastName}`;
-  else return client?.companyName;
-};
-
-export const selectFilteredClients = (s: ClientState) => {
-  const base = s.clientsByLawyer ?? EMPTY_CLIENTS;
+export const selectFilteredClientsByLawyer = (s: ClientState) => {
+  const base = s.clientsByLawyer ?? EMPTY_LIST;
   const { query, status } = s.filters;
   const q = query.trim().toLowerCase();
+
   return base
-    .filter((client: Client) => !status || client.status === status)
-    .filter(
-      (client: Client) => !q || client.firstName?.toLowerCase().includes(q)
-    );
+    .filter((c) => !status || c.status === status)
+    .filter((c) => {
+      if (!q) return true;
+      const name =
+        c.companyName ??
+        [c.firstName, c.lastName].filter(Boolean).join(" ") ??
+        "";
+      return (
+        name.toLowerCase().includes(q) ||
+        c.rut.toLowerCase().includes(q) ||
+        (c.email ?? "").toLowerCase().includes(q)
+      );
+    });
 };
 
-export const selectIsLoadingClients = (s: ClientState) => s.isLoading;
-export const selectIsClientsHydrated = (s: ClientState) => s.isHydrated;
-export const selectIsRefreshing = (s: ClientState) => s.isRefreshing;
+// Devuelve el cliente desde la cache (detail/all/byLawyer) o undefined.
+// NO hace red, NO muta estado.
+export const makeSelectClientFromCacheById =
+  (clientId: string) =>
+  (s: ClientState): Client | undefined => {
+    // 1) Si el detail cargado coincide, lo devolvemos (es lo más completo)
+    if (s.clientDetail?.id === clientId) return s.clientDetail;
 
-export const selectClientsError = (s: ClientState) => s.error;
-export const selectClientsLastFetched = (s: ClientState) => s.lastFetched;
+    // 2) Buscar en la lista global (admin)
+    const fromAll = s.clientsAll.find((c) => c.id === clientId);
+    if (fromAll) return fromAll;
 
-export const selectClientsBusy = (s: ClientState) =>
-  s.isLoading || s.isRefreshing || s.inFlight;
+    // 3) Buscar en la lista por abogado (si existe)
+    const fromByLawyer = s.clientsByLawyer?.find((c) => c.id === clientId);
+    if (fromByLawyer) return fromByLawyer;
+
+    return undefined;
+  };
+
+// Variante directa (no “make”), por si preferís pasar el id en uso:
+export const selectClientFromCacheById = (s: ClientState, clientId: string) =>
+  makeSelectClientFromCacheById(clientId)(s);

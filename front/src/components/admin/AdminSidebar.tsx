@@ -14,14 +14,14 @@ function initials(first?: string, last?: string) {
 export default function AdminSidebar() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const { admin, isHydrated, isLoading, hydrateByUserId } = useAdminStore();
+  const { admin, isHydrated, isLoading, hydrateAdmin } = useAdminStore();
 
   // Hidratar admin sólo si es rol admin y aún no está cargado
   useEffect(() => {
     if (user?.role === "admin" && user.id && !isHydrated && !isLoading) {
-      void hydrateByUserId(user.id);
+      void hydrateAdmin();
     }
-  }, [user, isHydrated, isLoading, hydrateByUserId]);
+  }, [user, isHydrated, isLoading, hydrateAdmin]);
 
   const name = useMemo(
     () => [admin?.firstName, admin?.lastName].filter(Boolean).join(" "),

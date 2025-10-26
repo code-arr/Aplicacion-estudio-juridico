@@ -1,6 +1,6 @@
 // src/pages/dashboard/admin/AdminLawyersPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { getAllLawyers } from "@/api/admin";
+import { getAllLawyers } from "@/api/lawyer";
 import type { Lawyer } from "@/types/Lawyer";
 import { Input } from "@/components/ui/input";
 

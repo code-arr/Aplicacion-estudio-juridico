@@ -1,6 +1,6 @@
 // src/pages/dashboard/admin/AdminStatsPage.tsx
 import { useEffect, useState } from "react";
-import { getGlobalStats } from "@/api/admin";
+import { getAllClientItems } from "@/api/admin";
 import { Card } from "@/components/ui/card";
 
 function toHMS(totalSec: number) {
@@ -26,7 +26,7 @@ export default function AdminStatsPage() {
     (async () => {
       try {
         setLoading(true);
-        const data = await getGlobalStats();
+        const data = await getAllClientItems();
         if (!alive) return;
         setStats(data);
         setErr(null);

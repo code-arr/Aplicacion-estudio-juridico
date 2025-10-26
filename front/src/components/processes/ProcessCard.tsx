@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 interface ProcessCardProps {
   p: Process;
   onDelete?: (p: Process) => void;
+  onEdit?: (p: Process) => void;
   deleting?: boolean;
 }
 
@@ -26,7 +27,7 @@ function formatDurationFromSeconds(seconds: number | null | undefined): string {
   }
 }
 
-const ProcessCard = ({ p, onDelete, deleting }: ProcessCardProps) => {
+const ProcessCard = ({ p, onDelete, onEdit, deleting }: ProcessCardProps) => {
   return (
     <div className="grid grid-cols-[12rem_1.6fr_3fr_1fr_112px] px-4 py-3 gap-x-4 items-center">
       <p>{formatDateChileShort(p.dateTime)}</p>
@@ -36,7 +37,16 @@ const ProcessCard = ({ p, onDelete, deleting }: ProcessCardProps) => {
       </p>
       <p>{formatDurationFromSeconds(p.durationSec)}</p>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={() => onEdit?.(p)}
+          className="inline-flex items-center rounded-md border px-2 py-1 text-[0.85rem] w-[96px] justify-center border-gray-300 text-gray-700 hover:bg-gray-50"
+          title="Editar trámite"
+          disabled={deleting}
+        >
+          Editar
+        </button>
+
         <button
           onClick={() => !deleting && onDelete?.(p)}
           disabled={deleting}

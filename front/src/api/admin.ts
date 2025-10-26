@@ -1,38 +1,26 @@
 // src/api/admin.ts
+import axios from "@/api/axios";
+import type { Admin } from "@/types/Admin";
 import type { Client } from "@/types/Client";
 import type { Lawyer } from "@/types/Lawyer";
-import type { Admin } from "@/types/Admin";
+import type { ClientItem } from "@/types/ClientItem";
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://estudio-backend-dev.us-east-1.elasticbeanstalk.com";
-
-export type AdminGlobalStats = {
-  totalLawyers: number;
-  totalClients: number;
-  totalDocuments: number;
-  totalTimeSec: number;
-};
-
-async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, { credentials: "include" });
-  if (!res.ok) throw new Error(`GET ${path} ${res.status}`);
-  return res.json() as Promise<T>;
+export async function getAdmin(): Promise<Admin | null> {
+  const { data } = await axios.get("admin");
+  return data;
 }
 
-export function getAllClients(): Promise<Client[]> {
-  return apiGet<Client[]>("/admin/clients");
+export async function getAllClients(): Promise<Client[]> {
+  const { data } = await axios.get<Client[]>("/client/getAll");
+  return data;
 }
 
-export function getAllLawyers(): Promise<Lawyer[]> {
-  return apiGet<Lawyer[]>("/admin/lawyers");
+export async function getAllLawyers(): Promise<Lawyer[]> {
+  const { data } = await axios.get<Lawyer[]>("/lawyer/getAll");
+  return data;
 }
 
-export function getGlobalStats(): Promise<AdminGlobalStats> {
-  return apiGet<AdminGlobalStats>("/admin/stats/global");
-}
-
-// 👇 NUEVO: ajustá la ruta si tu back expone otra
-export function getAdminByUserId(userId: string): Promise<Admin> {
-  return apiGet<Admin>(`/admin/by-user/${userId}`);
+export async function getAllClientItems(): Promise<ClientItem[]> {
+  const { data } = await axios.get<ClientItem[]>("/clientItem/getAll");
+  return data;
 }

@@ -8,11 +8,7 @@ import {
   selectIsCatalogLoading,
   selectIsCatalogHydrated,
 } from "@/store/useCatalogStore";
-import {
-  selectIsClientsHydrated,
-  selectIsLoadingClients,
-  useClientStore,
-} from "@/store/useClientStore";
+import { useClientStore } from "@/store/useClientStore";
 import {
   useClientItemStore,
   selectIsClientItemsPrefetched,
@@ -36,8 +32,11 @@ const DashboardLayout = () => {
   const user = useAuthStore((s) => s.user);
   const logOut = useAuthStore((s) => s.logout);
   const isAdmin = user?.role === "admin";
+
   const lawyer = useLawyerStore((s) => s.lawyer);
   const lawyerId = lawyer?.id;
+
+  // ⏱️ Timers sólo para Lawyer (no Admin)
   const timersEnabled = !!lawyerId && !isAdmin;
 
   // Suscripción a logs de time-entries (solo en Electron)
@@ -84,38 +83,42 @@ const DashboardLayout = () => {
   useEnsureTimerPrimed(timersEnabled);
   useIdleWatch(timersEnabled);
 
-  /*   const isRefreshingClients = useClientStore((s) => s.isRefreshing); */
-  const hydrateClientsByLawyer = useClientStore((s) => s.hydrateByLawyer);
-  const isLoadingClients = useClientStore(selectIsLoadingClients);
-  const isHydratedClients = useClientStore(selectIsClientsHydrated);
+  // ──────────────────────────────────────────────────────────────
+  // Data stores
+  // ──────────────────────────────────────────────────────────────
 
-  /*   const isRefreshingCatalog = useCatalogStore((s) => s.isRefreshing); */
+  // Catalogo: lo necesitan ambas vistas (Lawyer/Admin)
   const hydrateCatalog = useCatalogStore((s) => s.hydrate);
   const isLoadingCatalog = useCatalogStore(selectIsCatalogLoading);
   const isHydratedCatalog = useCatalogStore(selectIsCatalogHydrated);
-
-  const hydrateClientItems = useClientItemStore((s) => s.hydrateByLawyer);
-  const itemClientsIsPrefetched = useClientItemStore(
-    selectIsClientItemsPrefetched
-  );
 
   // 🔸 Catálogo lo puede necesitar cualquiera
   useEffect(() => {
     hydrateCatalog(); // respeta TTL
   }, [hydrateCatalog]);
 
-  // 🔸 Clientes e items SOLO en modo lawyer (evita fetch inútil para Admin)
+  // ===== Clients (solo lawyer) —> adaptado a la nueva store =====
+  const hydrateClientsByLawyer = useClientStore((s) => s.hydrateByLawyer);
+  const isLoadingClientsByLawyer = useClientStore((s) => s.isLoadingByLawyer); // 👈 nuevo
+  const isHydratedClientsByLawyer = useClientStore((s) => s.isHydratedByLawyer); // 👈 nuevo
+
   useEffect(() => {
     if (!isAdmin && lawyer) {
       hydrateClientsByLawyer(lawyer.id); // respeta TTL
     }
   }, [hydrateClientsByLawyer, isAdmin, lawyer]);
 
+  // ===== ClientItems (prefetch) solo en lawyer, cuando ya hay cat + clients =====
+  const hydrateClientItems = useClientItemStore((s) => s.hydrateByLawyer);
+  const itemClientsIsPrefetched = useClientItemStore(
+    selectIsClientItemsPrefetched
+  );
+
   useEffect(() => {
     if (
       !isAdmin &&
       isHydratedCatalog &&
-      isHydratedClients &&
+      isHydratedClientsByLawyer &&
       !itemClientsIsPrefetched
     ) {
       if (lawyer) {
@@ -125,25 +128,61 @@ const DashboardLayout = () => {
   }, [
     isAdmin,
     isHydratedCatalog,
-    isHydratedClients,
+    isHydratedClientsByLawyer,
     hydrateClientItems,
     itemClientsIsPrefetched,
     lawyer,
   ]);
 
+  //===== ADMIN =====
+
+  // ===== Clients (admin) —> adaptado a la nueva store =====
+  const hydrateAllClients = useClientStore((s) => s.hydrateAll);
+  const isLoadingAllClients = useClientStore((s) => s.isLoadingAll); // 👈 nuevo
+  const isHydratedAllClients = useClientStore((s) => s.isHydratedAll); // 👈 nuevo
+
+  useEffect(() => {
+    if (isAdmin) {
+      hydrateAllClients(); // respeta TTL
+    }
+  }, [hydrateAllClients, isAdmin]);
+
+  // ===== ClientItems (admin), cuando ya hay cat + clients =====
+  const hydrateAllClientItems = useClientItemStore((s) => s.hydrate);
+  const isHydratedAllClientItems = useClientItemStore((s) => s.isHydrated);
+
+  useEffect(() => {
+    if (
+      isAdmin &&
+      isHydratedCatalog &&
+      isHydratedAllClients &&
+      !isHydratedAllClientItems
+    )
+      hydrateAllClientItems();
+  }, [
+    isAdmin,
+    isHydratedCatalog,
+    isHydratedAllClients,
+    hydrateAllClientItems,
+    isHydratedAllClientItems,
+  ]);
+
+  // ===== Pantallas de carga =====
+  // Lawyer: esperamos catálogo + clientes
   if (
-    // para Lawyer: esperamos cat + clients
-    (!isAdmin && !isHydratedCatalog && isLoadingCatalog) ||
-    (!isAdmin && !isHydratedClients && isLoadingClients)
+    !isAdmin &&
+    ((!isHydratedCatalog && isLoadingCatalog) ||
+      (!isHydratedClientsByLawyer && isLoadingClientsByLawyer))
   ) {
     return <LoadingScreen />;
   }
 
-  // para Admin: con catálogo basta para montar layout; las páginas admin traen su data
+  // Admin: con catálogo basta para montar; las páginas admin traen su data
   if (isAdmin && isLoadingCatalog && !isHydratedCatalog) {
     return <LoadingScreen />;
   }
 
+  // ===== Layout =====
   return (
     <SidebarProvider>
       <div className="min-h-screen flex items-start w-full bg-gray-50">

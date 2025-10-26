@@ -10,12 +10,20 @@ import { useParams } from "react-router-dom";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import RowSkeleton from "@/components/shared/RowSkeleton";
 import type { Process } from "@/types/Process";
+import { useToast } from "@/hooks/useToast";
+import { updateProcess } from "@/api/process";
+import EditProcessModal from "@/components/processes/EditProcessModal";
 
 const ItemProcessPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const { toast } = useToast?.() ?? { toast: () => {} };
+  const [editOpen, setEditOpen] = useState(false);
+  const [selected, setSelected] = useState<Process | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +67,44 @@ const ItemProcessPage = () => {
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
+  };
+
+  const handleOpenEdit = (p: Process) => {
+    setSelected(p);
+    setEditOpen(true);
+  };
+
+  const handleConfirmEdit = async (patch: Partial<Process>) => {
+    if (!selected) return;
+    const id = selected.id!;
+
+    // optimistic
+    const prev = processesByClientItem;
+    const next = processesByClientItem.map((x) =>
+      x.id === id ? { ...x, ...patch } : x
+    );
+    setProcessesByClientItem(next);
+
+    try {
+      setSavingEdit(true);
+      const updated = await updateProcess(id, patch);
+      // reconciliar con respuesta del back
+      const merged = next.map((x) => (x.id === id ? { ...x, ...updated } : x));
+      setProcessesByClientItem(merged);
+
+      toast?.({ title: "Trámite actualizado" });
+      setEditOpen(false);
+      setSelected(null);
+    } catch (err: any) {
+      setProcessesByClientItem(prev); // rollback
+      toast?.({
+        title: "No se pudo actualizar",
+        description: err?.response?.data?.message ?? "Probá de nuevo",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const handleDelete = async (p: Process) => {
@@ -164,9 +210,18 @@ Se eliminará también el TIEMPO DE TRABAJO asociado a este trámite. Esta acci�
                   key={p.id}
                   p={p}
                   onDelete={handleDelete}
+                  onEdit={handleOpenEdit}
                   deleting={deletingId === p.id}
                 />
               ))}
+
+              <EditProcessModal
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                process={selected ?? ({} as Process)}
+                onConfirm={handleConfirmEdit}
+                loading={savingEdit}
+              />
             </ul>
           )}
         </ul>

@@ -31,6 +31,21 @@ export const createMeeting = async (
   ).data;
 };
 
+export const updateMeeting = async (
+  meetingId: string,
+  payload: Partial<Meeting>,
+  lawyerEmail?: string
+): Promise<Meeting> => {
+  const qs = lawyerEmail
+    ? `?lawyerEmail=${encodeURIComponent(lawyerEmail)}`
+    : "";
+  const { data } = await axios.put(
+    `/meeting/update/${meetingId}${qs}`,
+    payload
+  );
+  return data;
+};
+
 export const deleteMeeting = async (meetingId: string): Promise<void> => {
   return (await axios.delete(`meeting/delete/${meetingId}`)).data;
 };

@@ -1,7 +1,7 @@
 // src/store/useAdminStore.ts
 import { create } from "zustand";
 import type { Admin } from "@/types/Admin";
-import { getAdminByUserId } from "@/api/admin";
+import { getAdmin } from "@/api/admin";
 
 type AdminState = {
   admin: Admin | null;
@@ -11,7 +11,7 @@ type AdminState = {
   setAdmin: (a: Admin | null) => void;
   clear: () => void;
 
-  hydrateByUserId: (userId: string) => Promise<void>;
+  hydrateAdmin: (userId?: string) => Promise<void>;
 };
 
 export const useAdminStore = create<AdminState>()((set, get) => ({
@@ -22,12 +22,12 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
   setAdmin: (a) => set({ admin: a, isHydrated: !!a }),
   clear: () => set({ admin: null, isHydrated: false }),
 
-  hydrateByUserId: async (userId: string) => {
+  hydrateAdmin: async (userId?: string) => {
     // Evitamos pedir dos veces si ya está cargado
     if (get().isHydrated || get().isLoading) return;
     set({ isLoading: true });
     try {
-      const a = await getAdminByUserId(userId);
+      const a = await getAdmin();
       set({ admin: a, isHydrated: true });
     } catch (e) {
       console.error("[AdminStore] hydrate error:", e);

@@ -1,8 +1,8 @@
 // src/pages/dashboard/admin/AdminClientsPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { getAllClients } from "@/api/admin";
 import type { Client } from "@/types/Client";
 import { Input } from "@/components/ui/input";
+import { getAllClients } from "@/api/client";
 
 type Row = {
   id?: string;

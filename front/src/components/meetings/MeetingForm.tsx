@@ -26,6 +26,8 @@ import { useMeetingStore } from "@/store/useMeetingStore";
 import { localDateTimeToIsoUtc } from "@/utils/dateTime";
 import { useClientStore } from "@/store/useClientStore";
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+
 type MeetingFormProps = {
   isDialogOpen: boolean;
   setIsDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -67,6 +69,12 @@ const MeetingForm = ({
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isGoogle = formData.type === "google-meet";
+
+  // --- estado local para agregar participantes (GOOGLE MEET)
+  const [pName, setPName] = useState("");
+  const [pEmail, setPEmail] = useState("");
+
   const clientDetail = useClientStore((s) => s.clientDetail);
 
   const fetchMeetingsByClientItemId = useMeetingStore(
@@ -80,12 +88,17 @@ const MeetingForm = ({
         ...prev,
         lawyerEmail,
         participants: defaultParticipants,
+        type: prev.type || "google-meet",
       }));
       setFieldErrors({});
       setFormError(null);
+      setPName("");
+      setPEmail("");
     } else {
       setFormData(initialMeeting);
       setIsSubmitting(false);
+      setPName("");
+      setPEmail("");
     }
   }, [isDialogOpen, defaultParticipants, lawyerEmail]);
 
@@ -95,6 +108,47 @@ const MeetingForm = ({
     setFormError(null);
   };
 
+  const deriveName = (email: string) =>
+    email
+      .split("@")[0]
+      .replace(/[._-]+/g, " ")
+      .trim();
+
+  const upsertParticipant = (name: string, email: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = (name || "").trim() || deriveName(cleanEmail);
+
+    // evitar duplicado por email
+    const exists = formData.participants.some(
+      (p) => p.email.toLowerCase() === cleanEmail
+    );
+    if (exists) return false;
+
+    set("participants", [
+      ...formData.participants,
+      { name: cleanName, email: cleanEmail },
+    ]);
+    return true;
+  };
+
+  const removeParticipant = (email: string) => {
+    const cleanEmail = email.toLowerCase();
+    set(
+      "participants",
+      formData.participants.filter((p) => p.email.toLowerCase() !== cleanEmail)
+    );
+  };
+
+  const addCurrentParticipant = () => {
+    if (!pEmail.trim() || !emailRegex.test(pEmail.trim())) {
+      setFormError("Ingresá un email válido para el participante.");
+      return;
+    }
+    upsertParticipant(pName, pEmail);
+    setPName("");
+    setPEmail("");
+  };
+
   // 🛠️ Validación con fieldErrors + formError (patrón consistente)
   const validate = (): boolean => {
     const fe: FieldErrors = {};
@@ -102,8 +156,10 @@ const MeetingForm = ({
     if (!formData.startAt) fe.startAt = "La fecha y hora son obligatorias.";
     if (!formData.type) fe.type = "Seleccioná el tipo.";
     if (!formData.lawyerEmail) fe.lawyerEmail = "Falta el email del abogado.";
-    if (!formData.participants?.length)
-      fe.participants = "Debe haber al menos un participante.";
+    // Al menos 1 participante (cliente) si es Google (para in-person lo podrías relajar)
+    if (isGoogle && !formData.participants?.length) {
+      fe.participants = "Agregá al menos un participante.";
+    }
 
     setFieldErrors(fe);
 
@@ -131,7 +187,14 @@ const MeetingForm = ({
     // 🛠️ Consistencia de fechas: convertimos datetime-local a ISO UTC
     const startAtIsoUtc = localDateTimeToIsoUtc(formData.startAt);
 
-    const payload = { ...formData, startAt: startAtIsoUtc };
+    const payload = {
+      ...formData,
+      startAt: startAtIsoUtc,
+      participants: formData.participants.map((p) => ({
+        email: p.email.trim().toLowerCase(),
+        name: (p.name || deriveName(p.email)).trim(),
+      })),
+    };
 
     try {
       await createMeeting(payload, clientId, clientItemId);
@@ -214,7 +277,7 @@ const MeetingForm = ({
             {fieldErrors.type && (
               <p className="text-xs text-red-600">{fieldErrors.type}</p>
             )}
-            {formData.type === "google-meet" && (
+            {isGoogle && (
               <p className="text-xs text-muted-foreground">
                 Se creará un enlace de Meet si tu cuenta de Google está
                 conectada.
@@ -222,32 +285,76 @@ const MeetingForm = ({
             )}
           </div>
 
-          {/* Participants (solo lectura por ahora, con posibilidad de ampliar luego) */}
-          <div className="space-y-1.5">
-            <Label>Participantes</Label>
-            <div className="flex flex-wrap gap-2">
-              {formData.participants.map((p, idx) => (
-                <span
-                  key={`${p.email}-${idx}`}
-                  className="text-xs rounded-full border px-2 py-1"
-                  title={p.email}
+          {/* --- PARTICIPANTES (GOOGLE MEET) --- */}
+          {isGoogle && (
+            <div className="space-y-2">
+              <Label>Participantes</Label>
+
+              {/* chips + eliminar */}
+              {formData.participants.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.participants.map((p) => (
+                    <span
+                      key={p.email}
+                      className="inline-flex items-center gap-2 text-xs rounded-full border px-2 py-1"
+                      title={p.email}
+                    >
+                      {p.name || p.email}
+                      <button
+                        type="button"
+                        aria-label={`Quitar ${p.email}`}
+                        className="text-gray-500 hover:text-red-600"
+                        onClick={() => removeParticipant(p.email)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* inputs para agregar */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Input
+                  placeholder="Nombre (opcional)"
+                  value={pName}
+                  onChange={(e) => setPName(e.target.value)}
+                />
+                <Input
+                  placeholder="email@dominio.com"
+                  value={pEmail}
+                  onChange={(e) => setPEmail(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCurrentParticipant();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addCurrentParticipant}
                 >
-                  {p.name || p.email}
-                </span>
-              ))}
+                  Agregar
+                </Button>
+              </div>
+
+              {fieldErrors.participants && (
+                <p className="text-xs text-red-600">
+                  {fieldErrors.participants}
+                </p>
+              )}
+
+              <p className="text-[11px] text-muted-foreground">
+                Tip: Si no cargás un nombre, lo inferimos del email.
+              </p>
             </div>
-            {fieldErrors.participants && (
-              <p className="text-xs text-red-600">{fieldErrors.participants}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Por ahora se agregan automáticamente el abogado y el cliente.
-              Luego podés sumar más.
-            </p>
-          </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-1.5">
-            <Label htmlFor="desc">Descripción</Label>
+            <Label htmlFor="desc">Notas</Label>
             <Textarea
               id="desc"
               rows={4}

@@ -3,7 +3,7 @@ import { create } from "zustand";
 import type { ClientItem } from "@/types/ClientItem";
 import {
   getClientItemsByClientId,
-  getClientItems,
+  getAllClientItems,
   getRecentClientItems,
   getClientItemsByLawyerId,
 } from "@/api/clientItem";
@@ -43,7 +43,7 @@ interface ClientItemState {
   resetClientItemsByClientId: () => void;
   resetClientItemDetail: () => void;
 
-  fetchClientItems: () => Promise<void>;
+  fetchAllClientItems: () => Promise<void>;
   fetchClientItemsByLawyerId: (lawyerId: string) => Promise<void>;
   prefetchRecentClientItems: (opts?: { limit?: number }) => Promise<void>;
   fetchClientItemsByClientId: (clientId: string) => Promise<void>;
@@ -123,8 +123,8 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
 
   setFilters: (p) => set((s) => ({ filters: { ...s.filters, ...p } })),
 
-  fetchClientItems: async () => {
-    const data = await getClientItems();
+  fetchAllClientItems: async () => {
+    const data = await getAllClientItems();
     get().setClientItems(data);
   },
 
@@ -165,7 +165,7 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
         error: null,
       });
       try {
-        await get().fetchClientItems();
+        await get().fetchAllClientItems();
       } catch (error) {
         console.error(error);
         const message =
@@ -194,7 +194,7 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
       else set({ isLoading: true, inFlightFetch: true, error: null });
 
       try {
-        await get().fetchClientItems();
+        await get().fetchAllClientItems();
       } catch (error) {
         console.error(error);
         const message =
@@ -221,7 +221,7 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
         error: null,
       });
       try {
-        await get().fetchClientItems();
+        await get().fetchAllClientItems();
       } catch (error) {
         console.error(error);
         const message =

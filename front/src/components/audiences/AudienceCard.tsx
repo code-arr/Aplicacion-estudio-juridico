@@ -12,6 +12,7 @@ interface AudienceCardProps {
   aud: Audience;
   openInViewer: (audiences: Audience[], activeId?: string) => void;
   onDelete?: (aud: Audience) => void;
+  onEdit?: (aud: Audience) => void; // 👈 nueva
   deleting?: boolean;
 }
 
@@ -19,6 +20,7 @@ const AudienceCard = ({
   aud,
   openInViewer,
   onDelete,
+  onEdit,
   deleting,
 }: AudienceCardProps) => {
   function formatDate(isoDate: string | null): string {
@@ -86,6 +88,13 @@ const AudienceCard = ({
                 shortcut="Enter"
               >
                 Ver detalles
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onSelect={() => onEdit?.(aud)} // 👈 dispara el modal arriba
+                shortcut="⌘ E"
+              >
+                Editar
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />

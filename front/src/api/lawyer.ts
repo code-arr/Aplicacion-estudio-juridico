@@ -10,3 +10,15 @@ export const getLawyerByEmail = async (email: string): Promise<Lawyer> => {
     throw error;
   }
 };
+
+export const getAllLawyers = async () => {
+  const { data } = await axios.get("lawyer/getAll");
+  return data;
+};
+
+export const updateLawyer = async (
+  data: Partial<Lawyer>,
+  lawyerId?: string
+) => {
+  return (await axios.put(`lawyer`, { data }, { params: lawyerId })).data;
+};

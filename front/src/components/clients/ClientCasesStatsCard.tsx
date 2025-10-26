@@ -25,6 +25,7 @@ import {
 import { formatMoney } from "@/utils/money";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useSlidingUI } from "@/hooks/useSlidingUI";
+import DownloadClientCostPDF from "@/components/reports/DownloadClientCostPDF";
 
 function buildNameMaps(
   categories: { id: string; name: string }[] | undefined,
@@ -219,6 +220,17 @@ export default function ClientCasesStatsCard() {
             </option>
           ))}
         </select>
+        {/* ⬇️ Botón para descargar PDF */}
+        <DownloadClientCostPDF
+          clientId={selectedClient?.id}
+          clientLabel={
+            selectedClient
+              ? selectedClient.type === "Fisica"
+                ? `${selectedClient.firstName} ${selectedClient.lastName}`
+                : selectedClient.companyName ?? "Cliente"
+              : undefined
+          }
+        />
       </div>
 
       {/* KPIs promedio por cliente */}

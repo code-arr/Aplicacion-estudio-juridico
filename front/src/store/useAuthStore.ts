@@ -2,7 +2,7 @@
 import { create } from "zustand";
 import type { User } from "@/types/User";
 import type { AuthState } from "@/types/AuthState";
-import { getMe, getUserById } from "@/api/user";
+import { getMe } from "@/api/user";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import { useTimerUIStore } from "@/store/useTimerUIStore";
 
