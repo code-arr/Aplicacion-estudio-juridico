@@ -105,6 +105,77 @@ export class GoogleCalendarService {
     }
   }
 
+  async updateEvent(
+    lawyerEmail: string,
+    eventId: string,
+    patch: {
+      summary?: string;
+      startAt?: Date; // nueva fecha/hora inicio
+      endAt?: Date; // nueva fecha/hora fin
+      timeZone?: string; // ej. 'America/Santiago'
+      location?: string;
+      attendees?: { name?: string; email: string }[];
+    },
+  ) {
+    try {
+      const user = await this.userService.findOneByEmail(lawyerEmail);
+      if (!user?.googleRefreshToken) {
+        throw new InternalServerErrorException(
+          'El refresh token de Google no está configurado para este usuario.',
+        );
+      }
+
+      const accessToken = await this.getAccessTokenFromRefreshToken(
+        user.googleRefreshToken,
+      );
+      const oauth2Client = new google.auth.OAuth2();
+      oauth2Client.setCredentials({ access_token: accessToken });
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+      const timeZone = patch.timeZone ?? 'America/Santiago';
+      const requestBody: any = {};
+
+      if (patch.summary !== undefined) requestBody.summary = patch.summary;
+      if (patch.location !== undefined) requestBody.location = patch.location;
+      if (patch.startAt || patch.endAt) {
+        if (patch.startAt)
+          requestBody.start = {
+            dateTime: patch.startAt.toISOString(),
+            timeZone,
+          };
+        if (patch.endAt)
+          requestBody.end = { dateTime: patch.endAt.toISOString(), timeZone };
+      }
+      if (patch.attendees) {
+        requestBody.attendees = [
+          { email: lawyerEmail },
+          ...patch.attendees.map((a) => ({
+            email: a.email,
+            displayName: a.name,
+          })),
+        ];
+      }
+
+      const res = await calendar.events.patch({
+        calendarId: 'primary',
+        eventId,
+        requestBody,
+        conferenceDataVersion: 1,
+        sendUpdates: 'all', // notifica a todos
+      });
+
+      return res.data;
+    } catch (err: any) {
+      console.error(
+        'Error al actualizar evento de Google Calendar:',
+        err?.message || err,
+      );
+      throw new InternalServerErrorException(
+        'No se pudo actualizar en Google Calendar.',
+      );
+    }
+  }
+
   async deleteEvent(lawyerEmail: string, eventId: string): Promise<void> {
     try {
       const user = await this.userService.findOneByEmail(lawyerEmail);

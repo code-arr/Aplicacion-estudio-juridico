@@ -121,8 +121,60 @@ export class MeetingService {
   async updateMeeting(
     id: string,
     payload: Partial<Meeting>,
+    lawyerEmail?: string,
   ): Promise<Meeting | null> {
-    return this.meetingRepository.updateMeeting(id, payload);
+    // 1) Traer la reunión actual para saber si es Google y su eventId
+    const current = await this.meetingRepository.getById(id);
+    if (!current) throw new NotFoundException('Meeting not found');
+
+    // 2) Si es Google y hay eventId, preparar patch para Calendar
+    const isGoogle = current.type === 'google-meet' && !!current.eventId;
+
+    if (isGoogle) {
+      if (!lawyerEmail) {
+        throw new BadRequestException(
+          'Organizer email (lawyerEmail) is required to update Google events',
+        );
+      }
+
+      // Armamos patch SOLO con campos que Google entiende
+      const gPatch: {
+        summary?: string;
+        startAt?: Date;
+        endAt?: Date;
+        timeZone?: string;
+        location?: string;
+        attendees?: { name?: string; email: string }[];
+      } = {};
+
+      if (payload.name !== undefined) gPatch.summary = payload.name;
+      if (payload.location !== undefined) gPatch.location = payload.location;
+      if (payload.startAt) gPatch.startAt = new Date(payload.startAt);
+      if (payload.endAt) gPatch.endAt = new Date(payload.endAt);
+      if (payload['timeZone' as any])
+        gPatch.timeZone = (payload as any).timeZone;
+
+      if (Array.isArray(payload.participants)) {
+        gPatch.attendees = payload.participants.map((p) => ({
+          name: p.name,
+          email: p.email,
+        }));
+      }
+
+      // ⚠️ status: "canceled" ya lo manejás con cancelMeeting (borra en Google)
+      // Si querés permitir "completed" solo en BD, no lo mandamos a Google.
+
+      // 3) Actualizar en Google primero (para evitar desincronizar si Google falla)
+      await this.googleCalendarService.updateEvent(
+        lawyerEmail,
+        current.eventId!,
+        gPatch,
+      );
+    }
+
+    // 4) Actualizar en BD (incluyendo campos que Google no conoce, ej. notes, status)
+    const updated = await this.meetingRepository.updateMeeting(id, payload);
+    return updated;
   }
 
   async deleteMeeting(id: string): Promise<Meeting> {
