@@ -22,3 +22,7 @@ export const updateLawyer = async (
 ) => {
   return (await axios.put(`lawyer`, { data }, { params: lawyerId })).data;
 };
+
+export const removeClient = async (clientId: string) => {
+  return (await axios.delete(`lawyer/deleteClient/${clientId}`)).data;
+};

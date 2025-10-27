@@ -1,6 +1,6 @@
 // src/layouts/ClientLayout.tsx
 import { Outlet, useParams, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { selectClientDetail, useClientStore } from "@/store/useClientStore";
 import ClientHeader from "@/components/clients/ClientHeader"; // tu componente con props
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
@@ -18,34 +18,35 @@ const ClientLayout = () => {
   // ⚙️ Store: leemos el detalle y sus flags
   const clientDetail = useClientStore(selectClientDetail);
   const hydrateByDetail = useClientStore((s) => s.hydrateByDetail);
-  const invalidateById = useClientStore((s) => s.invalidateById);
+  const clearClientDetail = useClientStore((s) => s.clearClientDetail);
+
   const isLoadingDetail = useClientStore((s) => s.isLoadingDetail);
+  const isRefreshingDetail = useClientStore((s) => s.isRefreshingDetail);
   const errorDetail = useClientStore((s) => s.errorDetail);
 
   const { monthSeconds } = useClientTime(clientDetail?.id ?? null);
   const monthTimer = formatHHMMFromSeconds(monthSeconds);
 
-  const [loading, setLoading] = useState(true);
-
   // 🚀 Al montar/cambiar clientId: asegurar el detalle (TTL + dedupe)
   useEffect(() => {
-    setLoading(true);
     if (!clientId) return;
-    // No hace falta setear loading local: el store maneja isLoadingDetail
     void hydrateByDetail(clientId);
-    setLoading(false);
-
-    // 🧹 Al desmontar o cambiar de clientId, invalidamos el TTL del detail
-    // (no deja basura y permite re-hidratar la próxima vez si hiciera falta)
     return () => {
-      invalidateById(clientId);
+      clearClientDetail(clientId);
     };
-  }, [clientId, hydrateByDetail, invalidateById]);
+  }, [clientId, hydrateByDetail, clearClientDetail]);
 
-  if (loading) return <LoadingSpinner />;
+  if (!clientId) return <ErrorScreen message="Cliente no especificado." />;
 
-  if (!clientDetail)
-    return <ErrorScreen message="Ocurrió un error al encontrar el cliente" />;
+  if (isLoadingDetail || isRefreshingDetail) return <LoadingSpinner />;
+
+  if (!clientDetail || clientDetail.id !== clientId) {
+    return (
+      <ErrorScreen
+        message={errorDetail ?? "Ocurrió un error al encontrar el cliente"}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

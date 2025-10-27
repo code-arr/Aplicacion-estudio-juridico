@@ -9,7 +9,6 @@ import {
   useClientItemStore,
   selectRecentClientItemsByClientId,
   selectIsClientItemsLoading,
-  selectClientItemsBusy,
   selectClientItemsByClientId,
 } from "@/store/useClientItemStore";
 import ItemForm from "@/components/items/ItemForm";
@@ -30,13 +29,26 @@ import { formatDateChileShort } from "@/lib/formatDate";
 import { useStatsStore } from "@/store/useStatsStore";
 import { useClientTime } from "@/hooks/useClientTime";
 import { formatHHMMFromSeconds } from "@/lib/time";
+import { useToast } from "@/hooks/useToast";
+import { removeClient } from "@/api/lawyer";
+import { useLawyerStore } from "@/store/useLawyerStore";
+import { updateClient } from "@/api/client";
+import ClientEditDialog from "@/components/clients/ClientEditDialog";
 
 const ClientOverviewPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [isEmailOpen, setIsEmailOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const categories = useCatalogStore(selectCategories);
+  const lawyer = useLawyerStore((s) => s.lawyer);
 
   const clientDetail = useClientStore(selectClientDetail);
-  const categories = useCatalogStore(selectCategories);
+  const hydrateClientsByLawyer = useClientStore((s) => s.hydrateByLawyer);
 
   const fetchClientItemsByClientId = useClientItemStore(
     (s) => s.fetchClientItemsByClientId
@@ -47,12 +59,127 @@ const ClientOverviewPage = () => {
 
   const fetchClientDetailStats = useStatsStore((s) => s.fetchClientDetail);
 
+  // ============
+  // Próxima reunión (URL y fecha)
+  // ============
+  const fetchMeetingsByClient = useMeetingStore((s) => s.fetchMeetingsByClient);
+  const meetingsByClient = useMeetingStore((s) => s.meetingsByClient);
+  const setMeetingsByClient = useMeetingStore((s) => s.setMeetingsByClient);
+
+  // 👇 NUEVO: Obtenemos la próxima reunión del cliente (ajustá al selector real que tengas)
+  // Si NO tenés store para esto aún, dejalo en null y el botón quedará deshabilitado.
+  const { nextUpcoming } = useMemo(
+    () => pickNextAndLast(meetingsByClient),
+    [meetingsByClient]
+  );
+  const nextMeetingUrl: string | null | undefined = nextUpcoming?.link;
+  const nextMeetingStartAt: string | null | undefined = nextUpcoming?.startAt;
+
+  // 👇 NUEVO: Lógica del botón (reusable)
+  const {
+    disabled: joinDisabled,
+    join,
+    copy,
+  } = useJoinMeeting(nextMeetingUrl ?? null, {
+    onInvalidUrl: () => console.warn("Esta reunión no tiene un enlace válido."),
+    onOpenError: () => console.error("No se pudo abrir el enlace."),
+    onOpened: () => console.log("Abriendo reunión en el navegador…"),
+  });
+
   const { totalSeconds } = useClientTime(clientDetail?.id ?? null);
 
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isEmailOpen, setIsEmailOpen] = useState(false);
+  const { toast } = useToast?.() ?? { toast: () => {} }; // por si no tenés el hook
+
+  const handleRemoveClient = async () => {
+    if (!clientDetail?.id) return;
+
+    console.log("[remove] voy a borrar id =", clientDetail.id, clientDetail);
+
+    const ok = window.confirm(
+      "¿Seguro que querés eliminar este cliente? Esta acción no se puede deshacer."
+    );
+    if (!ok) return;
+
+    setIsDeleting(true);
+    try {
+      await removeClient(clientDetail.id);
+
+      // ✅ actualizá caches locales al instante
+      useClientStore.getState().removeClientById(clientDetail.id);
+      useClientStore.getState().clearClientDetail(clientDetail.id);
+      useClientStore.getState().invalidateById(clientDetail.id);
+      /* useClientStore.getState().softInvalidateAfterDelete(); */
+
+      toast?.({
+        title: "Cliente eliminado",
+        description: "Se eliminó correctamente.",
+      });
+
+      // ✅ navegá a la lista
+      navigate("/dashboard/clients");
+
+      // ✅ (opcional) re-hydrate por abogado si tenés el id
+      if (lawyer?.id) await hydrateClientsByLawyer(lawyer.id, { force: true });
+    } catch (e: any) {
+      // Tip: podés afinar mensajes por status
+      const msg =
+        e?.response?.data?.message ??
+        (e?.response?.status === 403
+          ? "No tenés permisos para eliminar este cliente."
+          : e?.response?.status === 409
+          ? "No se puede eliminar: el cliente tiene elementos asociados."
+          : "Error inesperado");
+
+      toast?.({
+        variant: "destructive",
+        title: "No se pudo eliminar",
+        description: msg,
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const onSubmitEdit = async (payload: Partial<Client>) => {
+    if (!clientDetail?.id) return;
+    setIsSaving(true);
+    try {
+      // 1) request
+      const updated = await updateClient(clientDetail.id, payload);
+
+      // 2) merge local (optimista) — mantené coherentes listas + detail
+      const S = useClientStore.getState();
+      // actualizá detail
+      S.setClientDetail({ ...clientDetail, ...updated });
+
+      // si tenés lista por abogado, actualizala:
+      const curByLawyer = useClientStore.getState().clientsByLawyer;
+      if (curByLawyer) {
+        const next = curByLawyer.map((c) =>
+          c.id === clientDetail.id ? { ...c, ...updated } : c
+        );
+        useClientStore.getState().setClientsByLawyer(next);
+      }
+      // (si usás lista global admin, hacé lo mismo con setAllClients)
+
+      // invalidá TTL para que un próximo hydrate traiga datos frescos
+      useClientStore.getState().invalidateById(clientDetail.id);
+
+      toast?.({
+        title: "Cambios guardados",
+        description: "El cliente fue actualizado.",
+      });
+      setEditOpen(false);
+    } catch (e: any) {
+      toast?.({
+        variant: "destructive",
+        title: "No se pudo actualizar",
+        description: e?.response?.data?.message ?? "Error inesperado",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleOpenCategory = (categoryId: string) => {
     navigate(`category/${categoryId}`, {
@@ -68,23 +195,13 @@ const ClientOverviewPage = () => {
 
   useEffect(() => {
     if (!clientDetail?.id) return;
-    fetchClientDetailStats(clientDetail?.id);
-  }, [clientDetail, fetchClientDetailStats]);
+    fetchClientItemsByClientId(clientDetail.id);
+  }, [clientDetail?.id, fetchClientItemsByClientId]);
 
   useEffect(() => {
-    setLoading(true);
-    if (clientDetail) setLoading(false);
-  }, [clientDetail]);
-
-  useEffect(() => {
-    if (!clientDetail) return;
-
-    const fetchData = async () => {
-      await fetchClientItemsByClientId(clientDetail.id ?? "");
-    };
-
-    fetchData();
-  }, [clientDetail, fetchClientItemsByClientId]);
+    if (!clientDetail?.id) return;
+    fetchClientDetailStats(clientDetail.id);
+  }, [clientDetail?.id, fetchClientDetailStats]);
 
   const StatusBadge = (status: Client["status"]) => {
     const cfg = CLIENT_STATUS_MAP[status] ?? {
@@ -110,15 +227,8 @@ const ClientOverviewPage = () => {
     ),
   };
 
-  // ============
-  // Próxima reunión (URL y fecha)
-  // ============
-  const fetchMeetingsByClient = useMeetingStore((s) => s.fetchMeetingsByClient);
-  const meetingsByClient = useMeetingStore((s) => s.meetingsByClient);
-  const setMeetingsByClient = useMeetingStore((s) => s.setMeetingsByClient);
-
   useEffect(() => {
-    if (!clientDetail) return;
+    if (!clientDetail?.id) return;
     (async () => {
       try {
         await fetchMeetingsByClient(clientDetail.id ?? "");
@@ -129,63 +239,30 @@ const ClientOverviewPage = () => {
     return () => {
       setMeetingsByClient([]);
     };
-  }, [fetchMeetingsByClient, clientDetail, setMeetingsByClient]);
-
-  // 👇 NUEVO: Obtenemos la próxima reunión del cliente (ajustá al selector real que tengas)
-  // Si NO tenés store para esto aún, dejalo en null y el botón quedará deshabilitado.
-
-  const { nextUpcoming } = useMemo(
-    () => pickNextAndLast(meetingsByClient),
-    [meetingsByClient]
-  );
-
-  // Si tu entidad tiene otro nombre de campo, ajustá acá: .link / .meetUrl, etc.
-  const nextMeetingUrl: string | null | undefined = nextUpcoming?.link;
-  const nextMeetingStartAt: string | null | undefined = nextUpcoming?.startAt;
-
-  // 👇 NUEVO: Lógica del botón (reusable)
-  const {
-    disabled: joinDisabled,
-    join,
-    copy,
-  } = useJoinMeeting(nextMeetingUrl ?? null, {
-    onInvalidUrl: () => console.warn("Esta reunión no tiene un enlace válido."),
-    onOpenError: () => console.error("No se pudo abrir el enlace."),
-    onOpened: () => console.log("Abriendo reunión en el navegador…"),
-  });
+  }, [fetchMeetingsByClient, clientDetail?.id, setMeetingsByClient]);
 
   // Fecha legible (si hay reunión). Si no, mostramos un texto “Sin reunión”
-  const fechaLegible =
-    nextMeetingStartAt != null
-      ? (() => {
-          const d = new Date(nextMeetingStartAt);
-          const dia = new Intl.DateTimeFormat("es-ES", {
-            weekday: "long",
-          }).format(d);
-          const fecha = new Intl.DateTimeFormat("es-ES", {
-            day: "2-digit",
-            month: "short",
-          })
-            .format(d)
-            .replace(".", "");
-          const hora = new Intl.DateTimeFormat("es-ES", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }).format(d);
-          // Ej: "jueves, 28 ago. 10:30"
-          return `${dia}, ${fecha} ${hora}`;
-        })()
-      : "Sin reunión programada";
+  const fechaLegible = useMemo(() => {
+    if (!nextMeetingStartAt) return "Sin reunión programada";
+    const d = new Date(nextMeetingStartAt);
+    const dia = new Intl.DateTimeFormat("es-ES", { weekday: "long" }).format(d);
+    const fecha = new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "short",
+    })
+      .format(d)
+      .replace(".", "");
+    const hora = new Intl.DateTimeFormat("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(d);
+    return `${dia}, ${fecha} ${hora}`;
+  }, [nextMeetingStartAt]);
 
-  if (loading) return <LoadingSpinner />;
+  if (!clientDetail) return <ErrorScreen message="No se encontró el cliente" />;
 
-  if (!clientDetail)
-    return <ErrorScreen message="Ocurrió un error al mostrar el cliente" />;
-
-  return loading ? (
-    <p className="p-6 text-gray-700">Cargando cliente...</p>
-  ) : (
+  return (
     <div>
       <ItemForm isDialogOpen={isDialogOpen} setIsDialogOpen={setIsDialogOpen} />
       <EmailDialog
@@ -248,12 +325,17 @@ const ClientOverviewPage = () => {
                 <Button
                   variant="outline"
                   className="w-full h-11 font-medium border-gray-300 hover:bg-gray-50"
+                  onClick={() => setEditOpen(true)}
                 >
                   Editar cliente
                 </Button>
 
-                <Button className="w-full h-11 font-medium bg-red-500 hover:bg-red-600 text-white">
-                  Eliminar cliente
+                <Button
+                  onClick={handleRemoveClient}
+                  disabled={isDeleting}
+                  className="w-full h-11 font-medium bg-red-500 hover:bg-red-600 text-white disabled:opacity-70"
+                >
+                  {isDeleting ? "Eliminando..." : "Eliminar cliente"}
                 </Button>
               </div>
             </div>
@@ -333,12 +415,7 @@ const ClientOverviewPage = () => {
                 <ItemsSearchBar
                   items={all}
                   limit={4}
-                  onSelect={(item) => {
-                    // navegar al detalle o completar el input
-                    navigate(`/dashboard/item/${item.id}`, {
-                      state: { prevRoute: location.pathname },
-                    });
-                  }}
+                  onSelect={(item) => handleViewDetails(item)}
                 />
                 {/* <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -469,6 +546,13 @@ const ClientOverviewPage = () => {
           </CardContent>
         </Card>
       </div>
+      <ClientEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        client={clientDetail}
+        loading={isSaving}
+        onSubmit={onSubmitEdit}
+      />
     </div>
   );
 };

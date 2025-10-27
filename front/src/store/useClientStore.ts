@@ -61,6 +61,10 @@ interface ClientState {
   setClientsByLawyer: (clients: Client[]) => void;
   setClientDetail: (client: Client) => void;
 
+  //Helpers publicos
+  removeClientById: (clientId: string) => void;
+  clearClientDetail: (clientId: string) => void;
+
   // Invalidadores (útiles para forzar reload)
   invalidateAll: () => void;
   invalidateByLawyer: (lawyerId: string) => void;
@@ -184,13 +188,12 @@ export const useClientStore = create<ClientState>()((set, get) => ({
   // resolverlo desde las listas ya cargadas (ALL / BY_LAWYER).
   hydrateByDetail: async (clientId, { force = false } = {}) => {
     const s = get();
-    if (s._inFlightDetail) return; // dedupe
+    if (s._inFlightDetail) return;
 
     const fresh =
       !force && s._lastByDetailAt && Date.now() - s._lastByDetailAt < TTL_MS;
     if (fresh && s.isHydratedDetail && s.clientDetail?.id === clientId) return;
 
-    // Mostrar "loading" en primera carga y "refreshing" si ya hay data
     if (s.isHydratedDetail && s.clientDetail?.id === clientId) {
       set({
         isRefreshingDetail: true,
@@ -198,11 +201,7 @@ export const useClientStore = create<ClientState>()((set, get) => ({
         _inFlightDetail: true,
       });
     } else {
-      set({
-        isLoadingDetail: true,
-        errorDetail: null,
-        _inFlightDetail: true,
-      });
+      set({ isLoadingDetail: true, errorDetail: null, _inFlightDetail: true });
     }
 
     try {
@@ -216,19 +215,41 @@ export const useClientStore = create<ClientState>()((set, get) => ({
         const fromByLawyer = get().clientsByLawyer?.find(
           (c) => c.id === clientId
         );
-        if (fromByLawyer) get().setClientDetail(fromByLawyer);
-        else
+        if (fromByLawyer) {
+          get().setClientDetail(fromByLawyer);
+        } else {
           set({
             clientDetail: null,
             isHydratedDetail: false,
             errorDetail:
               "Cliente no encontrado en cache. Habilitá getClientById para traerlo del servidor.",
           });
+        }
+        if (!fromAll && !fromByLawyer) {
+          // opcional: intentar hidratar por abogado y reintentar
+          const lawyerId = useLawyerStore.getState().lawyer?.id;
+          if (
+            lawyerId &&
+            !get().isHydratedByLawyer &&
+            !get()._inFlightByLawyer
+          ) {
+            await get().hydrateByLawyer(lawyerId, { force: false });
+            const retry = get().clientsByLawyer?.find((c) => c.id === clientId);
+            if (retry) get().setClientDetail(retry);
+          }
+        }
       }
     } catch (e: any) {
       set({
         errorDetail: e?.message ?? "No se pudo cargar el cliente.",
         isHydratedDetail: false,
+      });
+    } finally {
+      // 🔥 sin esto te queda clavado el spinner
+      set({
+        isLoadingDetail: false,
+        isRefreshingDetail: false,
+        _inFlightDetail: false,
       });
     }
   },
@@ -258,6 +279,19 @@ export const useClientStore = create<ClientState>()((set, get) => ({
       errorDetail: null,
       _lastByDetailAt: Date.now(),
     }),
+
+  // ======================== HELPERS =======================
+  removeClientById: (id: string) =>
+    set((s) => ({
+      clientsAll: s.clientsAll.filter((c) => String(c.id) !== String(id)),
+      clientsByLawyer: s.clientsByLawyer
+        ? s.clientsByLawyer.filter((c) => String(c.id) !== String(id))
+        : s.clientsByLawyer,
+    })),
+
+  clearClientDetail: (clientId: string) => {
+    set((s) => (s.clientDetail?.id === clientId ? { clientDetail: null } : {}));
+  },
 
   // ======================== INVALIDADORES =======================
   // Dejan el TTL vencido para que el próximo hydrate haga fetch real.
