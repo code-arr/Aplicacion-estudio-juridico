@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { Lawyer } from '../entities/lawyer.entity';
 import { AbogadoService } from '../services/abogado.service';
 import { UpdateLawyerDto } from 'src/dtos/updateLawyer.dto';
@@ -14,7 +14,7 @@ export class AbogadoController {
   async seedAbogadosClientes() {
     return this.abogadoService.seedClienteAbogados();
   }
-  @Post('deleteClient/:clientId')
+  @Delete('deleteClient/:clientId')
   async deleteClientFromLawyer(
     @Query('lawyerId') lawyerId: string,
     @Param('clientId') clientId: string,
