@@ -14,7 +14,7 @@ export class AbogadoController {
   async seedAbogadosClientes() {
     return this.abogadoService.seedClienteAbogados();
   }
-  @Delete('deleteClient/:clientId')
+  @Put('deleteClient/:clientId')
   async deleteClientFromLawyer(
     @Query('lawyerId') lawyerId: string,
     @Param('clientId') clientId: string,
@@ -41,7 +41,7 @@ export class AbogadoController {
   async getAbogadoById(@Param('id') id: string) {
     return this.abogadoService.getAbogadoById(id);
   }
- @Put('')
+  @Put('')
   async updateLawyer(
     @Query('lawyerId') lawyerId: string,
     @Body() updateData: UpdateLawyerDto,

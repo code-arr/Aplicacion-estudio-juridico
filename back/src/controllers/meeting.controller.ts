@@ -54,8 +54,9 @@ export class MeetingsController {
   async updateMeeting(
     @Param('id') id: string,
     @Body() meetingData: Partial<Meeting>,
+    @Query('lawyerEmail') lawyerEmail?: string, // 👈 organizador
   ): Promise<Meeting | null> {
-    return this.meetingService.updateMeeting(id, meetingData);
+    return this.meetingService.updateMeeting(id, meetingData, lawyerEmail);
   }
 
   @Patch('cancel/:id')
