@@ -57,8 +57,8 @@ export class ClientItemService {
   async getClientItemById(id: string): Promise<ClientItem> {
     return await this.clientItemRepository.getClientItemById(id);
   }
-  async getByClientId(clientId: string): Promise<ClientItem[]> {
-    return this.clientItemRepository.getByClientId(clientId);
+  async getByClientId(clientId: string , lawyerId : string): Promise<ClientItem[]> {
+    return this.clientItemRepository.getByClientId(clientId , lawyerId);
   }
   async updateClientItem(
     clientItemId: string,

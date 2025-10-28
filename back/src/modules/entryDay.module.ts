@@ -8,12 +8,24 @@ import { ClienteModule } from './cliente.module';
 import { Client } from 'src/entities/client.entity';
 import { clientItemModule } from './clientItem.module';
 import { ClientItem } from 'src/entities/clientItem.entity';
+import { Document } from 'src/entities/document.entity';
+import { Audience } from 'src/entities/audience.entity';
+import { Meeting } from 'src/entities/meeting.entity';
+import { Process } from 'src/entities/process.entity';
+import { ProcessModule } from './process.module';
+import { ReportsModule } from 'src/reports/reports.module';
+import { Lawyer } from 'src/entities/lawyer.entity';
+import { AbogadoModule } from './abogado.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([EntryDay, Client, ClientItem]),
+    TypeOrmModule.forFeature([EntryDay, Client, ClientItem , Document , Audience , Meeting , Process , Lawyer]),
     ClienteModule,
     clientItemModule,
+    ProcessModule,
+    ProcessModule,
+    AbogadoModule
+    
   ],
   controllers: [EntryDayController],
   providers: [EntryDayService, EntryDayRepository],

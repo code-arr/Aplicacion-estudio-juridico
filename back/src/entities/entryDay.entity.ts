@@ -6,7 +6,9 @@ import {
   OneToMany,
   ManyToOne,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
+import { ClientItem } from './clientItem.entity';
 
 @Entity('EntryDay')
 export class EntryDay {
@@ -35,6 +37,9 @@ export class EntryDay {
   @Column('uuid', { nullable: true })
   clientItemId: string;
 
+  @ManyToOne(() => ClientItem, (item) => item.entries)
+  @JoinColumn({ name: 'clientItemId' }) // <-- Usa tu columna existente como referencia
+  public clientItem: ClientItem;
   @Column()
   type: string;
 

@@ -36,15 +36,16 @@ export class ClientItemController {
   }
 
   @Get('getById/:id')
-  async getClientItemById(@Param('id') id: string): Promise<any> {
+  async getClientItemById(@Param('id') id: string ): Promise<any> {
     return this.ClientItemService.getClientItemById(id);
   }
 
   @Get('getByClientId/:clientId')
   async getClientItemsByClientId(
     @Param('clientId') clientId: string,
+    @Query("lawyerId") lawyerId : string
   ): Promise<any> {
-    return this.ClientItemService.getByClientId(clientId);
+    return this.ClientItemService.getByClientId(clientId , lawyerId);
   }
 
   @Get('getByLawyerId/:lawyerId')

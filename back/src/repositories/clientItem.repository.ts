@@ -9,7 +9,7 @@ import { ClientItemDto } from '../dtos/clientItem.dto';
 import { ClientItem } from '../entities/clientItem.entity';
 import { ClienteService } from '../services/cliente.service';
 import { ItemTypeService } from '../services/itemType.service';
-import { DataSource, Repository } from 'typeorm';
+import { Brackets, DataSource, Repository } from 'typeorm';
 import { AbogadoRepository } from './lawyer.repository';
 import {
   ArbitrajesEnCursoClientItems,
@@ -181,8 +181,27 @@ export class ClientItemRepository implements OnModuleInit {
     return await this.clientItemRepository.save(newClientItem);
   }
 
-  async getByClientId(clientId: string): Promise<any[]> {
-    const rows = await this.clientItemRepository
+  async getByClientId(clientId: string, lawyerId?: string): Promise<any[]> {
+    console.log('🟦 [getByClientId] Inicio');
+    console.log('➡️ clientId:', clientId);
+    console.log('➡️ lawyerId:', lawyerId ?? '⚠️ No se envió abogado');
+    console.log(lawyerId);
+
+    // 🔍 1️⃣ Diagnosticamos los clientItems del cliente antes del filtro
+    const allItems = await this.clientItemRepository
+      .createQueryBuilder('ci')
+      .leftJoin('ci.lawyer', 'lawyer')
+      .select([
+        'ci.id AS id',
+        'ci.title AS title',
+        'ci.isPrivate AS isPrivate',
+        'lawyer.id AS lawyerId',
+      ])
+      .where('ci.client = :clientId', { clientId })
+      .getRawMany();
+
+    // 🔍 2️⃣ Query principal con el filtro
+    const queryBuilder = this.clientItemRepository
       .createQueryBuilder('clientItem')
       .leftJoin('clientItem.itemType', 'itemType')
       .leftJoin('clientItem.client', 'client')
@@ -197,6 +216,7 @@ export class ClientItemRepository implements OnModuleInit {
         'clientItem.createdAt AS createdAt',
         'clientItem.updatedAt AS updatedAt',
         'clientItem.activeTime AS activeTime',
+        'clientItem.isPrivate AS isPrivate',
       ])
       .addSelect('itemType.id', 'itemTypeId')
       .addSelect('client.id', 'clientId')
@@ -205,10 +225,25 @@ export class ClientItemRepository implements OnModuleInit {
       .addSelect('category.id', 'categoryId')
       .addSelect('section.id', 'sectionId')
       .addSelect('documents.id', 'documentId')
-      .where('client.id = :clientId', { clientId }) // 🔹 filtro por client
-      .getRawMany();
+      .where('client.id = :clientId', { clientId });
 
-    // 🔹 Agrupamos para evitar duplicados
+    if (lawyerId) {
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.where('clientItem.isPrivate = false');
+          qb.orWhere(
+            '(clientItem.isPrivate = true AND lawyer.id = :lawyerId)',
+            { lawyerId },
+          );
+        }),
+      );
+    } else {
+      queryBuilder.andWhere('clientItem.isPrivate = false');
+    }
+
+    const rows = await queryBuilder.getRawMany();
+
+    // 🔹 3️⃣ Agrupamos resultados
     const result = Object.values(
       rows.reduce((acc, row) => {
         if (!acc[row.id]) {
@@ -219,6 +254,7 @@ export class ClientItemRepository implements OnModuleInit {
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             activeTime: row.activeTime,
+            isPrivate: row.isPrivate,
             itemTypeId: row.itemTypeId,
             clientId: row.clientId,
             lawyerId: row.lawyerId,
@@ -526,7 +562,6 @@ export class ClientItemRepository implements OnModuleInit {
       Object.assign(clientItem, updateData);
 
       const updated = await manager.getRepository(ClientItem).save(clientItem);
-
 
       // TOCAR padre usando el manager
       if (clientItem.client?.id) {

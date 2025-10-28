@@ -2,9 +2,14 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { groupEnd } from 'console';
 import { CreateTimeEntryDto } from 'src/dtos/timeEntry.dto';
+import { Audience } from 'src/entities/audience.entity';
 import { Client, Currency } from 'src/entities/client.entity';
 import { ClientItem, status as CIStatus } from 'src/entities/clientItem.entity';
+import { Document } from 'src/entities/document.entity';
 import { EntryDay } from 'src/entities/entryDay.entity';
+import { Lawyer } from 'src/entities/lawyer.entity';
+import { Meeting } from 'src/entities/meeting.entity';
+import { Process } from 'src/entities/process.entity';
 import { Between, In, Repository } from 'typeorm';
 
 type CostSummaryInput = {
@@ -25,6 +30,27 @@ function yearBounds(y: number) {
   return { start: `${y}-01-01`, end: `${y}-12-31` };
 }
 
+interface TaskDetail {
+  day: string;
+  durationSec: number;
+  type: string;
+  description: string;
+  trackableId: string | null;
+  lawyerId: string;
+  lawyerName: string; // ¡Nuevo! Nombre completo del abogado
+}
+
+/**
+ * Estructura agrupada final por caso/proyecto (ClientItem)
+ */
+export type GroupedClientDetail = {
+  clientItemId: string | null;
+  clientName: string | null;
+  totalByMonth: number; // Total de horas del caso en el mes
+  types: Record<string, number>; // Horas agrupadas por tipo (Process, Meeting, etc.)
+  tasks: TaskDetail[]; // Lista de tareas granulares
+};
+
 @Injectable()
 export class EntryDayRepository {
   constructor(
@@ -34,46 +60,153 @@ export class EntryDayRepository {
     private clientRepo: Repository<Client>,
     @InjectRepository(ClientItem)
     private clientItemRepo: Repository<ClientItem>,
+    @InjectRepository(Process)
+    private ProcessRepo: Repository<Process>,
+    @InjectRepository(Meeting)
+    private MeetingRepo: Repository<Meeting>,
+    @InjectRepository(Document)
+    private DocumentRepo: Repository<Document>,
+    @InjectRepository(Audience)
+    private AudienceRepo: Repository<Audience>,
+    @InjectRepository(Lawyer)
+    private LawyerRepo : Repository<Lawyer>
   ) {}
 
   async createEntryDay(entryDay: Partial<EntryDay>): Promise<EntryDay> {
     const entity = this.repo.create(entryDay);
     return this.repo.save(entity);
   }
-  async getClientDetailByMonth(lawyerId: string, month: number, year: number) {
+  private async getDetailedTaskData(entry: EntryDay) {
+    let detailedEntry: any = null;
+    let description: string = 'Otras tareas / Sin clasificación detallada';
+    const trackableId = (entry as any).trackableId; // Asumiendo que trackableId existe en EntryDay
+
+    if (!trackableId) {
+      // Las entradas sin trackableId generalmente son 'Extras' o tareas sin un objeto asociado
+      return {
+        description: 'Extras / Tareas sin objeto asociado',
+        trackableId: null,
+      };
+    }
+
+    // Se asume la existencia de propiedades como 'description', 'subject', 'name' o 'title'
+    switch (entry.type) {
+      case 'Process':
+        detailedEntry = await this.ProcessRepo.findOne({
+          where: { id: trackableId },
+        });
+        description =
+          detailedEntry?.description || detailedEntry?.name || 'Trámite legal';
+        break;
+      case 'Meeting':
+        detailedEntry = await this.MeetingRepo.findOne({
+          where: { id: trackableId },
+        });
+        description =
+          detailedEntry?.subject || detailedEntry?.title || 'Reunión/Consulta';
+        break;
+      case 'Document':
+        detailedEntry = await this.DocumentRepo.findOne({
+          where: { id: trackableId },
+        });
+        description =
+          detailedEntry?.name || detailedEntry?.fileName || 'Documento legal';
+        break;
+      case 'Audience':
+        detailedEntry = await this.AudienceRepo.findOne({
+          where: { id: trackableId },
+        });
+        description =
+          detailedEntry?.summary ||
+          detailedEntry?.title ||
+          'Audiencia/Revisión';
+        break;
+      default:
+        // Si el tipo existe pero no tiene un repositorio dedicado, se usa la descripción genérica
+        break;
+    }
+
+    return { description, trackableId };
+  }
+  async getClientDetailByMonth(
+    lawyerId: string, // Mantenido, pero se asume que se trae data de MÁS abogados
+    month: number,
+    year: number,
+  ): Promise<GroupedClientDetail[]> {
     if (!lawyerId || !month || !year) {
       throw new Error('lawyerId, month and year are required');
     }
 
-    // Paso 1: Traer todas las entries del mes y año indicados
+    // Paso 1: Traer todas las entries del mes y año indicados (SIN FILTRO DE lawyerId por defecto)
     const entries = await this.repo.find({
       where: {
-        lawyerId,
+        // Si necesitas filtrar por el lawyerId que se pasa:
+        // lawyerId: lawyerId,
         day: Between(
-          new Date(year, month - 1, 1).toISOString().split('T')[0], // primer día del mes
-          new Date(year, month, 0).toISOString().split('T')[0], // último día del mes
+          new Date(year, month - 1, 1).toISOString().split('T')[0],
+          new Date(year, month, 0).toISOString().split('T')[0],
         ),
       },
+      // Asegúrate de seleccionar el lawyerId
+      select: [
+        'id',
+        'day',
+        'durationSec',
+        'type',
+        'clientItemId',
+        'trackableId',
+        'lawyerId',
+      ],
     });
 
+    // 2. Obtener los IDs de todos los abogados únicos
+    const lawyerIds = [...new Set(entries.map((e) => e.lawyerId))].filter(
+      (id) => id,
+    );
+
+    // 3. Traer los nombres de todos los abogados en UNA sola consulta
+    const lawyers = await this.LawyerRepo.find({
+      where: { id: In(lawyerIds) },
+      select: ['id', 'firstName', 'lastName'],
+    });
+
+    // 4. Crear un caché de nombres: { 'lawyerId': 'Nombre Completo' }
+    const lawyerNameCache: Record<string, string> = lawyers.reduce(
+      (acc, lawyer) => {
+        const fullName = `${lawyer.firstName} ${lawyer.lastName}`.trim();
+        acc[lawyer.id] = fullName;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+
+    // Función auxiliar para formatear la fecha a YYYY-MM-DD
+    const entryDayDate = (entry: EntryDay) =>
+      (entry.day as any) instanceof Date
+        ? entry.day.split('T')[0]
+        : String(entry.day);
+
     // Paso 2: Crear un mapa por clientItemId
-    const grouped: Record<
-      string,
-      {
-        clientItemId: string | null;
-        clientName: string | null;
-        totalByMonth: number; // en horas
-        types: Record<string, number>; // en horas
-      }
-    > = {};
+    const grouped: Record<string, GroupedClientDetail> = {};
 
-    for (const entry of entries) {
-      // Ignorar entries que no tienen clientItem y son tipo Client
+    // Obtener descripciones detalladas de la tarea y adjuntar el nombre del abogado
+    const entriesWithDetails = await Promise.all(
+      entries.map(async (entry) => {
+        const detail = await this.getDetailedTaskData(entry);
+        const name = lawyerNameCache[entry.lawyerId] || 'Abogado Desconocido';
+        return {
+          ...entry,
+          detailDescription: detail.description,
+          lawyerName: name, // Adjuntamos el nombre
+        };
+      }),
+    );
 
+    for (const entry of entriesWithDetails) {
       const key = entry.clientItemId ?? 'no-clientItem';
 
       if (!grouped[key]) {
-        // Traer nombre del clientItem si existe
+        // Traer nombre del clientItem si existe (Lógica original)
         let clientName: string | null = null;
         if (entry.clientItemId) {
           const item = await this.clientItemRepo.findOne({
@@ -82,28 +215,38 @@ export class EntryDayRepository {
           });
           clientName = item?.title ?? null;
         }
+
         grouped[key] = {
           clientItemId: entry.clientItemId ?? null,
           clientName,
           totalByMonth: 0,
           types: {},
+          tasks: [],
         };
       }
 
-      // Sumar al total del mes en horas
+      // 1. Sumar al total del mes en horas y tipos (código original)
       grouped[key].totalByMonth += entry.durationSec / 3600;
-
-      // Sumar al tipo específico en horas
       if (!grouped[key].types[entry.type]) {
         grouped[key].types[entry.type] = 0;
       }
       grouped[key].types[entry.type] += entry.durationSec / 3600;
+
+      // 2. Almacenar el detalle granular de la tarea CON INFO DEL ABOGADO
+      grouped[key].tasks.push({
+        day: entryDayDate(entry),
+        durationSec: entry.durationSec,
+        type: entry.type,
+        description: entry.detailDescription,
+        trackableId: entry.trackableId ?? null,
+        lawyerId: entry.lawyerId,
+        lawyerName: entry.lawyerName, // Usamos el nombre adjuntado
+      } as TaskDetail);
     }
 
-    // Convertir el mapa a array
+    // Paso 3: Convertir el mapa a array
     return Object.values(grouped);
   }
-
   async updateEntryDay(timeEntries: CreateTimeEntryDto[]): Promise<EntryDay[]> {
     const updatedEntryDays: EntryDay[] = [];
 
@@ -113,18 +256,23 @@ export class EntryDayRepository {
         ? new Date(entry.dayKey).toISOString().slice(0, 10)
         : new Date().toISOString().slice(0, 10);
 
-      // 2) Buscar por (trackableId, day)
+      // 2) Buscar por (trackableId, day, lawyerId) <--- 🛑 ¡CAMBIO CLAVE!
+      // Solo buscamos la entrada existente de ESTE abogado para ESTA tarea/día.
       const existing = await this.repo.findOne({
-        where: { trackableId: entry.trackableId, day: dayKey },
+        where: {
+          trackableId: entry.trackableId,
+          day: dayKey,
+          lawyerId: entry.lawyerId, // <--- Se añade lawyerId a la condición
+        },
       });
 
-      // 3) Crear si no existe
+      // 3) Crear si no existe (Esto incluye si la tarea/día existe, pero es de otro abogado)
       if (!existing) {
         const newEntryDay = this.repo.create({
           day: dayKey, // <-- string "YYYY-MM-DD"
           durationSec: entry.durationSec,
           trackableId: entry.trackableId,
-          lawyerId: entry.lawyerId,
+          lawyerId: entry.lawyerId, // El ID del nuevo abogado se almacena
           type: entry.trackableType,
           clientId: entry.clientId,
           clientItemId: entry.clientItemId,
@@ -141,8 +289,9 @@ export class EntryDayRepository {
         );
 
         // log útil
-        console.log('🟢 create EntryDay', {
+        console.log('🟢 create EntryDay (Nuevo Abogado o Nueva Tarea)', {
           trackableId: entry.trackableId,
+          lawyerId: entry.lawyerId,
           day: dayKey,
           durationSec: entry.durationSec,
           type: entry.trackableType,
@@ -156,8 +305,15 @@ export class EntryDayRepository {
         throw new Error('Trackable type mismatch');
       }
 
-      // 5) Mismo (trackableId, day) → acumular
+      // 5) Mismo (trackableId, day, lawyerId) → acumular <--- 🛑 ¡IMPLÍCITO!
+      // Si llegamos aquí, 'existing' pertenece al mismo abogado, por lo que ACUMULAMOS.
       existing.durationSec += entry.durationSec;
+
+      // Opcional: Si el `clientItemId` es más específico en la nueva entrada, podrías actualizarlo aquí
+      if (entry.clientItemId && existing.clientItemId !== entry.clientItemId) {
+        existing.clientItemId = entry.clientItemId;
+      }
+
       const saved = await this.repo.save(existing);
       updatedEntryDays.push(saved);
 
@@ -168,8 +324,9 @@ export class EntryDayRepository {
         entry.durationSec,
       );
 
-      console.log('🟡 update EntryDay (same day)', {
+      console.log('🟡 update EntryDay (Mismo Abogado)', {
         trackableId: entry.trackableId,
+        lawyerId: entry.lawyerId,
         day: dayKey,
         addedSec: entry.durationSec,
         newTotalSec: saved.durationSec,
@@ -178,7 +335,6 @@ export class EntryDayRepository {
 
     return updatedEntryDays;
   }
-
   async getByClientId(clientId: string, lawyerId: string) {
     const entryDays = await this.repo.find({ where: { clientId, lawyerId } });
     let totalDocumentTime = 0;

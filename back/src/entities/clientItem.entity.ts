@@ -21,6 +21,7 @@ import { Meeting } from './meeting.entity';
 import { Category } from './category.entity';
 import { Section } from './section.entity';
 import * as moment from 'moment-timezone';
+import { EntryDay } from './entryDay.entity';
 
 export enum status {
   OPEN = 'open',
@@ -45,6 +46,9 @@ export class ClientItem {
 
   @Column({ type: 'int', default: 0 })
   activeTime: number;
+
+  @Column({ type: 'boolean', default: false })
+  isPrivate: Boolean;
 
   @Column({ type: 'timestamptz', nullable: true })
   closedAt: Date | null;
@@ -81,4 +85,7 @@ export class ClientItem {
 
   @ManyToOne(() => Section, (section) => section.clientItems)
   section: Section;
+
+  @OneToMany(() => EntryDay, (entry) => entry.clientItem) // 'entry.clientItem' debe coincidir con el nombre de la propiedad en EntryDay
+  public entries: EntryDay[];
 }

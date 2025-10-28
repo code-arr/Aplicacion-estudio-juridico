@@ -32,20 +32,21 @@ export class ReportsController {
     @Query('month') monthStr?: string,
     @Query('logoUrl') logoUrl?: string,
   ) {
-    // Validaciones mínimas
     if (!lawyerId || !clientId) {
       throw new BadRequestException('lawyerId y clientId son requeridos');
     }
+
     const year = Number(yearStr);
     if (!year || Number.isNaN(year) || year < 2000 || year > 2100) {
       throw new BadRequestException('year inválido o faltante');
     }
+
     const month = monthStr ? Number(monthStr) : undefined;
     if (month != null && (month < 1 || month > 12)) {
       throw new BadRequestException('month debe estar entre 1 y 12');
     }
 
-    // construir el stream del PDF
+    // construimos el PDF
     const { filename, doc } = await this.reports.buildClientCostSummaryPdf({
       lawyerId,
       clientId,
@@ -56,6 +57,6 @@ export class ReportsController {
 
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     doc.pipe(res);
-    doc.end(); // cerrar el stream
+    doc.end();
   }
 }
