@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import PDFDocument = require('pdfkit'); // ✅ CommonJS import correcto
+import PDFDocument = require('pdfkit');
 import axios from 'axios';
 import { Repository } from 'typeorm';
 
@@ -22,21 +26,27 @@ type BuildOpts = {
 export class ReportsService {
   constructor(
     private readonly entryRepo: EntryDayRepository,
+
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,
+
     @InjectRepository(ClientItem)
     private readonly itemRepo: Repository<ClientItem>,
+
     @InjectRepository(Lawyer)
     private readonly lawyerRepo: Repository<Lawyer>,
+
     @InjectRepository(EntryDay)
     private readonly entryDayRepo: Repository<EntryDay>,
   ) {}
 
-  /** Punto único para generar el PDF y el nombre de archivo */
+  /** -----------------------------------------
+   * Generación del PDF
+   * ---------------------------------------- */
   async buildClientCostSummaryPdf(opts: BuildOpts) {
     const { lawyerId, clientId, year, month, logoUrl } = opts;
 
-    // Datos base
+    // === Datos base ===
     const [client, lawyer] = await Promise.all([
       this.clientRepo.findOne({
         where: { id: clientId },
@@ -61,20 +71,47 @@ export class ReportsService {
     ]);
 
     if (!client) throw new NotFoundException('Cliente no encontrado');
+    if (!month) throw new Error('month is required');
 
-    // Resumen de costos
-    const summary = await this.entryRepo.getCostSummary({
+    // === Obtener detalle mensual usando la nueva función ===
+    const clientEntriesObj = await this.entryRepo.getClientDetailByMonth(
       lawyerId,
-      clientId,
+      Number(month),
       year,
-      month,
-    });
+    );
 
-    // Conteo general de casos
+    // Convertir a array para iterar
+    const clientItems = Object.values(clientEntriesObj);
+
+    // Sumar total de horas del mes
+    const totalMonthHours = clientItems.reduce(
+      (sum, e) => sum + (e.totalByMonth ?? 0),
+      0,
+    );
+
+    // Agrupar horas por tipo de todo el mes
+    const totalByType: Record<string, number> = {};
+    for (const entry of clientItems) {
+      for (const [type, hours] of Object.entries(entry.types)) {
+        totalByType[type] = (totalByType[type] ?? 0) + hours;
+      }
+    }
+
+    // Objeto final para usar en el PDF
+    const monthlyDetail = {
+      month: totalMonthHours,
+      totalByType,
+    };
+
+    const rate = Number(client.hourlyRate) || 0;
+    const currency = client.currency ?? Currency.CLP;
+    const totalEstimated = rate ? monthlyDetail.month * rate : 0;
+
+    // === Resumen ejecutivo y datos de pago ===
     const [totalCases, openCases, closedCases] =
       await this.getVeryLightCasesStats(clientId);
 
-    // Documento PDF
+    // === Documento PDF ===
     const doc = new PDFDocument({
       size: 'A4',
       margin: 56,
@@ -88,30 +125,30 @@ export class ReportsService {
     const pageWidth =
       doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
-    // Header con logo y fecha
+    // === Encabezado ===
     await this.drawHeader(doc, logoUrl);
-    doc.x = doc.page.margins.left; // fuerza que lo que venga vaya desde la izquierda
+    doc.x = doc.page.margins.left;
 
-    // Título principal
+    // === Título ===
     doc.moveDown(1);
     doc.font(this.fontBold()).fontSize(18).text('Resumen de Honorarios', {
-      align: 'left',
+      align: 'center',
       width: pageWidth,
     });
 
-    // Periodo
+    // === Periodo ===
     doc
       .moveDown(0.3)
       .font(this.fontRegular())
       .fontSize(11)
       .fillColor('#64748b')
       .text(this.periodoLabel(year, month), {
-        align: 'left',
+        align: 'center',
         width: pageWidth,
       })
       .fillColor('#0f172a');
 
-    // Datos del cliente
+    // === Datos del cliente ===
     doc.moveDown(1);
     this.drawSectionTitle(doc, 'Datos del cliente', pageWidth);
     this.kv(
@@ -125,7 +162,7 @@ export class ReportsService {
     if (client.phone) this.kv(doc, 'Teléfono', client.phone, pageWidth);
     if (client.address) this.kv(doc, 'Dirección', client.address, pageWidth);
 
-    // Responsable (abogado)
+    // === Responsable (abogado) ===
     if (lawyer) {
       doc.moveDown(0.6);
       this.drawSectionTitle(doc, 'Responsable', pageWidth);
@@ -137,24 +174,9 @@ export class ReportsService {
       );
     }
 
-    // Resumen ejecutivo
+    // === Resumen ejecutivo ===
     doc.moveDown(1);
     this.drawSectionTitle(doc, 'Resumen ejecutivo', pageWidth);
-    if (!opts.month) throw new Error('month is required');
-
-    const hrs = await this.entryRepo.getTotalHoursByMonth(
-      opts.lawyerId,
-      opts.clientId,
-      opts.month,
-      opts.year,
-    );
-
-    const rate = summary.pricing.hourlyRate;
-    const currency =
-      summary.pricing.currency ?? client.currency ?? Currency.CLP;
-
-    // Total estimado
-    const totalEstimated = rate ? hrs * rate : 0;
 
     if (rate)
       this.kv(
@@ -163,30 +185,86 @@ export class ReportsService {
         this.formatMoney(rate, currency),
         pageWidth,
       );
-    this.kv(doc, 'Horas registradas', `${hrs} h`, pageWidth);
+
     this.kv(
       doc,
-      'Casos del cliente (total/abiertos/cerrados)',
+      'Horas registradas',
+      `${monthlyDetail.month.toFixed(1)} h`,
+      pageWidth,
+    );
+    this.kv(
+      doc,
+      'Casos del cliente (total / abiertos / cerrados)',
       `${totalCases} / ${openCases} / ${closedCases}`,
       pageWidth,
     );
 
-    // Total a cobrar: horas * tarifa con abreviatura de moneda
-    doc.moveDown(0.6);
+    // === Detalle mensual centrado por ClientItem ===
+    if (clientItems.length) {
+      console.log(clientItems, 'clientITEMS');
+
+      doc.moveDown(0.8);
+      this.drawSectionTitle(doc, 'Detalle de horas por caso', pageWidth);
+
+      for (const item of clientItems) {
+        const isExtras = !item.clientName; // true si es Extras
+        const itemName = isExtras
+          ? 'Extras (ordenar documentos, tareas varias)'
+          : item.clientName;
+        const itemTotal = Object.values(item.types).reduce((a, b) => a + b, 0);
+        const totalEstimated = rate ? itemTotal * rate : 0;
+
+        doc
+          .font(this.fontBold())
+          .fontSize(11)
+          .text(
+            `${itemName} - Total: ${itemTotal.toFixed(1)} h, Total: ${this.formatMoney(
+              totalEstimated,
+              currency,
+            )}`,
+          );
+
+        // Solo mostrar detalle si no es Extras
+        if (!isExtras) {
+          const typeLabels: Record<string, string> = {
+            Process: 'Trámites legales / Gestiones',
+            Meeting: 'Reuniones / Consultas',
+            Audience: 'Audiencias y revisiones',
+            Document: 'Documentación legal / Redacción y revisión',
+          };
+
+          const orderedTypes = ['Process', 'Meeting', 'Audience', 'Document'];
+
+          for (const type of orderedTypes) {
+            const hours = item.types[type] ?? 0;
+            doc
+              .font(this.fontRegular())
+              .fontSize(10)
+              .text(`${typeLabels[type]}: ${hours.toFixed(1)} h`);
+          }
+        }
+
+        doc.moveDown(0.4);
+      }
+    }
+
+    // === Total a cobrar ===
+    doc.moveDown(0.8);
     doc
       .font(this.fontBold())
       .fontSize(14)
       .fillColor('#0f172a')
       .text('Total estimado a facturar', {
-        continued: true,
-        width: pageWidth,
+        align: 'center',
       })
-      .text(
-        `: ${this.formatMoney(totalEstimated, currency, { noSymbol: true })}`,
-        { width: pageWidth },
-      );
+      .moveDown(0.2)
+      .font(this.fontRegular())
+      .fontSize(12)
+      .text(`${this.formatMoney(totalEstimated, currency)}`, {
+        align: 'center',
+      });
 
-    // Notas / aclaraciones
+    // === Notas ===
     doc.moveDown(1.2);
     this.drawSectionTitle(doc, 'Notas', pageWidth);
 
@@ -198,15 +276,15 @@ export class ReportsService {
 
     const bulletX = doc.page.margins.left + 4;
     doc.font(this.fontRegular()).fontSize(10).fillColor('#334155');
+
     notas.forEach((n) => {
       doc.circle(bulletX, doc.y + 6, 1.5).fill('#334155');
       doc
         .text(n, bulletX + 8, doc.y, { align: 'left', width: pageWidth - 16 })
         .moveDown(0.2);
     });
-    doc.fillColor('#0f172a');
 
-    // Footer con numeración
+    // === Footer ===
     this.decorateFooter(doc);
 
     const filename = this.buildFilename(client, year, month);
@@ -214,7 +292,7 @@ export class ReportsService {
   }
 
   /** -----------------------------------------
-   * Helpers de composición / estilo PDF
+   * Helpers visuales
    * ---------------------------------------- */
 
   private async drawHeader(doc: PDFDocument, logoUrl?: string) {
@@ -222,17 +300,17 @@ export class ReportsService {
     const marginRight = doc.page.margins.right;
     const y0 = doc.y;
 
-    // Logo a la izquierda
+    // Logo
     if (logoUrl) {
       try {
         const res = await axios.get<ArrayBuffer>(logoUrl, {
           responseType: 'arraybuffer',
         });
         doc.image(Buffer.from(res.data), marginLeft, y0, { width: 120 });
-      } catch (e) {}
+      } catch {}
     }
 
-    // Fecha a la derecha
+    // Fecha
     const fechaWidth = 160;
     const rightX = doc.page.width - marginRight - fechaWidth;
     doc
@@ -263,6 +341,7 @@ export class ReportsService {
       .fontSize(12)
       .fillColor('#0f172a')
       .text(title, {
+        align: 'left',
         width:
           width ??
           doc.page.width - doc.page.margins.left - doc.page.margins.right,
@@ -274,6 +353,7 @@ export class ReportsService {
     const margin = doc.page.margins.left;
     const contentWidth =
       width ?? doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
     doc
       .font(this.fontRegular())
       .fontSize(10.5)
@@ -286,8 +366,10 @@ export class ReportsService {
 
   private decorateFooter(doc: PDFDocument) {
     const range = doc.bufferedPageRange();
+
     for (let i = range.start; i < range.start + range.count; i++) {
       doc.switchToPage(i);
+
       const footerY = 842 - 40;
       doc
         .strokeColor('#e2e8f0')
@@ -295,6 +377,7 @@ export class ReportsService {
         .moveTo(56, footerY - 12)
         .lineTo(595 - 56, footerY - 12)
         .stroke();
+
       doc
         .font(this.fontRegular())
         .fontSize(9)
@@ -307,7 +390,7 @@ export class ReportsService {
   }
 
   /** -----------------------------------------
-   * Helpers de datos / formato
+   * Helpers de datos y formato
    * ---------------------------------------- */
 
   private async getVeryLightCasesStats(clientId: string) {
@@ -315,17 +398,20 @@ export class ReportsService {
       where: { client: { id: clientId } },
       select: ['status'],
     });
+
     const total = rows.length;
     const closed = rows.filter(
-      (r: any) => r.status === 'closed' || r.status === 'CLOSED',
+      (r) => String(r.status).toLowerCase() === 'closed',
     ).length;
     const open = total - closed;
+
     return [total, open, closed] as const;
   }
 
   private periodoLabel(year: number, month?: number) {
-    if (!month) return `Periodo: ${year} (enero a diciembre)`;
-    return `Periodo: ${this.monthNameES(month)} ${year}`;
+    return month
+      ? `Periodo: ${this.monthNameES(month)} ${year}`
+      : `Periodo: ${year} (enero a diciembre)`;
   }
 
   private monthNameES(m: number) {
@@ -378,15 +464,13 @@ export class ReportsService {
     const cur = currency ?? Currency.CLP;
     const dec = options?.decimals ?? (cur === Currency.CLP ? 0 : 2);
 
-    if (cur === Currency.CLP) {
+    if (cur === Currency.CLP)
       return options?.noSymbol
         ? `${amount.toLocaleString('es-CL', { minimumFractionDigits: dec, maximumFractionDigits: dec })} CLP`
         : `$${amount.toLocaleString('es-CL', { minimumFractionDigits: dec, maximumFractionDigits: dec })}`;
-    }
 
-    if (cur === Currency.UF) {
+    if (cur === Currency.UF)
       return `UF ${amount.toLocaleString('es-CL', { minimumFractionDigits: dec, maximumFractionDigits: dec })}`;
-    }
 
     return `USD ${amount.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })}`;
   }
@@ -402,6 +486,7 @@ export class ReportsService {
   private fontRegular() {
     return 'Helvetica';
   }
+
   private fontBold() {
     return 'Helvetica-Bold';
   }

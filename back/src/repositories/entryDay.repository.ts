@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { groupEnd } from 'console';
 import { CreateTimeEntryDto } from 'src/dtos/timeEntry.dto';
 import { Client, Currency } from 'src/entities/client.entity';
 import { ClientItem, status as CIStatus } from 'src/entities/clientItem.entity';
@@ -39,53 +40,68 @@ export class EntryDayRepository {
     const entity = this.repo.create(entryDay);
     return this.repo.save(entity);
   }
-  async getTotalHoursByMonth(
-    lawyerId: string,
-    clientId: string,
-    month: number,
-    year: number,
-  ): Promise<number> {
-    if (!lawyerId) throw new Error('lawyerId is required');
-    if (!clientId) throw new Error('clientId is required');
-    if (!month || !year) throw new Error('month and year are required');
+  async getClientDetailByMonth(lawyerId: string, month: number, year: number) {
+    if (!lawyerId || !month || !year) {
+      throw new Error('lawyerId, month and year are required');
+    }
 
-    // Formato YYYY-MM-DD para evitar problemas de TZ
-    const start = `${year}-${month.toString().padStart(2, '0')}-01`;
-    const endDate = new Date(year, month, 0).getDate(); // último día del mes
-    const end = `${year}-${month.toString().padStart(2, '0')}-${endDate}`;
+    // Paso 1: Traer todas las entries del mes y año indicados
+    const entries = await this.repo.find({
+      where: {
+        lawyerId,
+        day: Between(
+          new Date(year, month - 1, 1).toISOString().split('T')[0], // primer día del mes
+          new Date(year, month, 0).toISOString().split('T')[0], // último día del mes
+        ),
+      },
+    });
 
-    console.log('==== DEBUG TOTAL HOURS BY MONTH ====');
-    console.log('lawyerId:', lawyerId);
-    console.log('clientId:', clientId);
-    console.log('month/year:', month, year);
-    console.log('start date:', start);
-    console.log('end date:', end);
+    // Paso 2: Crear un mapa por clientItemId
+    const grouped: Record<
+      string,
+      {
+        clientItemId: string | null;
+        clientName: string | null;
+        totalByMonth: number; // en horas
+        types: Record<string, number>; // en horas
+      }
+    > = {};
 
-    const qb = this.repo
-      .createQueryBuilder('entry')
-      .select('SUM(entry.durationSec)', 'totalTime')
-      .where('LOWER(entry."lawyerId"::text) = LOWER(:lawyerId)', { lawyerId })
-      .andWhere('LOWER(entry."clientId"::text) = LOWER(:clientId)', {
-        clientId,
-      })
-      .andWhere('entry.day BETWEEN :start AND :end', { start, end });
+    for (const entry of entries) {
+      // Ignorar entries que no tienen clientItem y son tipo Client
 
-    console.log('Generated SQL:', qb.getSql());
-    console.log('Parameters:', qb.getParameters());
+      const key = entry.clientItemId ?? 'no-clientItem';
 
-    const result = await qb.getRawOne();
+      if (!grouped[key]) {
+        // Traer nombre del clientItem si existe
+        let clientName: string | null = null;
+        if (entry.clientItemId) {
+          const item = await this.clientItemRepo.findOne({
+            where: { id: entry.clientItemId },
+            select: ['title'],
+          });
+          clientName = item?.title ?? null;
+        }
+        grouped[key] = {
+          clientItemId: entry.clientItemId ?? null,
+          clientName,
+          totalByMonth: 0,
+          types: {},
+        };
+      }
 
-    console.log('Raw result from DB:', result);
+      // Sumar al total del mes en horas
+      grouped[key].totalByMonth += entry.durationSec / 3600;
 
-    const total = result?.totalTime ? Number(result.totalTime) : 0;
-    console.log('Computed totalTime:', total);
-    console.log('====================================');
+      // Sumar al tipo específico en horas
+      if (!grouped[key].types[entry.type]) {
+        grouped[key].types[entry.type] = 0;
+      }
+      grouped[key].types[entry.type] += entry.durationSec / 3600;
+    }
 
-    const totalHours = total / 3600; // Convertir segundos a horas
-    const totalRounded = Number(totalHours.toFixed(1)); // Redondea a 1 decimal
-    console.log("total rounded " , totalRounded);
-    
-    return totalRounded;
+    // Convertir el mapa a array
+    return Object.values(grouped);
   }
 
   async updateEntryDay(timeEntries: CreateTimeEntryDto[]): Promise<EntryDay[]> {
