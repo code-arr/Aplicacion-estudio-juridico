@@ -343,6 +343,7 @@ export class ClientItemRepository implements OnModuleInit {
       relations: [
         'itemType.section',
         'documents',
+        "processes",
         'itemType.section.category',
         'category',
         'category.clientItems',

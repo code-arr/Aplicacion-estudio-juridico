@@ -612,7 +612,7 @@ export class ReportsService {
 
           // Etiqueta "Subtotal [Nombre del Proyecto]"
           doc.font(this.fontBold()).fontSize(10).fillColor('#0f172a');
-          doc.text(`Subtotal ${projectName}:`, totalLabelX, currentY, {
+          doc.text(`Subtotal `, totalLabelX, currentY, {
             width: col4X - totalLabelX - 5,
             align: 'left',
           });

@@ -69,7 +69,7 @@ export class EntryDayRepository {
     @InjectRepository(Audience)
     private AudienceRepo: Repository<Audience>,
     @InjectRepository(Lawyer)
-    private LawyerRepo : Repository<Lawyer>
+    private LawyerRepo: Repository<Lawyer>,
   ) {}
 
   async createEntryDay(entryDay: Partial<EntryDay>): Promise<EntryDay> {
@@ -79,54 +79,97 @@ export class EntryDayRepository {
   private async getDetailedTaskData(entry: EntryDay) {
     let detailedEntry: any = null;
     let description: string = 'Otras tareas / Sin clasificación detallada';
-    const trackableId = (entry as any).trackableId; // Asumiendo que trackableId existe en EntryDay
+    let isFallback = true; // 💡 Inicialmente asumimos que es un fallback
+    const trackableId = (entry as any).trackableId;
 
     if (!trackableId) {
-      // Las entradas sin trackableId generalmente son 'Extras' o tareas sin un objeto asociado
+      // Entradas sin trackableId (se consideran válidas, ej., "Extras")
       return {
         description: 'Extras / Tareas sin objeto asociado',
         trackableId: null,
+        isFallback: false, // No es un fallback por falta de ID, es una categoría válida
       };
     }
 
-    // Se asume la existencia de propiedades como 'description', 'subject', 'name' o 'title'
     switch (entry.type) {
       case 'Process':
         detailedEntry = await this.ProcessRepo.findOne({
           where: { id: trackableId },
         });
-        description =
-          detailedEntry?.description || detailedEntry?.name || 'Trámite legal';
+
+        if (
+          detailedEntry &&
+          (detailedEntry.description || detailedEntry.name)
+        ) {
+          description = detailedEntry.description || detailedEntry.name;
+          isFallback = false;
+        } else {
+          description = 'Proceso Legal (Sin detalles)'; // Fallback si no se encontró o no tiene descripción
+          isFallback = true;
+        }
         break;
+
       case 'Meeting':
         detailedEntry = await this.MeetingRepo.findOne({
           where: { id: trackableId },
         });
-        description =
-          detailedEntry?.subject || detailedEntry?.title || 'Reunión/Consulta';
+
+        if (detailedEntry && (detailedEntry.subject || detailedEntry.title)) {
+          description = detailedEntry.subject || detailedEntry.title;
+          isFallback = false;
+        } else {
+          description = 'Reunión/Consulta (Sin detalles)';
+          isFallback = true;
+        }
         break;
+
       case 'Document':
         detailedEntry = await this.DocumentRepo.findOne({
           where: { id: trackableId },
         });
-        description =
-          detailedEntry?.name || detailedEntry?.fileName || 'Documento legal';
+
+        if (detailedEntry && (detailedEntry.name || detailedEntry.fileName)) {
+          description = detailedEntry.name || detailedEntry.fileName;
+          isFallback = false;
+        } else {
+          description = 'Documento Legal (Sin detalles)';
+          isFallback = true;
+        }
         break;
+
       case 'Audience':
         detailedEntry = await this.AudienceRepo.findOne({
           where: { id: trackableId },
         });
-        description =
-          detailedEntry?.summary ||
-          detailedEntry?.title ||
-          'Audiencia/Revisión';
+
+        if (detailedEntry && (detailedEntry.summary || detailedEntry.title)) {
+          description = detailedEntry.summary || detailedEntry.title;
+          isFallback = false;
+        } else {
+          description = 'Audiencia/Revisión (Sin detalles)';
+          isFallback = true;
+        }
         break;
+
       default:
-        // Si el tipo existe pero no tiene un repositorio dedicado, se usa la descripción genérica
+        // Si el tipo es desconocido, mantenemos el fallback principal.
+        isFallback = false; // No es un fallback por ID, es un tipo que no rastreamos.
         break;
     }
 
-    return { description, trackableId };
+    // Seguridad: Si la descripción final es la inicial o está vacía y tiene trackableId, es un fallback.
+    if (
+      trackableId &&
+      (description === 'Otras tareas / Sin clasificación detallada' ||
+        description.trim() === '')
+    ) {
+      isFallback = true;
+    } else if (description.trim() !== '') {
+      // Si hay una descripción, aseguramos que el flag esté correcto, a menos que ya se haya marcado como true.
+      isFallback = isFallback;
+    }
+
+    return { description, trackableId, isFallback };
   }
   async getClientDetailByMonth(
     lawyerId: string, // Mantenido, pero se asume que se trae data de MÁS abogados
