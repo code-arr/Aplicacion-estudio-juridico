@@ -34,6 +34,7 @@ import { removeClient } from "@/api/lawyer";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import { updateClient } from "@/api/client";
 import ClientEditDialog from "@/components/clients/ClientEditDialog";
+import { formatClientRate } from "@/lib/money";
 
 const ClientOverviewPage = () => {
   const navigate = useNavigate();
@@ -319,6 +320,13 @@ const ClientOverviewPage = () => {
                   <p className="font-bold mb-2 text-[hsl(225,15%,15%)]">
                     {clientDetail.address}
                   </p>
+                  <p className="text-sm text-[hsl(225,10%,50%)]">Tarifa</p>
+                  <p className="font-bold mb-2 text-[hsl(225,15%,15%)]">
+                    {formatClientRate(
+                      clientDetail.currency,
+                      clientDetail.hourlyRate
+                    )}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-col gap-3 items-stretch pb-2">
@@ -330,13 +338,13 @@ const ClientOverviewPage = () => {
                   Editar cliente
                 </Button>
 
-                <Button
+                {/* <Button
                   onClick={handleRemoveClient}
                   disabled={isDeleting}
                   className="w-full h-11 font-medium bg-red-500 hover:bg-red-600 text-white disabled:opacity-70"
                 >
                   {isDeleting ? "Eliminando..." : "Eliminar cliente"}
-                </Button>
+                </Button> */}
               </div>
             </div>
 

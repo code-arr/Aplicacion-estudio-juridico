@@ -3,15 +3,16 @@ import { useEffect, useMemo, useState } from "react";
 import { getAllLawyers } from "@/api/lawyer";
 import type { Lawyer } from "@/types/Lawyer";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type Row = {
   id: string;
   fullName: string;
   rut: string;
-  email?: string; // si viene por user?.email más adelante
+  email?: string;
   phone: string;
   type: string;
-  seniorityLevel: string;
+  /* seniorityLevel?: string; */
   workedHours: number;
   updatedAt?: string;
 };
@@ -26,6 +27,10 @@ export default function AdminLawyersPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
+  // 🔸 Paginación incremental
+  const PAGE_STEP = 18;
+  const [pageSize, setPageSize] = useState(PAGE_STEP);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -38,11 +43,11 @@ export default function AdminLawyersPage() {
           id: l.id,
           fullName: fullName(l) || "—",
           rut: l.rut,
-          email: l.user?.email, // si tu back lo completa
+          email: l.user?.email ?? "—",
           phone: l.phone,
           type: l.type,
-          seniorityLevel: l.seniorityLevel,
-          workedHours: l.workedHours,
+          /* seniorityLevel: l.seniorityLevel, */
+          workedHours: l.workedHours ?? 0,
           updatedAt: l.updatedAt ?? l.createdAt,
         }));
 
@@ -63,11 +68,21 @@ export default function AdminLawyersPage() {
     const s = q.trim().toLowerCase();
     if (!s) return rows;
     return rows.filter((r) =>
-      [r.fullName, r.rut, r.email, r.phone, r.type, r.seniorityLevel]
+      [r.fullName, r.rut, r.email, r.phone, r.type /* r.seniorityLevel */]
         .filter(Boolean)
         .some((v) => (v as string).toLowerCase().includes(s))
     );
   }, [q, rows]);
+
+  const total = filtered.length;
+  const visible = useMemo(
+    () => filtered.slice(0, pageSize),
+    [filtered, pageSize]
+  );
+
+  useEffect(() => {
+    setPageSize(PAGE_STEP);
+  }, [q]);
 
   return (
     <div className="p-6 space-y-4">
@@ -120,22 +135,20 @@ export default function AdminLawyersPage() {
                 </td>
               </tr>
             ) : (
-              filtered.map((r) => (
+              visible.map((r) => (
                 <tr
                   key={r.id}
                   className="border-t border-[#e5e7eb] hover:bg-[#f9fafb]"
                 >
                   <td className="px-3 py-2 text-[#111827]">{r.fullName}</td>
                   <td className="px-3 py-2 text-[#111827]">{r.rut}</td>
-                  <td className="px-3 py-2 text-[#111827]">{r.email ?? "—"}</td>
+                  <td className="px-3 py-2 text-[#111827]">{r.email}</td>
                   <td className="px-3 py-2 text-[#111827]">{r.phone}</td>
                   <td className="px-3 py-2 text-[#111827]">{r.type}</td>
-                  <td className="px-3 py-2 text-[#111827]">
-                    {r.seniorityLevel}
-                  </td>
-                  <td className="px-3 py-2 text-[#111827]">
-                    {r.workedHours ?? 0}
-                  </td>
+                  {/* <td className="px-3 py-2 text-[#111827]">
+                    {r.seniorityLevel ?? "—"}
+                  </td> */}
+                  <td className="px-3 py-2 text-[#111827]">{r.workedHours}</td>
                   <td className="px-3 py-2 text-[#6b7280]">
                     {r.updatedAt
                       ? new Date(r.updatedAt).toLocaleString("es-AR")
@@ -147,6 +160,18 @@ export default function AdminLawyersPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Botón Ver más */}
+      {!loading && !err && total > PAGE_STEP && visible.length < total && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => setPageSize((s) => s + PAGE_STEP)}
+          >
+            Ver más
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

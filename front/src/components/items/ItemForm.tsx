@@ -25,6 +25,7 @@ import { createClientItem } from "@/api/clientItem";
 import { useClientItemStore } from "@/store/useClientItemStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import type { Client } from "@/types/Client";
+import { Switch } from "@/components/ui/switch"; // ⬅️ tu switch
 
 type ItemFormProps = {
   isDialogOpen: boolean;
@@ -38,6 +39,7 @@ type NewItem = {
   title: string;
   description: string;
   clientId: string;
+  private: boolean; // ⬅️ nuevo
 };
 
 const initialItemState: NewItem = {
@@ -47,6 +49,7 @@ const initialItemState: NewItem = {
   title: "",
   description: "",
   clientId: "",
+  private: true, // ⬅️ por defecto privado (solo el abogado que lo crea)
 };
 
 const ClientSelectRow = React.memo(function ClientSelectRow({
@@ -279,7 +282,11 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
     setErrorMsg(null);
 
     try {
-      await createClientItem(newItem);
+      // ⬇️ Mandamos private junto al payload
+      await createClientItem({
+        ...newItem,
+        private: !!newItem.private,
+      } as any);
 
       if (hasActualClient) {
         await fetchClientItemsByClientId(actualClient.id!);
@@ -364,6 +371,7 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
               setNewItem((prev) => ({ ...prev, itemTypeId: value }));
             }, [])}
           />
+
           <div className="grid gap-2">
             <Label htmlFor="title">Titulo del Item</Label>
             <Input
@@ -383,6 +391,7 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
               autoCapitalize="off"
             />
           </div>
+
           <div className="grid gap-2">
             <Label htmlFor="description">Descripción del Item</Label>
             <Input
@@ -395,11 +404,28 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
                   description: e.target.value,
                 })
               }
-              placeholder="Escriba una breve descripcion" //Consultar preferencias
+              placeholder="Escriba una breve descripcion"
               spellCheck={false}
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
+            />
+          </div>
+
+          {/* ⬇️ NUEVO: Privacidad */}
+          <div className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-3">
+            <div className="flex flex-col">
+              <Label className="mb-0.5">Privado (solo yo)</Label>
+              <span className="text-sm text-[hsl(225,10%,45%)]">
+                Si lo desactivás, el ítem se comparte con el resto de abogados.
+              </span>
+            </div>
+            <Switch
+              checked={newItem.private}
+              onCheckedChange={(checked) =>
+                setNewItem((prev) => ({ ...prev, private: !!checked }))
+              }
+              aria-label="Marcar ítem como privado"
             />
           </div>
 

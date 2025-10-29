@@ -11,7 +11,7 @@ export interface Lawyer {
   phone: string;
   rut: string;
   type: string; //Despues se podria cambiar por un enum
-  seniorityLevel: string;
+  /* seniorityLevel: string; */
   workedHours: number;
 
   createdAt: string;

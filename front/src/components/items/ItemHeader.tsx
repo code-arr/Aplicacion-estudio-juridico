@@ -15,12 +15,16 @@ import {
 } from "@/components/ui/segmentedtoggle";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import DocumentForm from "@/components/documents/DocumentForm";
 import AudienceForm from "@/components/audiences/AudienceForm";
 import ProcessForm from "@/components/processes/ProcessForm";
 import { formatDateChileShort } from "@/lib/formatDate";
+import { deleteClientItem } from "@/api/clientItem";
+import { useClientItemStore } from "@/store/useClientItemStore";
+import EditClientItemDialog from "./EditClientItemDialog";
+import { useToast } from "@/hooks/useToast";
 
 type Tab = {
   value: string;
@@ -42,6 +46,8 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
     audienceForm: false,
     processForm: false,
   });
+  const [isEditOpen, setEditOpen] = useState(false);
+  const { toast } = useToast?.() ?? { toast: () => {} };
 
   const openOnly = (
     key: "documentForm" | "audienceForm" | "processForm",
@@ -85,6 +91,50 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
         : ""
     )
   );
+
+  const handleDelete = async () => {
+    const ok = window.confirm(
+      "¿Seguro que querés eliminar este ítem? Esta acción no se puede deshacer."
+    );
+    if (!ok) return;
+
+    try {
+      await deleteClientItem(clientItemId!);
+
+      const S = useClientItemStore.getState();
+      const curAll = S.clientItems ?? null;
+      const curByClient = S.clientItemsByClientId ?? null;
+
+      const filterOut = (arr: typeof curAll) =>
+        arr ? arr.filter((it: any) => it.id !== clientItemId) : arr;
+
+      // Quitamos de las colecciones y limpiamos detail si corresponde
+      useClientItemStore.setState({
+        clientItems: filterOut(curAll),
+        clientItemsByClientId: filterOut(curByClient),
+        clientItemDetail:
+          S.clientItemDetail?.id === clientItemId ? null : S.clientItemDetail,
+      });
+
+      toast({
+        title: "Ítem eliminado",
+        description: "Se borró correctamente.",
+      });
+
+      // Si estás parado en el detalle, salí
+      const isDetail = location.pathname.includes("/dashboard/item/");
+      if (isDetail) {
+        const back = prevRoute ?? "/dashboard/clientItems";
+        navigate(back, { replace: true });
+      }
+    } catch (e: any) {
+      toast({
+        variant: "destructive",
+        title: "No se pudo eliminar",
+        description: e?.response?.data?.message ?? "Error inesperado",
+      });
+    }
+  };
 
   const StatusBadge = (status: ClientItem["status"]) => {
     const cfg = CLIENTITEM_STATUS_MAP[status] ?? {
@@ -142,6 +192,11 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
         isDialogOpen={isDialogOpen.processForm}
         onOpenChange={setProcessOpen}
       />
+      <EditClientItemDialog
+        open={isEditOpen}
+        onOpenChange={setEditOpen}
+        item={item}
+      />
       <div className="flex flex-col">
         <div className="flex justify-between gap-x-4 px-8">
           <div className="flex flex-col pb-5 w-1/2 px-2">
@@ -185,10 +240,19 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
 
           <div className="flex items-center gap-x-3 pb-6">
             <Button
-              onClick={() => setProcessOpen(true)}
-              className="bg-blue-900 text-lg font-normal"
+              onClick={() => setEditOpen(true)}
+              className="bg-[hsl(225,85%,20%)] hover:bg-[hsl(225,85%,16%)] text-base"
             >
-              Registrar tramite
+              <Pencil className="mr-2 h-4 w-4" />
+              Editar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              className="text-base"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Eliminar
             </Button>
           </div>
         </div>

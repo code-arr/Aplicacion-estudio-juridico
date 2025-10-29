@@ -35,6 +35,7 @@ import AdminLawyersPage from "@/pages/dashboard/admin/AdminLawyersPage";
 import AdminStatsPage from "@/pages/dashboard/admin/AdminStatsPage";
 
 import LoadingScreen from "@/components/shared/LoadingScreen";
+import AdminItemsPage from "@/pages/dashboard/admin/AdminItemsPage";
 
 const AppRoutes = () => {
   const location = useLocation();
@@ -129,6 +130,14 @@ const AppRoutes = () => {
               element={
                 <PrivateRoute requiredRole="admin">
                   <AdminLawyersPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="admin/clientItems"
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <AdminItemsPage />
                 </PrivateRoute>
               }
             />

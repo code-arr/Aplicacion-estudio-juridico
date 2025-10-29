@@ -78,6 +78,17 @@ export default function AdminSidebar() {
         </NavLink>
 
         <NavLink
+          to="/dashboard/admin/clientItems"
+          className={({ isActive }) =>
+            `px-3 py-2 rounded-md text-sm ${
+              isActive ? "bg-[#f3f4f6]" : "hover:bg-[#f9fafb]"
+            }`
+          }
+        >
+          Items
+        </NavLink>
+
+        <NavLink
           to="/dashboard/admin/stats"
           className={({ isActive }) =>
             `px-3 py-2 rounded-md text-sm ${
@@ -88,16 +99,6 @@ export default function AdminSidebar() {
           Estadísticas
         </NavLink>
       </nav>
-
-      {/*       <div className="mt-6">
-        <Button
-          variant="outline"
-          className="w-full border-[#e5e7eb] text-[#111827]"
-          onClick={() => navigate("/dashboard/clients")}
-        >
-          Ir a vista Lawyer
-        </Button>
-      </div> */}
     </aside>
   );
 }

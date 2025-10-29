@@ -26,6 +26,13 @@ import { formatMoney } from "@/utils/money";
 import { useCatalogStore } from "@/store/useCatalogStore";
 import { useSlidingUI } from "@/hooks/useSlidingUI";
 import DownloadClientCostPDF from "@/components/reports/DownloadClientCostPDF";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 function buildNameMaps(
   categories: { id: string; name: string }[] | undefined,
@@ -199,27 +206,33 @@ export default function ClientCasesStatsCard() {
           </span>
         </div>
 
-        <select
+        {/* Header con selector de cliente */}
+        <Select
           value={selectedClient?.id ?? ""}
-          onChange={(e) => {
-            const c =
-              clientOptions.find((x) => x.id === e.target.value) ?? null;
-            setSelectedClient(c);
-            setAvg(null);
-            setAreas(null);
-            setCycleByItem({});
-            setCostByItem({});
+          onValueChange={(val) => {
+            const c = clientOptions.find((x) => x.id === val) ?? null;
+            startTransition(() => {
+              setSelectedClient(c);
+              setAvg(null);
+              setAreas(null);
+              setCycleByItem({});
+              setCostByItem({});
+            });
           }}
-          className="border border-slate-200 rounded-lg px-2 py-1 text-sm"
         >
-          {clientOptions.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.type === "Fisica"
-                ? `${c.firstName} ${c.lastName}`
-                : c.companyName}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-max border border-slate-200 rounded-lg px-5 py-1 gap-1 text-sm">
+            <SelectValue placeholder="Seleccionar cliente" />
+          </SelectTrigger>
+          <SelectContent>
+            {clientOptions.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.type === "Fisica"
+                  ? `${c.firstName} ${c.lastName}`
+                  : c.companyName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {/* ⬇️ Botón para descargar PDF */}
         <DownloadClientCostPDF
           clientId={selectedClient?.id}

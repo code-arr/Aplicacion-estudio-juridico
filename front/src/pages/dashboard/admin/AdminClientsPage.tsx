@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Client } from "@/types/Client";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { getAllClients } from "@/api/client";
 
 type Row = {
@@ -23,6 +24,10 @@ export default function AdminClientsPage() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+
+  // 🔸 Paginación incremental
+  const PAGE_STEP = 18;
+  const [pageSize, setPageSize] = useState(PAGE_STEP);
 
   useEffect(() => {
     let alive = true;
@@ -59,11 +64,21 @@ export default function AdminClientsPage() {
     const s = q.trim().toLowerCase();
     if (!s) return rows;
     return rows.filter((r) =>
-      [r.displayName, r.rut, r.email, r.phone]
+      [r.displayName, r.rut, r.email, r.phone, r.status]
         .filter(Boolean)
         .some((v) => (v as string).toLowerCase().includes(s))
     );
   }, [q, rows]);
+
+  const total = filtered.length;
+  const visible = useMemo(
+    () => filtered.slice(0, pageSize),
+    [filtered, pageSize]
+  );
+
+  useEffect(() => {
+    setPageSize(PAGE_STEP);
+  }, [q]);
 
   return (
     <div className="p-6 space-y-4">
@@ -115,7 +130,7 @@ export default function AdminClientsPage() {
                 </td>
               </tr>
             ) : (
-              filtered.map((r) => (
+              visible.map((r) => (
                 <tr
                   key={r.id}
                   className="border-t border-[#e5e7eb] hover:bg-[#f9fafb]"
@@ -138,6 +153,18 @@ export default function AdminClientsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Botón Ver más */}
+      {!loading && !err && total > PAGE_STEP && visible.length < total && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => setPageSize((s) => s + PAGE_STEP)}
+          >
+            Ver más
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

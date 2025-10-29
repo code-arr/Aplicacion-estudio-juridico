@@ -3,6 +3,7 @@ import type { Lawyer } from "./Lawyer";
 
 export type ClientType = "Juridica" | "Fisica";
 export type ClientStatus = "active" | "inactive" | "under_review";
+export type Currency = "CLP" | "USD" | "UF";
 
 export const CLIENT_STATUS_MAP: Record<
   ClientStatus,
@@ -40,6 +41,9 @@ export interface Client {
   //Persona jurídica
   companyName?: string;
   legalRepresentative?: string;
+
+  currency: Currency;
+  hourlyRate?: string;
 
   activeTime?: number;
 

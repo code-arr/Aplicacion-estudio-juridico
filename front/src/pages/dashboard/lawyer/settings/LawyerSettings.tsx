@@ -154,10 +154,10 @@ const Settings = () => {
                       <span className="font-medium">Tipo: </span>
                       {lawyer?.type ? lawyer?.type : "No especificado"}
                     </p>
-                    <p className="capitalize">
+                    {/* <p className="capitalize">
                       <span className="font-medium">Seniority: </span>
                       {lawyer?.seniorityLevel}
-                    </p>
+                    </p> */}
                     <p>
                       <span className="font-medium">Gmail: </span>
                       {user?.googleEmail ? user.googleEmail : "No conectado"}
@@ -423,14 +423,14 @@ const Settings = () => {
                   {/* Valor por hora + estado */}
                   <div className="flex items-center justify-between p-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex items-baseline gap-2">
+                      {/* <div className="flex items-baseline gap-2">
                         <span className="text-sm text-gray-500">
                           Valor por hora
                         </span>
                         <span className="text-lg font-semibold text-slate-800">
                           $150.000 CLP
                         </span>
-                      </div>
+                      </div> */}
                       <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
                         <Activity className="h-3.5 w-3.5 mr-1" />
                         Automático: Activo

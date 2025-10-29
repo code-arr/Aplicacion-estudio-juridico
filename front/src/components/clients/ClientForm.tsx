@@ -19,6 +19,13 @@ import { createClient, linkClientToLawyer } from "@/api/client";
 import type { Client, ClientType } from "@/types/Client";
 import { useClientStore } from "@/store/useClientStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 // Hook chico para "debounce" sin dependencias externas (simple y suficiente)
 function useDebouncedValue<T>(value: T, delay = 250) {
@@ -81,6 +88,8 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
     email: "",
     address: "",
     type: "Juridica",
+    currency: "CLP" as "CLP" | "USD" | "UF",
+    hourlyRate: "", // lo guardamos como string para el back
   });
 
   // 🧑 Persona
@@ -92,6 +101,8 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
     email: "",
     address: "",
     type: "Fisica",
+    currency: "CLP" as "CLP" | "USD" | "UF",
+    hourlyRate: "",
   });
 
   // ✅ Formateo y validaciones
@@ -156,6 +167,18 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
     return /\S+@\S+\.\S+/.test(v);
   }
 
+  const validateRate = (rateStr: string) => {
+    if (!rateStr) return "La tarifa es requerida";
+    const n = Number(rateStr);
+    if (!Number.isFinite(n) || n <= 0)
+      return "La tarifa debe ser un número mayor a 0";
+    return null;
+  };
+
+  const validateCurrency = (c: string) => {
+    return c === "CLP" || c === "USD" || c === "UF" ? null : "Moneda inválida";
+  };
+
   /*   function buildDto() {
     if (clientType === "Fisica") {
       return {
@@ -188,6 +211,10 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
       if (!isValidEmail(c.email)) return "Email inválido";
       if (!c.phone) return "Teléfono requerido";
       if (!c.address) return "Domicilio requerido";
+      const curErr = validateCurrency(c.currency);
+      if (curErr) return curErr;
+      const rateErr = validateRate(c.hourlyRate);
+      if (rateErr) return rateErr;
       return null;
     }
     const c = newCompanyClient;
@@ -197,6 +224,10 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
     if (!isValidEmail(c.email)) return "Email inválido";
     if (!c.phone) return "Teléfono requerido";
     if (!c.address) return "Dirección requerida";
+    const curErr = validateCurrency(c.currency);
+    if (curErr) return curErr;
+    const rateErr = validateRate(c.hourlyRate);
+    if (rateErr) return rateErr;
     return null;
   }
 
@@ -209,6 +240,8 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
       email: "",
       address: "",
       type: "Juridica",
+      currency: "CLP",
+      hourlyRate: "",
     });
     setNewPersonClient({
       firstName: "",
@@ -218,6 +251,8 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
       email: "",
       address: "",
       type: "Fisica",
+      currency: "CLP",
+      hourlyRate: "",
     });
     setErrorMsg(null);
   }
@@ -238,11 +273,20 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
         setErrorMsg("Ese RUT ya existe. Vinculalo o cambiá el RUT.");
         return;
       }
-      await createClient(
-        (clientType === "Juridica"
-          ? newCompanyClient
-          : newPersonClient) as Client
-      );
+      const dto =
+        clientType === "Juridica"
+          ? {
+              ...newCompanyClient,
+              currency: newCompanyClient.currency,
+              hourlyRate: newCompanyClient.hourlyRate.trim(),
+            }
+          : {
+              ...newPersonClient,
+              currency: newPersonClient.currency,
+              hourlyRate: newPersonClient.hourlyRate.trim(),
+            };
+
+      await createClient(dto as Client);
       reset();
 
       await hydrateByLawyer(lawyerId!, { force: true });
@@ -389,343 +433,448 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
         }
       }}
     >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Agregar Nuevo Cliente</DialogTitle>
-          <DialogDescription>
-            Complete la información del cliente para comenzar a gestionar su
-            caso.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="p-0 max-h-[90dvh] sm:max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="px-6 py-4 bg-white z-10">
+          <DialogHeader>
+            <DialogTitle>Agregar Nuevo Cliente</DialogTitle>
+            <DialogDescription>
+              Complete la información del cliente para comenzar a gestionar su
+              caso.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        {/* 🔁 Toggle de modo */}
-        <SegmentedToggle
-          className="max-w-md"
-          type="single"
-          value={mode}
-          onValueChange={(v) => v && setMode(v as "crear" | "vincular")}
-        >
-          <SegmentedToggleItem value="crear">Crear nuevo</SegmentedToggleItem>
-          <SegmentedToggleItem value="vincular">
-            Vincular existente
-          </SegmentedToggleItem>
-        </SegmentedToggle>
+        <div className="px-6 overflow-y-auto flex-1 pr-2 [scrollbar-gutter:stable]">
+          {/* 🔁 Toggle de modo */}
+          <SegmentedToggle
+            className="max-w-md"
+            type="single"
+            value={mode}
+            onValueChange={(v) => v && setMode(v as "crear" | "vincular")}
+          >
+            <SegmentedToggleItem value="crear">Crear nuevo</SegmentedToggleItem>
+            <SegmentedToggleItem value="vincular">
+              Vincular existente
+            </SegmentedToggleItem>
+          </SegmentedToggle>
 
-        {/* ─────────────────────────────────────────────────────────── */}
-        {/* MODO: VINCULAR EXISTENTE */}
-        {mode === "vincular" && (
-          <div className="grid gap-3 pt-4">
-            <div className="grid gap-2">
-              <Label htmlFor="search">
-                Buscar cliente (nombre, empresa o RUT)
-              </Label>
-              <div className="min-h-64">
-                <div className="relative">
-                  <Input
-                    id="search"
-                    className="w-full mb-0" /* asegurate que no tenga margin-bottom */
-                    placeholder="Ej: 'Pérez' o '77.233.445-7'"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  {/* Dropdown de resultados: misma anchura que el input */}
-                  {searchTerm && (
-                    <div className="absolute left-0 right-0 top-full z-50 mt-3 rounded-md border bg-popover shadow-sm">
-                      {results.length === 0 ? (
-                        <div className="p-3 text-sm text-muted-foreground">
-                          Sin resultados
-                        </div>
-                      ) : (
-                        <ul className="max-h-64 overflow-auto">
-                          {results.map((r) => (
-                            <li
-                              key={r.id}
-                              className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-accent"
-                            >
-                              <div className="min-w-0">
-                                <div className="truncate text-sm font-medium">
-                                  {r.display}{" "}
-                                  {r.type === "Juridica"
-                                    ? "· Empresa"
-                                    : "· Persona"}
-                                </div>
-                                <div className="truncate text-xs text-muted-foreground">
-                                  RUT: {r.rut}
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                onClick={() => handleLink(r.id)}
+          {/* ─────────────────────────────────────────────────────────── */}
+          {/* MODO: VINCULAR EXISTENTE */}
+          {mode === "vincular" && (
+            <div className="grid gap-3 pt-4">
+              <div className="grid gap-2">
+                <Label htmlFor="search">
+                  Buscar cliente (nombre, empresa o RUT)
+                </Label>
+                <div className="min-h-64">
+                  <div className="relative">
+                    <Input
+                      id="search"
+                      className="w-full mb-0" /* asegurate que no tenga margin-bottom */
+                      placeholder="Ej: 'Pérez' o '77.233.445-7'"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    {/* Dropdown de resultados: misma anchura que el input */}
+                    {searchTerm && (
+                      <div className="absolute left-0 right-0 top-full z-50 mt-3 rounded-md border bg-popover shadow-sm">
+                        {results.length === 0 ? (
+                          <div className="p-3 text-sm text-muted-foreground">
+                            Sin resultados
+                          </div>
+                        ) : (
+                          <ul className="max-h-64 overflow-auto">
+                            {results.map((r) => (
+                              <li
+                                key={r.id}
+                                className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-accent"
                               >
-                                Vincular
-                              </Button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {/* Opción de crear si no lo encuentra */}
-                      <div className="border-t p-2">
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start text-sm"
-                          onClick={() => setMode("crear")}
-                        >
-                          ¿No lo encontraste? Crear nuevo
-                        </Button>
+                                <div className="min-w-0">
+                                  <div className="truncate text-sm font-medium">
+                                    {r.display}{" "}
+                                    {r.type === "Juridica"
+                                      ? "· Empresa"
+                                      : "· Persona"}
+                                  </div>
+                                  <div className="truncate text-xs text-muted-foreground">
+                                    RUT: {r.rut}
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleLink(r.id)}
+                                >
+                                  Vincular
+                                </Button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {/* Opción de crear si no lo encuentra */}
+                        <div className="border-t p-2">
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start text-sm"
+                            onClick={() => setMode("crear")}
+                          >
+                            ¿No lo encontraste? Crear nuevo
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ─────────────────────────────────────────────────────────── */}
-        {/* MODO: CREAR NUEVO (tu formulario + chequeo RUT) */}
-        {mode === "crear" && (
-          <form onSubmit={handleAddClient} className="grid gap-4 pt-4 pb-2">
-            <SegmentedToggle
-              className="max-w-md"
-              type="single"
-              value={clientType}
-              onValueChange={(value) =>
-                value && (setClientType(value as ClientType), setInfoMsg(null))
-              }
-              onClick={reset}
+          )}
+          {/* ─────────────────────────────────────────────────────────── */}
+          {/* MODO: CREAR NUEVO (tu formulario + chequeo RUT) */}
+          {mode === "crear" && (
+            <form
+              id="client-form"
+              onSubmit={handleAddClient}
+              className="grid gap-4 pt-4 pb-2"
             >
-              <SegmentedToggleItem
-                value="Juridica"
-                onChange={() => setClientType("Juridica")}
+              <SegmentedToggle
+                className="max-w-md"
+                type="single"
+                value={clientType}
+                onValueChange={(value) =>
+                  value &&
+                  (setClientType(value as ClientType), setInfoMsg(null))
+                }
+                onClick={reset}
               >
-                Persona Juridica
-              </SegmentedToggleItem>
-              <SegmentedToggleItem
-                value="Fisica"
-                onChange={() => setClientType("Fisica")}
-              >
-                Persona Fisica
-              </SegmentedToggleItem>
-            </SegmentedToggle>
-
-            {clientType === "Fisica" && (
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="firstName">Nombre/s de la Persona</Label>
-                  <Input
-                    required
-                    id="firstName"
-                    value={newPersonClient.firstName}
-                    onChange={(e) =>
-                      setNewPersonClient({
-                        ...newPersonClient,
-                        firstName: e.target.value,
-                      })
-                    }
-                    placeholder="Juan Fransisco"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="lastName">Apellido/s de la Pesona</Label>
-                  <Input
-                    required
-                    id="lastName"
-                    value={newPersonClient.lastName}
-                    onChange={(e) =>
-                      setNewPersonClient({
-                        ...newPersonClient,
-                        lastName: e.target.value,
-                      })
-                    }
-                    placeholder="Pérez"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="rut">Rut de la Persona</Label>
-                  <Input
-                    required
-                    id="rut"
-                    maxLength={12}
-                    value={newPersonClient.rut}
-                    onChange={(e) =>
-                      setNewPersonClient({
-                        ...newPersonClient,
-                        rut: formatRutLive(e.target.value),
-                      })
-                    }
-                    onBlur={() => handleRutBlurLocal(newPersonClient.rut)}
-                    placeholder="24.889.273-0"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    required
-                    id="email"
-                    value={newPersonClient.email}
-                    onChange={(e) =>
-                      setNewPersonClient({
-                        ...newPersonClient,
-                        email: e.target.value,
-                      })
-                    }
-                    placeholder="juanperez@gmail.com"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Telefono</Label>
-                  <Input
-                    required
-                    id="phone"
-                    value={newPersonClient.phone}
-                    onChange={(e) =>
-                      setNewPersonClient({
-                        ...newPersonClient,
-                        phone: e.target.value,
-                      })
-                    }
-                    placeholder="+56 9 8765 4321"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="address">Domicilio</Label>
-                  <Input
-                    required
-                    id="address"
-                    value={newPersonClient.address}
-                    onChange={(e) =>
-                      setNewPersonClient({
-                        ...newPersonClient,
-                        address: e.target.value,
-                      })
-                    }
-                    placeholder="Av. Los Aroldos 143"
-                  />
-                </div>
-              </>
-            )}
-
-            {clientType === "Juridica" && (
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="companyName">Nombre de la Compañia</Label>
-                  <Input
-                    required
-                    id="companyName"
-                    value={newCompanyClient.companyName}
-                    onChange={(e) =>
-                      setNewCompanyClient({
-                        ...newCompanyClient,
-                        companyName: e.target.value,
-                      })
-                    }
-                    placeholder="Salesforce"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="legalRepresentative">
-                    Representante Legal
-                  </Label>
-                  <Input
-                    required
-                    id="legalRepresentative"
-                    value={newCompanyClient.legalRepresentative}
-                    onChange={(e) =>
-                      setNewCompanyClient({
-                        ...newCompanyClient,
-                        legalRepresentative: e.target.value,
-                      })
-                    }
-                    placeholder="Juan Pablo Pérez"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="rut-company">Rut de la Compañia</Label>
-                  <Input
-                    required
-                    id="rut-company"
-                    value={newCompanyClient.rut}
-                    onChange={(e) =>
-                      setNewCompanyClient({
-                        ...newCompanyClient,
-                        rut: formatRutLive(e.target.value),
-                      })
-                    }
-                    onBlur={() => handleRutBlurLocal(newCompanyClient.rut)}
-                    placeholder="77.233.445-7"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    required
-                    id="email"
-                    value={newCompanyClient.email}
-                    onChange={(e) =>
-                      setNewCompanyClient({
-                        ...newCompanyClient,
-                        email: e.target.value,
-                      })
-                    }
-                    placeholder="administracion@salesforce.com"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Telefono</Label>
-                  <Input
-                    required
-                    id="phone"
-                    value={newCompanyClient.phone}
-                    onChange={(e) =>
-                      setNewCompanyClient({
-                        ...newCompanyClient,
-                        phone: e.target.value,
-                      })
-                    }
-                    placeholder="+56 9 8765 4321"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="address">Direccion de la Compañia</Label>
-                  <Input
-                    required
-                    id="address"
-                    value={newCompanyClient.address}
-                    onChange={(e) =>
-                      setNewCompanyClient({
-                        ...newCompanyClient,
-                        address: e.target.value,
-                      })
-                    }
-                    placeholder="Av. Los Caminos 472"
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Mensajes de ayuda/alerta */}
-            {infoMsg && dupCandidate && (
-              <p className="text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded px-3 py-2">
-                {infoMsg}{" "}
-                <Button
-                  type="button"
-                  variant="link"
-                  className="px-1"
-                  onClick={() => handleLink(dupCandidate.id)}
+                <SegmentedToggleItem
+                  value="Juridica"
+                  onChange={() => setClientType("Juridica")}
                 >
-                  Vincular ahora
-                </Button>
-              </p>
-            )}
-            {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+                  Persona Juridica
+                </SegmentedToggleItem>
+                <SegmentedToggleItem
+                  value="Fisica"
+                  onChange={() => setClientType("Fisica")}
+                >
+                  Persona Fisica
+                </SegmentedToggleItem>
+              </SegmentedToggle>
 
-            <DialogFooter className="pt-3">
-              <Button type="submit" disabled={loading}>
-                {loading ? "Guardando..." : "Agregar Cliente"}
-              </Button>
-            </DialogFooter>
-          </form>
-        )}
+              {clientType === "Fisica" && (
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="firstName">Nombre/s de la Persona</Label>
+                    <Input
+                      required
+                      id="firstName"
+                      value={newPersonClient.firstName}
+                      onChange={(e) =>
+                        setNewPersonClient({
+                          ...newPersonClient,
+                          firstName: e.target.value,
+                        })
+                      }
+                      placeholder="Juan Fransisco"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="lastName">Apellido/s de la Pesona</Label>
+                    <Input
+                      required
+                      id="lastName"
+                      value={newPersonClient.lastName}
+                      onChange={(e) =>
+                        setNewPersonClient({
+                          ...newPersonClient,
+                          lastName: e.target.value,
+                        })
+                      }
+                      placeholder="Pérez"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="rut">Rut de la Persona</Label>
+                    <Input
+                      required
+                      id="rut"
+                      maxLength={12}
+                      value={newPersonClient.rut}
+                      onChange={(e) =>
+                        setNewPersonClient({
+                          ...newPersonClient,
+                          rut: formatRutLive(e.target.value),
+                        })
+                      }
+                      onBlur={() => handleRutBlurLocal(newPersonClient.rut)}
+                      placeholder="24.889.273-0"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      required
+                      id="email"
+                      value={newPersonClient.email}
+                      onChange={(e) =>
+                        setNewPersonClient({
+                          ...newPersonClient,
+                          email: e.target.value,
+                        })
+                      }
+                      placeholder="juanperez@gmail.com"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">Telefono</Label>
+                    <Input
+                      required
+                      id="phone"
+                      value={newPersonClient.phone}
+                      onChange={(e) =>
+                        setNewPersonClient({
+                          ...newPersonClient,
+                          phone: e.target.value,
+                        })
+                      }
+                      placeholder="+56 9 8765 4321"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="address">Domicilio</Label>
+                    <Input
+                      required
+                      id="address"
+                      value={newPersonClient.address}
+                      onChange={(e) =>
+                        setNewPersonClient({
+                          ...newPersonClient,
+                          address: e.target.value,
+                        })
+                      }
+                      placeholder="Av. Los Aroldos 143"
+                    />
+                  </div>
+                  {/* ====== Facturación ====== */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="currency">Moneda</Label>
+
+                    <Select
+                      value={newPersonClient.currency}
+                      onValueChange={(value: "CLP" | "USD" | "UF") => {
+                        setNewPersonClient({
+                          ...newPersonClient,
+                          currency: value,
+                        });
+                      }}
+                    >
+                      <SelectTrigger id="currency" className="w-full">
+                        <SelectValue placeholder="Seleccioná la moneda" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CLP">CLP (Peso Chileno)</SelectItem>
+                        <SelectItem value="USD">USD (Dólar)</SelectItem>
+                        <SelectItem value="UF">UF</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="hourlyRate">Tarifa por hora</Label>
+                    <Input
+                      id="hourlyRate"
+                      inputMode="decimal"
+                      placeholder={
+                        newPersonClient.currency === "CLP"
+                          ? "Ej: 55000"
+                          : "Ej: 75.5"
+                      }
+                      value={newPersonClient.hourlyRate}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(",", "."); // acepta coma
+                        setNewPersonClient({
+                          ...newPersonClient,
+                          hourlyRate: v,
+                        });
+                      }}
+                    />
+                    <p className="text-xs text-[hsl(225,10%,50%)]">
+                      Se mostrará como “{newPersonClient.currency}{" "}
+                      {newPersonClient.hourlyRate || "—"} / hora”.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {clientType === "Juridica" && (
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="companyName">Nombre de la Compañia</Label>
+                    <Input
+                      required
+                      id="companyName"
+                      value={newCompanyClient.companyName}
+                      onChange={(e) =>
+                        setNewCompanyClient({
+                          ...newCompanyClient,
+                          companyName: e.target.value,
+                        })
+                      }
+                      placeholder="Salesforce"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="legalRepresentative">
+                      Representante Legal
+                    </Label>
+                    <Input
+                      required
+                      id="legalRepresentative"
+                      value={newCompanyClient.legalRepresentative}
+                      onChange={(e) =>
+                        setNewCompanyClient({
+                          ...newCompanyClient,
+                          legalRepresentative: e.target.value,
+                        })
+                      }
+                      placeholder="Juan Pablo Pérez"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="rut-company">Rut de la Compañia</Label>
+                    <Input
+                      required
+                      id="rut-company"
+                      value={newCompanyClient.rut}
+                      onChange={(e) =>
+                        setNewCompanyClient({
+                          ...newCompanyClient,
+                          rut: formatRutLive(e.target.value),
+                        })
+                      }
+                      onBlur={() => handleRutBlurLocal(newCompanyClient.rut)}
+                      placeholder="77.233.445-7"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      required
+                      id="email"
+                      value={newCompanyClient.email}
+                      onChange={(e) =>
+                        setNewCompanyClient({
+                          ...newCompanyClient,
+                          email: e.target.value,
+                        })
+                      }
+                      placeholder="administracion@salesforce.com"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">Telefono</Label>
+                    <Input
+                      required
+                      id="phone"
+                      value={newCompanyClient.phone}
+                      onChange={(e) =>
+                        setNewCompanyClient({
+                          ...newCompanyClient,
+                          phone: e.target.value,
+                        })
+                      }
+                      placeholder="+56 9 8765 4321"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="address">Direccion de la Compañia</Label>
+                    <Input
+                      required
+                      id="address"
+                      value={newCompanyClient.address}
+                      onChange={(e) =>
+                        setNewCompanyClient({
+                          ...newCompanyClient,
+                          address: e.target.value,
+                        })
+                      }
+                      placeholder="Av. Los Caminos 472"
+                    />
+                  </div>
+                  {/* ====== Facturación ====== */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="currency">Moneda</Label>
+
+                    <Select
+                      value={newCompanyClient.currency}
+                      onValueChange={(value: "CLP" | "USD" | "UF") => {
+                        setNewCompanyClient({
+                          ...newCompanyClient,
+                          currency: value,
+                        });
+                      }}
+                    >
+                      <SelectTrigger id="currency" className="w-full">
+                        <SelectValue placeholder="Seleccioná la moneda" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CLP">CLP (Peso Chileno)</SelectItem>
+                        <SelectItem value="USD">USD (Dólar)</SelectItem>
+                        <SelectItem value="UF">UF</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="hourlyRate">Tarifa por hora</Label>
+                    <Input
+                      id="hourlyRate"
+                      inputMode="decimal"
+                      placeholder={
+                        newCompanyClient.currency === "CLP"
+                          ? "Ej: 55000"
+                          : "Ej: 75.5"
+                      }
+                      value={newCompanyClient.hourlyRate}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(",", "."); // acepta coma
+                        setNewCompanyClient({
+                          ...newCompanyClient,
+                          hourlyRate: v,
+                        });
+                      }}
+                    />
+                    <p className="text-xs text-[hsl(225,10%,50%)]">
+                      Se mostrará como “{newCompanyClient.currency}{" "}
+                      {newCompanyClient.hourlyRate || "—"} / hora”.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* Mensajes de ayuda/alerta */}
+              {infoMsg && dupCandidate && (
+                <p className="text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded px-3 py-2">
+                  {infoMsg}{" "}
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="px-1"
+                    onClick={() => handleLink(dupCandidate.id)}
+                  >
+                    Vincular ahora
+                  </Button>
+                </p>
+              )}
+              {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+            </form>
+          )}
+        </div>
+        <div className="px-6 py-3 bg-white z-10">
+          <DialogFooter>
+            <Button type="submit" form="client-form" disabled={loading}>
+              {loading ? "Guardando..." : "Agregar Cliente"}
+            </Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

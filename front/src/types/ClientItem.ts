@@ -30,6 +30,8 @@ export interface ClientItem {
   description?: string;
   status?: ClientItemStatus;
 
+  private?: boolean;
+
   closedAt?: string; // ISO date string
 
   createdAt?: string; // ISO date string

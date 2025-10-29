@@ -30,6 +30,10 @@ import {
   EllipsisVertical,
 } from "lucide-react";
 import { formatDateChileShort } from "@/lib/formatDate";
+import { useNavigate } from "react-router-dom";
+import { deleteClientItem } from "@/api/clientItem";
+import { useClientItemStore } from "@/store/useClientItemStore";
+import { useToast } from "@/hooks/useToast";
 
 interface ItemCardProps {
   item: ClientItem;
@@ -37,6 +41,7 @@ interface ItemCardProps {
 }
 
 const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
+  const navigate = useNavigate();
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const clientById = useClientStore((s) =>
     selectClientFromCacheById(s, item.clientId)
@@ -65,6 +70,51 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
         : ""
     )
   );
+  const { toast } = useToast?.() ?? { toast: () => {} };
+
+  const handleDelete = async () => {
+    const ok = window.confirm(
+      "¿Seguro que querés eliminar este ítem? Esta acción no se puede deshacer."
+    );
+    if (!ok) return;
+
+    try {
+      await deleteClientItem(item.id!);
+
+      const S = useClientItemStore.getState();
+      const curAll = S.clientItems ?? null;
+      const curByClient = S.clientItemsByClientId ?? null;
+
+      const filterOut = (arr: typeof curAll) =>
+        arr ? arr.filter((it: any) => it.id !== item.id) : arr;
+
+      // Quitamos de las colecciones y limpiamos detail si corresponde
+      useClientItemStore.setState({
+        clientItems: filterOut(curAll),
+        clientItemsByClientId: filterOut(curByClient),
+        clientItemDetail:
+          S.clientItemDetail?.id === item.id ? null : S.clientItemDetail,
+      });
+
+      toast({
+        title: "Ítem eliminado",
+        description: "Se borró correctamente.",
+      });
+
+      // Si estás parado en el detalle, salí
+      const isDetail = location.pathname.includes("/dashboard/item/");
+      if (isDetail) {
+        const back = "/dashboard/clientItems";
+        navigate(back, { replace: true });
+      }
+    } catch (e: any) {
+      toast({
+        variant: "destructive",
+        title: "No se pudo eliminar",
+        description: e?.response?.data?.message ?? "Error inesperado",
+      });
+    }
+  };
 
   const StatusBadge = (status: ClientItem["status"]) => {
     if (!status) return null;
@@ -149,7 +199,7 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
                 Ver detalles
               </DropdownMenuItem>
 
-              <DropdownMenuItem
+              {/*               <DropdownMenuItem
                 onSelect={() => {
                   // Abrí tu modal de edición o navegá a la ruta de edición
                   // openEditModal(item.id) / navigate(...)
@@ -157,15 +207,12 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
                 shortcut="⌘ E"
               >
                 Editar
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
 
               <DropdownMenuSeparator />
 
               <DropdownMenuItem
-                onSelect={() => {
-                  // Confirmación y borrado
-                  // confirmDelete(item.id)
-                }}
+                onSelect={handleDelete}
                 color="crimson"
                 shortcut="⌘ ⌫"
               >

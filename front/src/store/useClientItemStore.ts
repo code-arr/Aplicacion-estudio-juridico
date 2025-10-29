@@ -221,7 +221,7 @@ export const useClientItemStore = create<ClientItemState>((set, get) => ({
         error: null,
       });
       try {
-        await get().fetchAllClientItems();
+        await get().fetchClientItemsByLawyerId(lawyerId);
       } catch (error) {
         console.error(error);
         const message =

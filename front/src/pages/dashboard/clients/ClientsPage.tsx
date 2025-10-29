@@ -26,7 +26,6 @@ import ErrorScreen from "@/components/shared/ErrorScreen";
 
 import { Search, Plus } from "lucide-react";
 
-import { mockClients } from "@/mocks/mockClients";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useFocusContext } from "@/hooks/useFocusContext";
 
@@ -275,7 +274,7 @@ const ClientsPage = () => {
         </div>
 
         {/* Client Array Empty */}
-        {filteredClients.length === 0 && mockClients.length !== 0 && (
+        {filteredClients.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               <Search className="h-12 w-12 mx-auto" />
