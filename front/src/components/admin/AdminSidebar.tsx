@@ -29,7 +29,7 @@ export default function AdminSidebar() {
   );
 
   return (
-    <aside className="h-screen w-64 border-r border-[#e5e7eb] bg-white p-3">
+    <aside className="h-screen w-56 border-r border-[#e5e7eb] bg-white p-3">
       {/* Header con identidad */}
       <div className="mb-4 flex items-center gap-3">
         <div
@@ -55,6 +55,17 @@ export default function AdminSidebar() {
       {/* Nav */}
       <nav className="flex flex-col gap-1">
         <NavLink
+          to="/dashboard/admin/lawyers"
+          className={({ isActive }) =>
+            `px-3 py-2 rounded-md text-sm ${
+              isActive ? "bg-[#f3f4f6]" : "hover:bg-[#f9fafb]"
+            }`
+          }
+        >
+          Abogados
+        </NavLink>
+
+        <NavLink
           to="/dashboard/admin/clients"
           className={({ isActive }) =>
             `px-3 py-2 rounded-md text-sm ${
@@ -64,17 +75,6 @@ export default function AdminSidebar() {
           end
         >
           Clientes
-        </NavLink>
-
-        <NavLink
-          to="/dashboard/admin/lawyers"
-          className={({ isActive }) =>
-            `px-3 py-2 rounded-md text-sm ${
-              isActive ? "bg-[#f3f4f6]" : "hover:bg-[#f9fafb]"
-            }`
-          }
-        >
-          Abogados
         </NavLink>
 
         <NavLink
