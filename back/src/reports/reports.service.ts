@@ -212,7 +212,7 @@ export class ReportsService {
     this.kv(
       doc,
       'Horas registradas',
-      `${totalMonthHours.toFixed(1)} h`,
+      `${this.formatHours(totalMonthHours)}`,
       pageWidth,
     );
     this.kv(

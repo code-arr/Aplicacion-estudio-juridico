@@ -34,6 +34,54 @@ export class AbogadoRepository {
   async saveAbogado(abogado: Lawyer): Promise<Lawyer> {
     return this.repository.save(abogado);
   }
+  async deleteLawyer(id: string): Promise<{ message: string }> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const lawyer = await this.repository.findOne({
+        where: { id },
+        relations: ['clients'],
+      });
+
+      if (!lawyer) {
+        throw new NotFoundException(`El abogado con id ${id} no existe.`);
+      }
+
+      // 🔹 Quitamos este abogado del array de cada cliente
+      if (lawyer.clients && lawyer.clients.length > 0) {
+        console.log(
+          `🔄 Quitando al abogado ${lawyer.firstName} ${lawyer.lastName} de ${lawyer.clients.length} clientes`,
+        );
+
+        for (const client of lawyer.clients) {
+          // Sacamos el abogado del array
+          client.lawyers = client.lawyers.filter((l) => l.id !== id);
+          await queryRunner.manager.save(Client, client);
+        }
+      }
+
+      // 🔹 Eliminamos el abogado
+      await queryRunner.manager.remove(Lawyer, lawyer);
+
+      await queryRunner.commitTransaction();
+
+      console.log(
+        `✅ Abogado ${lawyer.firstName} ${lawyer.lastName} eliminado correctamente`,
+      );
+      return { message: `Abogado con id ${id} eliminado correctamente.` };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      console.error('❌ Error al eliminar abogado:', error);
+      throw new InternalServerErrorException(
+        'Error al eliminar el abogado. Intente nuevamente.',
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async seedData(): Promise<string> {
     try {
       const abogados = abogadosSeedData;

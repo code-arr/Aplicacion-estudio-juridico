@@ -344,6 +344,7 @@ export class ClientItemRepository implements OnModuleInit {
         'itemType.section',
         'documents',
         "processes",
+        "meetings",
         'itemType.section.category',
         'category',
         'category.clientItems',

@@ -56,7 +56,7 @@ export class User {
   admin: Admin;
 
   //relacion con abogado
-  @OneToOne(() => Lawyer, (lawyer) => lawyer.user)
+  @OneToOne(() => Lawyer, (lawyer) => lawyer.user, { onDelete: 'CASCADE' })
   @JoinColumn() // <-- ¡Esta es la clave para el problema!
   lawyer: Lawyer;
 }

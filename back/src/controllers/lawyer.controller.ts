@@ -48,4 +48,8 @@ export class AbogadoController {
   ): Promise<Lawyer> {
     return this.abogadoService.updateLawyer(lawyerId, updateData);
   }
+  @Delete(":lawyerId")
+  async deleteLawyer(@Param("lawyerId") lawyerId:string){
+    return this.abogadoService.deleteLawyer(lawyerId)
+  }
 }
