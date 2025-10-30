@@ -6,7 +6,7 @@ import { UserRepository } from '../repositories/user.repository';
 @Injectable()
 export class UserService {
   constructor(private userRepository: UserRepository) {}
-  
+
   async userSeedData(): Promise<string> {
     return this.userRepository.userSeedData();
   }
@@ -17,7 +17,7 @@ export class UserService {
   async createUser(user: registerUserDto): Promise<Partial<User> | void> {
     return this.userRepository.createUser(user);
   }
-    async getAllUsers():Promise<User[]>{
+  async getAllUsers(): Promise<User[]> {
     return this.userRepository.getAllUsers();
   }
 
@@ -25,14 +25,20 @@ export class UserService {
     return this.userRepository.getOneById(id);
   }
 
-  async updateUser(id: string, userData: Partial<User>): Promise<Partial<User> | void> {
+  async updateUser(
+    id: string,
+    userData: Partial<User>,
+  ): Promise<Partial<User> | void> {
     return this.userRepository.updateUser(id, userData);
   }
   async verifyPassword(email: string, password: string): Promise<boolean> {
     return this.userRepository.verifyPassword(email, password);
   }
 
-  async changePassword(email: string, newPassword: string): Promise<string | void> {
+  async changePassword(
+    email: string,
+    newPassword: string,
+  ): Promise<string | void> {
     return this.userRepository.changePassword(email, newPassword);
   }
 
@@ -40,5 +46,7 @@ export class UserService {
     return this.userRepository.updatePassword(id, newPassword);
   }
 
-
+  async deleteUser(id: string) {
+    return this.userRepository.deleteUser(id);
+  }
 }

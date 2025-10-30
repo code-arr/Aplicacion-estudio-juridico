@@ -77,7 +77,7 @@ export class Lawyer {
   updatedAt!: Date;
 
   //relacion con usuario
-  @OneToOne(() => User, (usuario) => usuario.lawyer)
+  @OneToOne(() => User, (usuario) => usuario.lawyer , {onDelete : "SET NULL"})
   user: User;
 
   // Relación One-to-Many con Cronometro

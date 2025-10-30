@@ -130,6 +130,30 @@ export class UserRepository {
       );
     }
   }
+  async deleteUser(id: string): Promise<string> {
+    try {
+      const user = await this.userRepository.findOne({ where: { id } });
+
+      if (!user) {
+        throw new NotFoundException('No se encontró el usuario con ese ID.');
+      }
+
+      await this.userRepository.remove(user);
+
+      console.log(`Usuario eliminado correctamente: ${user.email}`);
+
+      return 'Usuario eliminado exitosamente.';
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      console.error('Error al eliminar el usuario:', error);
+      throw new InternalServerErrorException(
+        'Error inesperado al eliminar el usuario. REPOSITORIO',
+      );
+    }
+  }
 
   async changePassword(
     email: string,
