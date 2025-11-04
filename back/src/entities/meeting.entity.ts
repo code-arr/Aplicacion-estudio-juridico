@@ -29,10 +29,10 @@ export class Meeting {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   startAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   endAt: Date;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
