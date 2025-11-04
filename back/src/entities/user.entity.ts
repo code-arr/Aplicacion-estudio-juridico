@@ -44,6 +44,9 @@ export class User {
   })
   role: UserRole;
 
+  @Column({ type: 'uuid', nullable: true })
+  lawyerId?: string;
+
   @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
   createdAt!: Date;
 
