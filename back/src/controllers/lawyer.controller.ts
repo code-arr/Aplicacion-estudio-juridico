@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { Lawyer } from '../entities/lawyer.entity';
 import { AbogadoService } from '../services/abogado.service';
 import { UpdateLawyerDto } from 'src/dtos/updateLawyer.dto';
@@ -20,6 +29,13 @@ export class AbogadoController {
     @Param('clientId') clientId: string,
   ): Promise<Lawyer | null> {
     return this.abogadoService.deleteClientFromLawyer(lawyerId, clientId);
+  }
+  @Put('addClient/:clientId')
+  async addClientToLawyer(
+    @Query('lawyerId') lawyerId: string,
+    @Param('clientId') clientId: string,
+  ): Promise<Lawyer | null> {
+    return this.abogadoService.addClientToLawyer(lawyerId, clientId);
   }
   @Get('getAll')
   //@UseGuards(AuthGuard)
@@ -48,8 +64,8 @@ export class AbogadoController {
   ): Promise<Lawyer> {
     return this.abogadoService.updateLawyer(lawyerId, updateData);
   }
-  @Delete(":lawyerId")
-  async deleteLawyer(@Param("lawyerId") lawyerId:string){
-    return this.abogadoService.deleteLawyer(lawyerId)
+  @Delete(':lawyerId')
+  async deleteLawyer(@Param('lawyerId') lawyerId: string) {
+    return this.abogadoService.deleteLawyer(lawyerId);
   }
 }

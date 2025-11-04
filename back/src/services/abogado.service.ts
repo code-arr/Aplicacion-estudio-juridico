@@ -43,4 +43,11 @@ export class AbogadoService {
   async deleteLawyer(id: string): Promise<{ message: string }> {
     return this.abogadoRepository.deleteLawyer(id);
   }
+
+  async addClientToLawyer(
+    lawyerId: string,
+    clientId: string,
+  ): Promise<Lawyer | null> {
+    return this.abogadoRepository.addClientToLawyer(lawyerId , clientId)
+  }
 }

@@ -193,6 +193,46 @@ export class AbogadoRepository {
     return lawyer.clients;
   }
 
+  async addClientToLawyer(
+    lawyerId: string,
+    clientId: string,
+  ): Promise<Lawyer | null> {
+    // 1. Verificar si el abogado existe
+    const lawyer = await this.repository.findOne({
+      where: { id: lawyerId },
+    });
+    if (!lawyer) {
+      throw new NotFoundException('Lawyer not found');
+    }
+
+    // 2. Verificar si el cliente existe (Asumiendo que tienes un ClientRepository inyectado,
+    // si no, este paso es crucial para asegurar que el clientId es válido)
+    // *** Asume que existe un 'clientRepository' inyectado en la clase ***
+    const client = await this.clienteRepository.findOne({
+      where: { id: clientId },
+    });
+    if (!client) {
+      throw new NotFoundException('Client not found');
+    }
+
+    // 3. Opcional: Verificar si la relación ya existe antes de añadir
+
+    // 4. Establecer la relación (Agregar el cliente al abogado)
+    await this.repository
+      .createQueryBuilder()
+      .relation('clients') // Nombre de la propiedad de la relación en la entidad Lawyer
+      .of(lawyerId)
+      .add(clientId); // Usa .add() para vincular
+
+    // 5. Devolver el abogado actualizado con la nueva lista de clientes
+    const updatedLawyer = await this.repository.findOne({
+      where: { id: lawyerId },
+      relations: ['clients'],
+    });
+
+    return updatedLawyer;
+  }
+
   async updateLawyer(
     lawyerId: string,
     updateData: UpdateLawyerDto,
