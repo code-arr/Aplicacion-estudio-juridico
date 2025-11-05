@@ -7,16 +7,17 @@ export const CLIENTITEM_STATUS_MAP: Record<
 > = {
   open: {
     label: "Abierto",
-    className: "bg-[#0073e6] hover:bg-[#0073e6]/95 text-white border-blue-200",
+    className: "bg-blue-300 hover:bg-blue-400 text-blue-900 border-blue-200",
   },
   on_hold: {
     label: "En Revisión",
     className:
-      "bg-yellow-100 hover:bg-yellow-100/95 text-white border-yellow-200",
+      "bg-yellow-300 hover:bg-yellow-400 text-yellow-900 border-yellow-200",
   },
   closed: {
     label: "Cerrado",
-    className: "bg-green-100 hover:bg-green-100/95 text-white border-green-200",
+    className:
+      "bg-green-300 hover:bg-green-400 text-green-900 border-green-200",
   },
 };
 

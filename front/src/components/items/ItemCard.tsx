@@ -120,16 +120,11 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
     if (!status) return null;
     const cfg = CLIENTITEM_STATUS_MAP[status] ?? {
       label: "Desconocido",
-      className: "bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-200",
+      className: "bg-gray-100 hover:bg-gray-200 text-gray-800",
     };
     return (
-      <Badge
-        className={`${cfg.className} flex gap-x-1 rounded-xl font-semibold cursor-default`}
-      >
-        <span className="text-2xl pb-[0.17rem]">
-          {status === "closed" ? "✓" : "●"}
-        </span>
-        {cfg.label}
+      <Badge className={`${cfg.className} font-medium py-2 cursor-default`}>
+        <span className="leading-none">{cfg.label}</span>
       </Badge>
     );
   };
@@ -152,7 +147,7 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
         return <Library className="w-8 h-8 text-gray-700" />;
         break;
       default:
-        <AlignJustify className="w-8 h-8 text-gray-700" />;
+        return <AlignJustify className="w-8 h-8 text-gray-700" />;
         break;
     }
   };

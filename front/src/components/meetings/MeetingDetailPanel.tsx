@@ -15,6 +15,8 @@ type MeetingDetailPanelProps = {
   onEdit?: (m: Meeting) => void;
   onCancel?: (m: Meeting) => void;
   canceling?: boolean;
+  onComplete?: (m: Meeting) => void;
+  completing?: boolean;
   onManualTime?: (m: Meeting) => void;
 };
 
@@ -27,6 +29,8 @@ export default function MeetingDetailPanel({
   onEdit,
   onCancel,
   canceling = false,
+  onComplete,
+  completing = false,
   onManualTime,
 }: MeetingDetailPanelProps) {
   const open = Boolean(meeting) && isOpen;
@@ -46,7 +50,10 @@ export default function MeetingDetailPanel({
   const isCompleted = meeting?.status === "completed";
   const hasLink = Boolean(meeting?.link);
 
-  const canCancel = meeting?.status === "scheduled";
+  const startMs = meeting ? Date.parse(meeting.startAt) : NaN;
+  const hasStarted = Number.isFinite(startMs) && Date.now() >= startMs; // ya empezó / pasó
+
+  const canCancel = meeting?.status === "scheduled" && !hasStarted; // solo si es futura
 
   const canMarkCompleted =
     meeting?.status === "scheduled" &&
@@ -206,40 +213,33 @@ export default function MeetingDetailPanel({
                       Editar
                     </Button>
 
-                    <Button
-                      variant="outline"
-                      className="border-gray-300"
-                      onClick={() => meeting && onCancel?.(meeting)}
-                      disabled={!meeting || !canCancel || canceling}
-                      title={
-                        !meeting
-                          ? "Sin reunión"
-                          : !canCancel
-                          ? "Solo se pueden cancelar las programadas"
-                          : canceling
-                          ? "Cancelando..."
-                          : "Cancelar reunión"
-                      }
-                    >
-                      {canceling ? "Cancelando..." : "Cancelar reunión"}
-                    </Button>
+                    {canCancel && (
+                      <Button
+                        variant="outline"
+                        className="border-gray-300"
+                        onClick={() => meeting && onCancel?.(meeting)}
+                        disabled={!meeting || canceling}
+                        title={canceling ? "Cancelando..." : "Cancelar reunión"}
+                      >
+                        {canceling ? "Cancelando..." : "Cancelar reunión"}
+                      </Button>
+                    )}
                   </>
                 )}
 
                 <Button
                   className="bg-[hsl(210,90%,40%)]"
-                  onClick={() =>
-                    meeting &&
-                    onEdit?.({ ...meeting, status: "completed" } as any)
-                  }
-                  disabled={!canMarkCompleted}
+                  onClick={() => meeting && onComplete?.(meeting)}
+                  disabled={!canMarkCompleted || !!completing}
                   title={
-                    canMarkCompleted
-                      ? "Marcar como finalizada"
-                      : "Disponible al llegar la hora de inicio"
+                    !canMarkCompleted
+                      ? "Disponible al llegar la hora de inicio"
+                      : completing
+                      ? "Finalizando..."
+                      : "Marcar como finalizada"
                   }
                 >
-                  Finalizar reunión
+                  {completing ? "Finalizando..." : "Finalizar reunión"}
                 </Button>
 
                 {meeting?.status === "completed" && (

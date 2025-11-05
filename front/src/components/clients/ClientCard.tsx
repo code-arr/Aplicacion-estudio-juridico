@@ -16,19 +16,22 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
     const statusConfig = {
       active: {
         label: "Activo",
-        className: "bg-green-100 text-green-800 border-green-200",
+        className:
+          "bg-green-100 text-green-800 border-green-200 hover:bg-green-200",
       },
       under_review: {
         label: "En Revisión",
-        className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+        className:
+          "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200",
       },
       inactive: {
         label: "Inactivo",
-        className: "bg-gray-100 text-gray-800 border-gray-200",
+        className:
+          "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200",
       },
     };
 
-    const config = statusConfig[status];
+    const config = statusConfig[status!];
     return (
       <Badge className={`${config.className} font-medium cursor-default`}>
         {config.label}

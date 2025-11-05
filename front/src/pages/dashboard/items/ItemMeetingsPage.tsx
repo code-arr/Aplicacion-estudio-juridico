@@ -23,6 +23,7 @@ const ItemMeetingsPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [completingId, setCompletingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -159,6 +160,45 @@ const ItemMeetingsPage = () => {
       });
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const handleComplete = async (m: Meeting) => {
+    if (m.status !== "scheduled") return;
+
+    // opcional: confirmación, igual que cancelar
+    const ok = window.confirm(`¿Finalizar “${m.name}” ahora?`);
+    if (!ok) return;
+
+    const id = m.id!;
+
+    const prev = meetingsByClientItem;
+    const next: Meeting[] = prev.map((x) =>
+      x.id === id ? { ...x, status: "completed" as Meeting["status"] } : x
+    );
+    setMeetingsByClientItem(next);
+
+    try {
+      setCompletingId(id);
+      // 👇 pasamos el email del organizador para que, si es Google, actualice endAt en Calendar
+      const updated = await updateMeeting(
+        id,
+        { status: "completed" },
+        user?.email
+      );
+      const merged = next.map((x) => (x.id === id ? { ...x, ...updated } : x));
+      setMeetingsByClientItem(merged);
+      toast?.({ title: "Reunión finalizada" });
+      if (openId === id) setOpenId(null); // cerrar panel
+    } catch (err: any) {
+      setMeetingsByClientItem(prev); // rollback
+      toast?.({
+        title: "No se pudo finalizar",
+        description: err?.response?.data?.message ?? "Probá de nuevo",
+        variant: "destructive",
+      });
+    } finally {
+      setCompletingId(null);
     }
   };
 
@@ -390,6 +430,8 @@ const ItemMeetingsPage = () => {
         onEdit={handleOpenEdit}
         onCancel={(m) => handleCancel(m)}
         canceling={cancellingId === openId}
+        onComplete={handleComplete}
+        completing={completingId === openId}
         onManualTime={handleOpenManual}
       />
       <EditMeetingModal
