@@ -148,13 +148,18 @@ export class GoogleCalendarService {
       if (patch.summary !== undefined) requestBody.summary = patch.summary;
       if (patch.location !== undefined) requestBody.location = patch.location;
       if (patch.startAt || patch.endAt) {
-        if (patch.startAt)
-          requestBody.start = {
-            dateTime: patch.startAt.toISOString(),
-            timeZone,
-          };
-        if (patch.endAt)
-          requestBody.end = { dateTime: patch.endAt.toISOString(), timeZone };
+        if (patch.startAt) {
+          const startCL = moment(patch.startAt)
+            .tz(timeZone)
+            .format('YYYY-MM-DDTHH:mm:ss');
+          requestBody.start = { dateTime: startCL, timeZone };
+        }
+        if (patch.endAt) {
+          const endCL = moment(patch.endAt)
+            .tz(timeZone)
+            .format('YYYY-MM-DDTHH:mm:ss');
+          requestBody.end = { dateTime: endCL, timeZone };
+        }
       }
       if (patch.attendees) {
         requestBody.attendees = [
