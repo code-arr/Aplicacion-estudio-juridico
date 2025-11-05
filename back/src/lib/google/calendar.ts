@@ -3,6 +3,7 @@ import { google } from 'googleapis';
 import axios from 'axios';
 import { forwardRef, Inject } from '@nestjs/common';
 import { UserService } from 'src/services/user.service';
+import * as moment from 'moment-timezone';
 
 @Injectable()
 export class GoogleCalendarService {
@@ -68,7 +69,9 @@ export class GoogleCalendarService {
 
       // 4️⃣ Fechas
       const startDate = new Date(date);
+      const startDateCL = moment(date).tz(timeZone);
       const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1h por defecto
+      const endDateCL = moment(endDate).tz(timeZone);
 
       // 5️⃣ Construir lista de asistentes
       const attendees = [
@@ -84,8 +87,11 @@ export class GoogleCalendarService {
         calendarId: 'primary',
         requestBody: {
           summary: subject,
-          start: { dateTime: startDate.toISOString(), timeZone },
-          end: { dateTime: endDate.toISOString(), timeZone },
+          start: {
+            dateTime: startDateCL.format('YYYY-MM-DDTHH:mm:ss'),
+            timeZone,
+          },
+          end: { dateTime: endDateCL.format('YYYY-MM-DDTHH:mm:ss'), timeZone },
           attendees,
           conferenceData: {
             createRequest: {
@@ -93,6 +99,10 @@ export class GoogleCalendarService {
               conferenceSolutionKey: { type: 'hangoutsMeet' },
             },
           },
+          description: [
+            `Hora Chile: ${startDateCL.format('ddd D MMM YYYY HH:mm')}–${endDateCL.format('HH:mm')} (${startDateCL.format('z')})`,
+            'Tu calendario la mostrará en tu hora local automáticamente.',
+          ].join('\n'),
         },
         conferenceDataVersion: 1,
         sendUpdates: 'all', // 🔔 notifica a todos los asistentes
