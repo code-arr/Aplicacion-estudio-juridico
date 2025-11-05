@@ -1,3 +1,4 @@
+// src/lib/formatDate.ts
 const DEFAULT_TZ = import.meta.env.VITE_APP_TZ ?? "America/Santiago";
 
 /** Capitaliza la primera letra (para "lun" -> "Lun") */

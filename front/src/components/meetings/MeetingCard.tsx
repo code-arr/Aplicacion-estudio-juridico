@@ -1,5 +1,5 @@
 import type { Meeting } from "@/types/Meeting";
-import { ChevronRight, Trash2, User } from "lucide-react";
+import { ChevronRight, Trash2, User, AlertTriangle } from "lucide-react";
 import googleLogo from "@/assets/logos/cromoVerde.png";
 import { formatDateWeekdayShort, formatTimeChile } from "@/lib/formatDate";
 
@@ -20,6 +20,12 @@ const MeetingCard = ({
 }: MeetingCardProps) => {
   const canDelete = m.status === "completed" || m.status === "canceled";
 
+  const isOverdue =
+    m.status === "scheduled" &&
+    m.startAt &&
+    Number.isFinite(Date.parse(m.startAt)) &&
+    Date.parse(m.startAt) < Date.now();
+
   return (
     <li key={m.id} className="p-4">
       {/* fila */}
@@ -36,8 +42,19 @@ const MeetingCard = ({
 
         {/* contenido */}
         <div className="min-w-0 flex-1 pl-3">
-          <p className="truncate font-semibold text-lg text-gray-900 mb-1">
+          <p className="truncate font-semibold text-lg text-gray-900 mb-1 flex items-center gap-2">
             {m.name}
+            {isOverdue && (
+              <span
+                className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium
+                 border-[hsl(0,70%,70%)] bg-[hsl(0,70%,98%)] text-[hsl(0,70%,35%)]"
+                title="La reunión está vencida"
+                aria-label="Reunión vencida"
+              >
+                <AlertTriangle className="h-3 w-3" />
+                Vencida
+              </span>
+            )}
           </p>
           <div className="text-[0.9rem] text-gray-900 flex items-center gap-x-2">
             {m.type === "google-meet" ? (

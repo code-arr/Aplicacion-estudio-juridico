@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Meeting } from "@/types/Meeting";
+import { localDateTimeToIsoUtc } from "@/utils/dateTime";
 
 type Props = {
   open: boolean;
@@ -34,8 +35,8 @@ export default function EditMeetingModal({
   const [status, setStatus] = React.useState<Meeting["status"]>("scheduled");
   const [notes, setNotes] = React.useState("");
   const [location, setLocation] = React.useState("");
-  const [startAt, setStartAt] = React.useState("");
-  const [endAt, setEndAt] = React.useState("");
+  const [startAt, setStartAt] = React.useState<string | null>("");
+  const [endAt, setEndAt] = React.useState<string | null>("");
   const [participantsText, setParticipantsText] = React.useState("");
 
   // ⬇️ Cuando abre y hay meeting, sincronizamos
@@ -150,9 +151,9 @@ export default function EditMeetingModal({
                   <label className="text-sm text-gray-600">Inicio</label>
                   <Input
                     type="datetime-local"
-                    value={toLocalInputValue(startAt)}
+                    value={toLocalInputValue(startAt!)}
                     onChange={(e) =>
-                      setStartAt(fromLocalInputValue(e.target.value))
+                      setStartAt(localDateTimeToIsoUtc(e.target.value))
                     }
                   />
                 </div>
@@ -162,9 +163,9 @@ export default function EditMeetingModal({
                   </label>
                   <Input
                     type="datetime-local"
-                    value={toLocalInputValue(endAt)}
+                    value={toLocalInputValue(endAt!)}
                     onChange={(e) =>
-                      setEndAt(fromLocalInputValue(e.target.value))
+                      setEndAt(localDateTimeToIsoUtc(e.target.value))
                     }
                   />
                 </div>

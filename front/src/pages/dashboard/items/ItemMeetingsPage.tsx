@@ -17,6 +17,7 @@ import RowSkeleton from "@/components/shared/RowSkeleton";
 import { updateMeeting } from "@/api/meeting";
 import EditMeetingModal from "@/components/meetings/EditMeetingModal";
 import { useToast } from "@/hooks/useToast";
+import ManualTimeDialog from "@/components/meetings/ManualTimeModal";
 
 const ItemMeetingsPage = () => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
@@ -30,6 +31,9 @@ const ItemMeetingsPage = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [selected, setSelected] = useState<Meeting | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualTarget, setManualTarget] = useState<Meeting | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,8 +108,26 @@ const ItemMeetingsPage = () => {
   };
 
   const handleConfirmEdit = async (patch: Partial<Meeting>) => {
+    if (patch.status === "completed") {
+      const startAtMs = selected?.startAt ? Date.parse(selected.startAt) : NaN;
+      if (!Number.isFinite(startAtMs) || Date.now() < startAtMs) {
+        toast?.({
+          title: "No podés finalizar aún",
+          description: "La reunión todavía no comenzó.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     if (!selected) return;
     const id = selected.id;
+
+    // si el patch pide cerrar y no tiene endAt, lo ponemos ahora
+    const finalizePatch =
+      patch.status === "completed" && !patch.endAt
+        ? { ...patch, endAt: new Date().toISOString() }
+        : patch;
 
     const prev = meetingsByClientItem;
     const next = meetingsByClientItem.map((x) =>
@@ -118,7 +140,7 @@ const ItemMeetingsPage = () => {
       const isGoogle = selected.type === "google-meet";
       const updated = await updateMeeting(
         id!,
-        patch,
+        finalizePatch,
         isGoogle ? user?.email : undefined
       );
 
@@ -147,7 +169,7 @@ const ItemMeetingsPage = () => {
 
     try {
       setCancellingId(m.id!);
-      await cancelMeetingById(m, user?.email);
+      await cancelMeetingById(m, user.email!);
       if (openId === m.id) setOpenId(null); // cierro panel si era esa
     } catch {
       alert("No se pudo cancelar la reunión. Intenta de nuevo.");
@@ -162,7 +184,7 @@ const ItemMeetingsPage = () => {
     );
     if (!ok) return;
     try {
-      setDeletingId(m.id);
+      setDeletingId(m.id!);
       await deleteMeetingById(m);
       if (openId === m.id) setOpenId(null); // cerrar panel si era ese
     } catch {
@@ -172,12 +194,24 @@ const ItemMeetingsPage = () => {
     }
   };
 
+  const handleOpenManual = (m: Meeting) => {
+    if (m.status !== "completed") return; // guard-rail
+    setManualTarget(m);
+    setManualOpen(true);
+  };
+
   // 1) Helpers arriba del componente (mantenelos cerca del resto)
   const normalize = (s: string) =>
     s
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
+
+  const sortKey = (m: Meeting) => {
+    const iso = m.endAt ?? m.startAt;
+    const t = Date.parse(iso ?? "");
+    return Number.isFinite(t) ? t : 0;
+  };
 
   const filtered = useMemo(() => {
     const q = normalize(searchTerm.trim());
@@ -204,15 +238,27 @@ const ItemMeetingsPage = () => {
   }, [searchTerm, meetingsByClientItem]);
 
   const scheduled = useMemo(
-    () => filtered.filter((m) => m.status === "scheduled"),
+    () =>
+      filtered
+        .filter((m) => m.status === "scheduled")
+        .slice()
+        .sort((a, b) => sortKey(a) - sortKey(b)), // ↑ más cercana primero
     [filtered]
   );
   const completed = useMemo(
-    () => filtered.filter((m) => m.status === "completed"),
+    () =>
+      filtered
+        .filter((m) => m.status === "completed")
+        .slice()
+        .sort((a, b) => sortKey(b) - sortKey(a)),
     [filtered]
   );
   const canceled = useMemo(
-    () => filtered.filter((m) => m.status === "canceled"),
+    () =>
+      filtered
+        .filter((m) => m.status === "canceled")
+        .slice()
+        .sort((a, b) => sortKey(b) - sortKey(a)),
     [filtered]
   );
 
@@ -344,6 +390,7 @@ const ItemMeetingsPage = () => {
         onEdit={handleOpenEdit}
         onCancel={(m) => handleCancel(m)}
         canceling={cancellingId === openId}
+        onManualTime={handleOpenManual}
       />
       <EditMeetingModal
         open={editOpen && !!(selected ?? openMeeting)}
@@ -351,6 +398,18 @@ const ItemMeetingsPage = () => {
         meeting={selected ?? openMeeting ?? null}
         onConfirm={handleConfirmEdit}
         loading={savingEdit}
+      />
+      <ManualTimeDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        meeting={manualTarget}
+        lawyerId={lawyer?.id}
+        clientId={clientItemDetail?.clientId}
+        clientItemId={clientItemId}
+        onSaved={() => {
+          // opcional: toast o refrescar stats del cliente
+          toast?.({ title: "Tiempo cargado" });
+        }}
       />
     </div>
   );

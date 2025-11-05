@@ -18,6 +18,8 @@ import { createProcess } from "@/api/process";
 import { useParams } from "react-router-dom";
 import { useProcessStore } from "@/store/useProcessStore";
 import { useClientStore } from "@/store/useClientStore";
+import { useLawyerStore } from "@/store/useLawyerStore";
+import type { TimeEntry } from "@/types/Timer";
 
 type ProcessFormProps = {
   isDialogOpen: boolean;
@@ -46,6 +48,7 @@ const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
   const [saving, setSaving] = useState(false);
 
   const clientDetail = useClientStore((s) => s.clientDetail);
+  const lawyer = useLawyerStore((s) => s.lawyer);
 
   const fetchProcessesByClientItemId = useProcessStore(
     (s) => s.fetchProcessesByClientItemId
@@ -87,7 +90,41 @@ const ProcessForm = ({ isDialogOpen, onOpenChange }: ProcessFormProps) => {
     try {
       setSaving(true);
 
-      await createProcess(payload, clientId, clientItemId!);
+      const created = await createProcess(payload, clientId, clientItemId!);
+
+      // 🔵 ENCOLAR TIME-ENTRY MANUAL
+      try {
+        const durationSec = newProcess.durationSec; // ya validado > 0
+        const startedAtUTC = startedAtIso; // ya lo tenés en UTC
+        const startMs = Date.parse(startedAtUTC);
+        const endMs = startMs + durationSec * 1000;
+        const endedAtUTC = new Date(endMs).toISOString();
+
+        // dayKey debe ser del "día local" del INICIO → usá el valor local del input
+        // newProcess.dateTime viene del <input type="datetime-local"> → "YYYY-MM-DDTHH:MM"
+        const dayKey = newProcess.dateTime.slice(0, 10); // "YYYY-MM-DD"
+
+        const entry: TimeEntry = {
+          id: crypto.randomUUID(),
+          trackableType: "Process",
+          trackableId: created.id!, // 👈 id del trámite recién creado
+          lawyerId: lawyer?.id!,
+          clientId,
+          clientItemId: clientItemId!,
+          dayKey,
+          startedAtUTC,
+          endedAtUTC,
+          durationSec,
+          pauseReason: "switch", // 👈 motivo neutro (no agregamos enum nuevo)
+        };
+
+        await window.electronAPI.timeQueue.appendEntry(entry);
+      } catch (e) {
+        // No rompemos el flujo si falla encolar: el trámite ya quedó creado.
+        console.error("[process time-entry] append failed", e);
+        // opcional: toast suave
+        // toast?.({ title: "Guardado sin tiempo", description: "No se pudo registrar el tiempo offline.", variant: "destructive" });
+      }
 
       await fetchProcessesByClientItemId(clientItemId!);
 

@@ -54,7 +54,6 @@ export const cancelMeeting = async (
   meetingId: string,
   lawyerEmail: string
 ): Promise<Meeting> => {
-  return (
-    await axios.patch(`meeting/cancel/${meetingId}`, { data: { lawyerEmail } })
-  ).data;
+  return (await axios.patch(`meeting/cancel/${meetingId}`, { lawyerEmail }))
+    .data;
 };

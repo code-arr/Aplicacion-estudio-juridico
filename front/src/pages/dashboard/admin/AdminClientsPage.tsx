@@ -1,6 +1,5 @@
 // src/pages/dashboard/admin/AdminClientsPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import type { Client } from "@/types/Client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

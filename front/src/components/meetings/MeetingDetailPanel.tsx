@@ -15,6 +15,7 @@ type MeetingDetailPanelProps = {
   onEdit?: (m: Meeting) => void;
   onCancel?: (m: Meeting) => void;
   canceling?: boolean;
+  onManualTime?: (m: Meeting) => void;
 };
 
 export default function MeetingDetailPanel({
@@ -26,6 +27,7 @@ export default function MeetingDetailPanel({
   onEdit,
   onCancel,
   canceling = false,
+  onManualTime,
 }: MeetingDetailPanelProps) {
   const open = Boolean(meeting) && isOpen;
 
@@ -41,7 +43,14 @@ export default function MeetingDetailPanel({
     onOpened: () => console.log("Abriendo reunión en el navegador…"),
   });
 
+  const isCompleted = meeting?.status === "completed";
+  const hasLink = Boolean(meeting?.link);
+
   const canCancel = meeting?.status === "scheduled";
+
+  const canMarkCompleted =
+    meeting?.status === "scheduled" &&
+    Date.now() >= Date.parse(meeting.startAt);
 
   return (
     <>
@@ -158,52 +167,91 @@ export default function MeetingDetailPanel({
               {/* Acciones */}
               <div className="pt-2 flex flex-wrap gap-2">
                 {/* 👇 NUEVO: Unirse y Copiar comparten la misma lógica */}
-                <Button
-                  className="bg-blue-800 text-white"
-                  disabled={joinDisabled}
-                  onClick={join}
-                  title={
-                    joinDisabled ? "Sin enlace válido" : "Unirse a la reunión"
-                  }
-                >
-                  Unirse
-                </Button>
+                {!isCompleted && hasLink && (
+                  <>
+                    <Button
+                      className="bg-blue-800 text-white"
+                      disabled={joinDisabled}
+                      onClick={join}
+                      title={
+                        joinDisabled
+                          ? "Sin enlace válido"
+                          : "Unirse a la reunión"
+                      }
+                    >
+                      Unirse
+                    </Button>
 
-                <Button
-                  variant="outline"
-                  className="border-gray-300"
-                  disabled={joinDisabled}
-                  onClick={copy}
-                  title={joinDisabled ? "Sin enlace válido" : "Copiar enlace"}
-                >
-                  Copiar enlace
-                </Button>
+                    <Button
+                      variant="outline"
+                      className="border-gray-300"
+                      disabled={joinDisabled}
+                      onClick={copy}
+                      title={
+                        joinDisabled ? "Sin enlace válido" : "Copiar enlace"
+                      }
+                    >
+                      Copiar enlace
+                    </Button>
+                  </>
+                )}
 
                 <div className="flex-1" />
+                {!isCompleted && (
+                  <>
+                    <Button
+                      className="bg-blue-800"
+                      onClick={() => meeting && onEdit?.(meeting)}
+                    >
+                      Editar
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="border-gray-300"
+                      onClick={() => meeting && onCancel?.(meeting)}
+                      disabled={!meeting || !canCancel || canceling}
+                      title={
+                        !meeting
+                          ? "Sin reunión"
+                          : !canCancel
+                          ? "Solo se pueden cancelar las programadas"
+                          : canceling
+                          ? "Cancelando..."
+                          : "Cancelar reunión"
+                      }
+                    >
+                      {canceling ? "Cancelando..." : "Cancelar reunión"}
+                    </Button>
+                  </>
+                )}
 
                 <Button
-                  className="bg-blue-800"
-                  onClick={() => meeting && onEdit?.(meeting)}
-                >
-                  Editar
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-gray-300"
-                  onClick={() => meeting && onCancel?.(meeting)}
-                  disabled={!meeting || !canCancel || canceling}
+                  className="bg-[hsl(210,90%,40%)]"
+                  onClick={() =>
+                    meeting &&
+                    onEdit?.({ ...meeting, status: "completed" } as any)
+                  }
+                  disabled={!canMarkCompleted}
                   title={
-                    !meeting
-                      ? "Sin reunión"
-                      : !canCancel
-                      ? "Solo se pueden cancelar las programadas"
-                      : canceling
-                      ? "Cancelando..."
-                      : "Cancelar reunión"
+                    canMarkCompleted
+                      ? "Marcar como finalizada"
+                      : "Disponible al llegar la hora de inicio"
                   }
                 >
-                  {canceling ? "Cancelando..." : "Cancelar reunión"}
+                  Finalizar reunión
                 </Button>
+
+                {meeting?.status === "completed" && (
+                  <Button
+                    variant="outline"
+                    className="border-gray-300"
+                    onClick={() => meeting && onManualTime?.(meeting)}
+                    title="Cargar tiempo manual"
+                  >
+                    Cargar tiempo
+                  </Button>
+                )}
               </div>
             </>
           )}

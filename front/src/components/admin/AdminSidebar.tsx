@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, NavLink } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAdminStore } from "@/store/useAdminStore";
+import { LogOut } from "lucide-react";
 
 function initials(first?: string, last?: string) {
   const a = (first?.[0] ?? "").toUpperCase();
@@ -14,6 +15,7 @@ function initials(first?: string, last?: string) {
 export default function AdminSidebar() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   const { admin, isHydrated, isLoading, hydrateAdmin } = useAdminStore();
 
   // Hidratar admin sólo si es rol admin y aún no está cargado
@@ -28,8 +30,19 @@ export default function AdminSidebar() {
     [admin]
   );
 
+  async function handleLogout() {
+    const ok = window.confirm("¿Querés cerrar sesión?");
+    if (!ok) return;
+    try {
+      await logout();
+      navigate("/login", { replace: true });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   return (
-    <aside className="h-screen w-56 border-r border-[#e5e7eb] bg-white p-3">
+    <aside className="h-dvh sticky top-0 w-56 border-r border-[#e5e7eb] bg-white p-3 flex flex-col overflow-y-auto">
       {/* Header con identidad */}
       <div className="mb-4 flex items-center gap-3">
         <div
@@ -53,7 +66,7 @@ export default function AdminSidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-1 flex-col gap-1">
         <NavLink
           to="/dashboard/admin/lawyers"
           className={({ isActive }) =>
@@ -99,6 +112,12 @@ export default function AdminSidebar() {
           Estadísticas
         </NavLink>
       </nav>
+      <div className="mt-auto pt-3">
+        <Button variant="outline" className="w-full" onClick={handleLogout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Cerrar sesión
+        </Button>
+      </div>
     </aside>
   );
 }

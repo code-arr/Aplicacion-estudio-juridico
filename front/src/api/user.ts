@@ -26,9 +26,23 @@ export const loginUser = async (
   }
 };
 
+export async function deleteUser(userId: string) {
+  const data = await axios.delete(`user/${userId}`);
+  if (!data.data) throw new Error("Error al desactivar usuario");
+  return data.data;
+}
+
 // 🔁 Nuevo: obtener el usuario desde el token (Bearer) -> /auth/me
 export async function getMe(): Promise<User> {
   const { data } = await axios.get("/auth/me");
+  console.log(data);
+
+  return data;
+}
+export async function getAllUsers() {
+  const { data } = await axios.get("/user/getAll");
+  console.log(data);
+
   return data;
 }
 
