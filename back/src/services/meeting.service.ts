@@ -137,7 +137,7 @@ export class MeetingService {
         );
       }
 
-      // Armamos patch SOLO con campos que Google entiende
+      // 3) Armamos patch SOLO con campos que Google entiende
       const gPatch: {
         summary?: string;
         startAt?: Date;
@@ -161,18 +161,23 @@ export class MeetingService {
         }));
       }
 
-      // ⚠️ status: "canceled" ya lo manejás con cancelMeeting (borra en Google)
-      // Si querés permitir "completed" solo en BD, no lo mandamos a Google.
+      // 4) Si hay algo que actualizar, hacemos patch
+      if (Object.keys(gPatch).length > 0) {
+        if (!lawyerEmail) {
+          throw new BadRequestException(
+            'Organizer email (lawyerEmail) is required to update Google events',
+          );
+        }
 
-      // 3) Actualizar en Google primero (para evitar desincronizar si Google falla)
-      await this.googleCalendarService.updateEvent(
-        lawyerEmail,
-        current.eventId!,
-        gPatch,
-      );
+        await this.googleCalendarService.updateEvent(
+          lawyerEmail,
+          current.eventId,
+          gPatch,
+        );
+      }
     }
 
-    // 4) Actualizar en BD (incluyendo campos que Google no conoce, ej. notes, status)
+    // 5) Actualizar en BD (incluyendo campos que Google no conoce, ej. notes, status)
     const updated = await this.meetingRepository.updateMeeting(id, payload);
     return updated;
   }
