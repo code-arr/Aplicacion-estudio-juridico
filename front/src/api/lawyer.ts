@@ -32,3 +32,7 @@ export const deleteLawyer = async (lawyerId?: string) => {
 export const removeClient = async (clientId: string) => {
   return (await axios.delete(`lawyer/deleteClient/${clientId}`)).data;
 };
+
+export const linkClientToLawyer = async (clientId: string): Promise<void> => {
+  return (await axios.put(`lawyer/addClient/${clientId}`)).data;
+};

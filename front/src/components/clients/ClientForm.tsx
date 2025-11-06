@@ -15,9 +15,9 @@ import {
   SegmentedToggle,
   SegmentedToggleItem,
 } from "@/components/ui/segmentedtoggle";
-import { createClient, linkClientToLawyer } from "@/api/client";
+import { createClient } from "@/api/client";
 import type { Client, ClientType } from "@/types/Client";
-import { useClientStore } from "@/store/useClientStore";
+import { selectClientsByLawyer, useClientStore } from "@/store/useClientStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import {
   Select,
@@ -26,6 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { linkClientToLawyer } from "@/api/lawyer";
+import { useToast } from "@/hooks/useToast";
 
 // Hook chico para "debounce" sin dependencias externas (simple y suficiente)
 function useDebouncedValue<T>(value: T, delay = 250) {
@@ -51,6 +53,8 @@ type ClientSearchItem = {
 };
 
 const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
+  const { toast } = useToast();
+
   // 🔁 Nuevo: modo de trabajo
   const [mode, setMode] = useState<"crear" | "vincular">("crear");
 
@@ -67,7 +71,8 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
   const lawyerId = useLawyerStore((s) => s.lawyer?.id);
 
   const clients = useClientStore((state) => state.clientsAll);
-  const actualLawyerClients = useClientStore((state) => state.clientsByLawyer);
+  const hydrateAllClients = useClientStore((state) => state.hydrateAll);
+  const actualLawyerClients = useClientStore(selectClientsByLawyer);
   const hydrateByLawyer = useClientStore((state) => state.hydrateByLawyer);
 
   // Cliente duplicado (si el RUT ya existe en la app)
@@ -124,28 +129,6 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
     return dv ? `${withDots}-${dv}` : withDots;
   }
 
-  /* function formatRutLive(value: string) {
-    // Eliminar todo lo que no sea dígito o K/k
-    const clean = value
-      .replace(/[^\dkK]/gi, "")
-      .toUpperCase()
-      .slice(0, 9);
-
-    let result = "";
-
-    for (let i = 0; i < clean.length; i++) {
-      if (i === 2 || i === 5) {
-        result += ".";
-      }
-      if (i === 8) {
-        result += "-";
-      }
-      result += clean[i];
-    }
-
-    return result;
-  } */
-
   function validateRut(chileanRut: string) {
     const clean = chileanRut.replace(/\./g, "").replace(/-/g, "").toUpperCase();
     if (clean.length < 2) return false;
@@ -178,29 +161,6 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
   const validateCurrency = (c: string) => {
     return c === "CLP" || c === "USD" || c === "UF" ? null : "Moneda inválida";
   };
-
-  /*   function buildDto() {
-    if (clientType === "Fisica") {
-      return {
-        type: "Fisica",
-        firstName: newPersonClient.firstName.trim(),
-        lastName: newPersonClient.lastName.trim(),
-        rut: newPersonClient.rut.trim(),
-        phone: newPersonClient.phone.trim(),
-        email: newPersonClient.email.trim(),
-        address: newPersonClient.address.trim(),
-      };
-    }
-    return {
-      type: "Juridica",
-      companyName: newCompanyClient.companyName.trim(),
-      legalRepresentative: newCompanyClient.legalRepresentative.trim(),
-      rut: newCompanyClient.rut.trim(),
-      phone: newCompanyClient.phone.trim(),
-      email: newCompanyClient.email.trim(),
-      address: newCompanyClient.address.trim(),
-    };
-  } */
 
   function validate(): string | null {
     if (clientType === "Fisica") {
@@ -293,9 +253,13 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
 
       setIsDialogOpen(false);
     } catch (err: any) {
-      setErrorMsg(
-        err?.response?.data?.message ?? "No se pudo crear el cliente"
-      );
+      const msg = err?.response?.data?.message ?? "No se pudo crear el cliente";
+      setErrorMsg(msg);
+      toast({
+        variant: "destructive",
+        title: "Error al crear el cliente",
+        description: msg,
+      });
     } finally {
       setLoading(false);
     }
@@ -305,6 +269,11 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
   const handleLink = async (clientId: string | undefined) => {
     if (!clientId) {
       setErrorMsg("No se indicó el ID del cliente a vincular");
+      toast({
+        variant: "destructive",
+        title: "No se pudo vincular",
+        description: "Falta el ID del cliente.",
+      });
       return;
     }
     setLoading(true);
@@ -315,11 +284,23 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
 
       await hydrateByLawyer(lawyerId!, { force: true });
 
+      toast({
+        title: "Cliente vinculado",
+        description: "Se agregó a tu lista correctamente.",
+      });
+
       setIsDialogOpen(false);
     } catch (err: any) {
-      setErrorMsg(
-        err?.response?.data?.message ?? "No se pudo vincular el cliente"
-      );
+      const msg =
+        err?.response?.data?.message ??
+        err?.message ??
+        "No se pudo vincular el cliente";
+      setErrorMsg(msg);
+      toast({
+        variant: "destructive",
+        title: "Error al vincular",
+        description: msg,
+      });
     } finally {
       setLoading(false);
     }
@@ -372,6 +353,33 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
     if (!linkedIds || linkedIds.size === 0) return searchIndex;
     return searchIndex.filter((row) => !linkedIds.has(row.id));
   }, [searchIndex, linkedIds]);
+
+  useEffect(() => {
+    if (!isDialogOpen) return;
+
+    (async () => {
+      // si no tenés flags de hidratación, usá length como guardia simple
+      if (!clients?.length) {
+        await hydrateAllClients({ force: false }); // o true si querés ignorar TTL
+      }
+      if (lawyerId && !actualLawyerClients?.length) {
+        await hydrateByLawyer(lawyerId, { force: false });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDialogOpen]);
+
+  useEffect(() => {
+    if (!isDialogOpen || mode !== "vincular") return;
+
+    if (!clients?.length) {
+      hydrateAllClients({ force: false });
+    }
+    if (lawyerId && !actualLawyerClients?.length) {
+      hydrateByLawyer(lawyerId, { force: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, isDialogOpen]);
 
   // 🔎 Búsqueda local en modo "vincular" utilizando el índice memoizado
   useEffect(() => {
@@ -474,7 +482,15 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
                       placeholder="Ej: 'Pérez' o '77.233.445-7'"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
+                      disabled={
+                        !clients?.length || !actualLawyerClients?.length
+                      }
                     />
+                    {errorMsg && (
+                      <div className="mt-2 text-sm text-red-600">
+                        {errorMsg}
+                      </div>
+                    )}
                     {/* Dropdown de resultados: misma anchura que el input */}
                     {searchTerm && (
                       <div className="absolute left-0 right-0 top-full z-50 mt-3 rounded-md border bg-popover shadow-sm">
@@ -503,8 +519,9 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
                                 <Button
                                   size="sm"
                                   onClick={() => handleLink(r.id)}
+                                  disabled={loading}
                                 >
-                                  Vincular
+                                  {loading ? "Vinculando..." : "Vincular"}
                                 </Button>
                               </li>
                             ))}

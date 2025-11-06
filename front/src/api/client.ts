@@ -26,10 +26,6 @@ export const deleteClient = async (id: string): Promise<void> => {
   await axios.delete(`/client/delete/${id}`);
 };
 
-export const linkClientToLawyer = async (clientId: string): Promise<void> => {
-  return (await axios.post(`/client/link/`, clientId)).data;
-};
-
 type SendMailInput = {
   email: string; // destinatario
   subject: string; // asunto

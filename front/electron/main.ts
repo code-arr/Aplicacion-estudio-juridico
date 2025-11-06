@@ -1,5 +1,12 @@
 // electron/main.ts
-import { app, BrowserWindow, ipcMain, dialog, nativeImage } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  nativeImage,
+  shell,
+} from "electron";
 import { config as loadEnv } from "dotenv";
 import * as path from "path";
 import fs from "fs";
@@ -26,6 +33,33 @@ const _deviceId = createHash("sha256")
 
 // ✅ REGISTRAR EL HANDLER *ANTES* DE CREAR VENTANAS
 ipcMain.handle("device:getId", () => _deviceId);
+
+ipcMain.handle("open-external", async (_e, rawUrl: string) => {
+  try {
+    if (typeof rawUrl !== "string" || !rawUrl.trim()) return false;
+    const url = rawUrl.trim();
+    const u = new URL(url);
+    const host = u.hostname;
+
+    const ALLOWED_HOSTS = new Set([
+      "meet.google.com",
+      "zoom.us",
+      "teams.microsoft.com",
+      "calendar.google.com",
+    ]);
+
+    const allowed = ALLOWED_HOSTS.has(host);
+    console.log("[open-external]", { url, host, allowed });
+
+    if (!allowed) return false;
+
+    await shell.openExternal(url);
+    return true; // <- IMPORTANTE
+  } catch (e) {
+    console.error("[open-external] ERROR:", e);
+    return false;
+  }
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -392,6 +426,7 @@ ipcMain.on("auth:setToken", (_e, token: string | null) => {
   syncService.onAuthOk();
 });
 ipcMain.on("net:online", () => syncService.onOnline());
+
 /** ====================================================================== */
 
 /** ==================== IPC: DOCUMENTS VIEWER ==================== */

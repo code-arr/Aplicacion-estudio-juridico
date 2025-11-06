@@ -264,32 +264,31 @@ contextBridge.exposeInMainWorld("authDeepLink", {
 
 /** =============================================================== */
 
-// Allowlist simple para evitar abrir cualquier cosa
-const ALLOWED_PREFIXES = [
-  "https://meet.google.com/",
-  "https://zoom.us/j/",
-  "https://teams.microsoft.com/l/meetup-join/",
-];
-
-function isAllowedUrl(url: string) {
-  return ALLOWED_PREFIXES.some((prefix) => url.startsWith(prefix));
-}
+// 🔵 API para abrir enlaces externos de forma segura
 
 async function openExternal(url: string): Promise<boolean> {
   try {
-    if (!url) return false;
-    // Normalización simple (sin protocolos raros)
-    const safeUrl = url.trim();
-    if (!isAllowedUrl(safeUrl)) return false;
+    if (!url || typeof url !== "string") return false;
 
-    await shell.openExternal(safeUrl);
-    return true;
+    const safe = url.trim();
+    // (opcional) minimal normalization por si algún día llega sin protocolo
+    const normalized = /^https?:\/\//i.test(safe) ? safe : `https://${safe}`;
+
+    // pedimos al main que lo abra
+    const ok = await ipcRenderer.invoke("open-external", normalized);
+    if (ok) return true;
+
+    // Fallback: si estamos corriendo en navegador o el main lo rechazó,
+    // intentamos abrir en una pestaña nueva. Si abre, devolvemos true.
+    try {
+      const w = window.open(normalized, "_blank", "noopener,noreferrer");
+      return !!w;
+    } catch {
+      return false;
+    }
   } catch {
     return false;
   }
 }
 
-// Exponemos una API mínima y clara
-contextBridge.exposeInMainWorld("api", {
-  openExternal,
-});
+contextBridge.exposeInMainWorld("api", { openExternal });
