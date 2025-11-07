@@ -25,7 +25,7 @@ export class EntryDay {
   @Column()
   durationSec: number;
 
-  @Column('uuid')
+  @Column('text')
   trackableId: string;
 
   @Column('uuid')
