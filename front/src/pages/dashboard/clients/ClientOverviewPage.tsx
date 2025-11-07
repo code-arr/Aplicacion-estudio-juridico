@@ -35,10 +35,13 @@ import { useLawyerStore } from "@/store/useLawyerStore";
 import { updateClient } from "@/api/client";
 import ClientEditDialog from "@/components/clients/ClientEditDialog";
 import { formatClientRate } from "@/lib/money";
+import { isSafeMeetingUrl } from "@/lib/urls";
+import ClientUpcomingMeetingsDialog from "@/components/meetings/ClientUpcomingMeetingsDialog";
 
 const ClientOverviewPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isMeetingsModalOpen, setIsMeetingsModalOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [isEmailOpen, setIsEmailOpen] = useState(false);
@@ -74,7 +77,6 @@ const ClientOverviewPage = () => {
     [meetingsByClient]
   );
   const nextMeetingUrl: string | null | undefined = nextUpcoming?.link;
-  const nextMeetingStartAt: string | null | undefined = nextUpcoming?.startAt;
 
   // 👇 NUEVO: Lógica del botón (reusable)
   const {
@@ -194,6 +196,41 @@ const ClientOverviewPage = () => {
     });
   };
 
+  const handleOpenMeetingsModal = () => {
+    if (!upcomingMeetings.length) {
+      toast?.({
+        title: "Sin reuniones próximas",
+        description: "No hay reuniones programadas para este cliente.",
+      });
+      return;
+    }
+    setIsMeetingsModalOpen(true);
+  };
+
+  const handleJoinSpecificMeeting = async (link?: string | null) => {
+    if (!link || !isSafeMeetingUrl(link)) {
+      toast?.({
+        variant: "destructive",
+        title: "Enlace inválido",
+        description: "Esta reunión no tiene un enlace válido.",
+      });
+      return;
+    }
+
+    const ok = await window.api.openExternal(link.trim());
+    if (!ok) {
+      toast?.({
+        variant: "destructive",
+        title: "No se pudo abrir la reunión",
+        description:
+          "Revisá tu conexión o copiá el enlace desde el calendario si el problema persiste.",
+      });
+      return;
+    }
+
+    setIsMeetingsModalOpen(false);
+  };
+
   useEffect(() => {
     if (!clientDetail?.id) return;
     fetchClientItemsByClientId(clientDetail.id);
@@ -203,6 +240,57 @@ const ClientOverviewPage = () => {
     if (!clientDetail?.id) return;
     fetchClientDetailStats(clientDetail.id);
   }, [clientDetail?.id, fetchClientDetailStats]);
+
+  useEffect(() => {
+    if (!clientDetail?.id) return;
+    (async () => {
+      try {
+        await fetchMeetingsByClient(clientDetail.id ?? "");
+      } catch (e) {
+        console.log(e);
+      }
+    })();
+    return () => {
+      setMeetingsByClient([]);
+    };
+  }, [fetchMeetingsByClient, clientDetail?.id, setMeetingsByClient]);
+
+  const upcomingMeetings = useMemo(() => {
+    const now = Date.now();
+
+    return meetingsByClient
+      .filter((m) => {
+        if (!m.startAt) return false;
+        const t = new Date(m.startAt).getTime();
+        return !Number.isNaN(t) && t >= now;
+      })
+      .sort(
+        (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
+      )
+      .slice(0, 5);
+  }, [meetingsByClient]);
+
+  const nextMeeting = upcomingMeetings[0] ?? null;
+  const nextMeetingStartAt = nextMeeting?.startAt ?? null;
+
+  // Fecha legible (si hay reunión). Si no, mostramos un texto “Sin reunión”
+  const fechaLegible = useMemo(() => {
+    if (!nextMeetingStartAt) return "Sin reunión programada";
+    const d = new Date(nextMeetingStartAt);
+    const dia = new Intl.DateTimeFormat("es-ES", { weekday: "long" }).format(d);
+    const fecha = new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "short",
+    })
+      .format(d)
+      .replace(".", "");
+    const hora = new Intl.DateTimeFormat("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(d);
+    return `${dia}, ${fecha} ${hora}`;
+  }, [nextMeetingStartAt]);
 
   const StatusBadge = (status: Client["status"]) => {
     const cfg = CLIENT_STATUS_MAP[status] ?? {
@@ -227,39 +315,6 @@ const ClientOverviewPage = () => {
       <span className="text-yellow-600 font-medium">En revisión</span>
     ),
   };
-
-  useEffect(() => {
-    if (!clientDetail?.id) return;
-    (async () => {
-      try {
-        await fetchMeetingsByClient(clientDetail.id ?? "");
-      } catch (e) {
-        console.log(e);
-      }
-    })();
-    return () => {
-      setMeetingsByClient([]);
-    };
-  }, [fetchMeetingsByClient, clientDetail?.id, setMeetingsByClient]);
-
-  // Fecha legible (si hay reunión). Si no, mostramos un texto “Sin reunión”
-  const fechaLegible = useMemo(() => {
-    if (!nextMeetingStartAt) return "Sin reunión programada";
-    const d = new Date(nextMeetingStartAt);
-    const dia = new Intl.DateTimeFormat("es-ES", { weekday: "long" }).format(d);
-    const fecha = new Intl.DateTimeFormat("es-ES", {
-      day: "2-digit",
-      month: "short",
-    })
-      .format(d)
-      .replace(".", "");
-    const hora = new Intl.DateTimeFormat("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(d);
-    return `${dia}, ${fecha} ${hora}`;
-  }, [nextMeetingStartAt]);
 
   if (!clientDetail) return <ErrorScreen message="No se encontró el cliente" />;
 
@@ -371,17 +426,21 @@ const ClientOverviewPage = () => {
                 </h3>
 
                 <Button
-                  onClick={join}
+                  onClick={handleOpenMeetingsModal}
                   variant="outline"
-                  disabled={joinDisabled}
-                  title={joinDisabled ? "Sin enlace válido" : "Unirse en Meet"}
+                  disabled={upcomingMeetings.length === 0}
+                  title={
+                    upcomingMeetings.length === 0
+                      ? "Sin reunión válida"
+                      : "Ver próximas reuniones"
+                  }
                   className="w-full h-11 items-center justify-between px-4
-                  border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)]
-                    disabled:opacity-50 disabled:cursor-not-allowed"
+                border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)]
+                  disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label={
-                    joinDisabled
+                    upcomingMeetings.length === 0
                       ? "Sin reunión programada"
-                      : "Unirse a la reunión de Google Meet"
+                      : "Ver próximas reuniones del cliente"
                   }
                 >
                   <span className="inline-flex items-center gap-2">
@@ -560,6 +619,12 @@ const ClientOverviewPage = () => {
         client={clientDetail}
         loading={isSaving}
         onSubmit={onSubmitEdit}
+      />
+      <ClientUpcomingMeetingsDialog
+        open={isMeetingsModalOpen}
+        onOpenChange={setIsMeetingsModalOpen}
+        meetings={upcomingMeetings}
+        onJoin={handleJoinSpecificMeeting}
       />
     </div>
   );
