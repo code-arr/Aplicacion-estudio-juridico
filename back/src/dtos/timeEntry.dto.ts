@@ -9,7 +9,6 @@ import {
   Length,
 } from 'class-validator';
 
-
 export enum TrackableType {
   DOCUMENT = 'Document',
   AUDIENCE = 'Audience',
@@ -23,7 +22,7 @@ export enum PauseReason {
   IDLE = 'Idle',
   CLOSE = 'Close',
   LOGOUT = 'Logout',
-  SUSPEND = 'Suspend'
+  SUSPEND = 'Suspend',
 }
 export class CreateTimeEntryDto {
   @IsUUID() id!: string;
@@ -40,9 +39,13 @@ export class CreateTimeEntryDto {
 
   @IsString() dayKey?: string | null; // Formato 'YYYY-MM-DD', para consultas y reportes diarios
 
-  @IsString() clientId : string
+  @IsOptional()
+  @IsString()
+  clientId?: string;
 
-  @IsString() clientItemId? : string
-  
+  @IsOptional()
+  @IsString()
+  clientItemId?: string;
+
   @IsOptional() @IsString() appVersion?: string | null;
 }

@@ -76,54 +76,54 @@ export class EntryDayRepository {
     const entity = this.repo.create(entryDay);
     return this.repo.save(entity);
   }
- private async getDetailedTaskData(entry: EntryDay) {
+  private async getDetailedTaskData(entry: EntryDay) {
     const trackableId = (entry as any).trackableId;
 
     // 1. Caso: Entradas sin trackableId ("Extras")
     if (!trackableId) {
-        return {
-            description: 'Extras / Tareas sin objeto asociado',
-            trackableId: null,
-            isFallback: false, // No es un fallo, es una categoría válida
-        };
+      return {
+        description: 'Extras / Tareas sin objeto asociado',
+        trackableId: null,
+        isFallback: false, // No es un fallo, es una categoría válida
+      };
     }
 
     let detailedEntry: any = null;
 
     // 2. Búsqueda del objeto asociado
     switch (entry.type) {
-        case 'Process':
-            detailedEntry = await this.ProcessRepo.findOne({
-                where: { id: trackableId },
-            });
-            break;
-        case 'Meeting':
-            detailedEntry = await this.MeetingRepo.findOne({
-                where: { id: trackableId },
-            });
-            break;
-        case 'Document':
-            detailedEntry = await this.DocumentRepo.findOne({
-                where: { id: trackableId },
-            });
-            break;
-        case 'Audience':
-            detailedEntry = await this.AudienceRepo.findOne({
-                where: { id: trackableId },
-            });
-            break;
-        default:
-            // Caso: Tipo desconocido
-            return {
-                description: 'Otras tareas / Tipo de objeto no rastreado',
-                trackableId,
-                isFallback: false,
-            };
+      case 'Process':
+        detailedEntry = await this.ProcessRepo.findOne({
+          where: { id: trackableId },
+        });
+        break;
+      case 'Meeting':
+        detailedEntry = await this.MeetingRepo.findOne({
+          where: { id: trackableId },
+        });
+        break;
+      case 'Document':
+        detailedEntry = await this.DocumentRepo.findOne({
+          where: { id: trackableId },
+        });
+        break;
+      case 'Audience':
+        detailedEntry = await this.AudienceRepo.findOne({
+          where: { id: trackableId },
+        });
+        break;
+      default:
+        // Caso: Tipo desconocido
+        return {
+          description: 'Otras tareas / Tipo de objeto no rastreado',
+          trackableId,
+          isFallback: false,
+        };
     }
 
     // 3. Lógica de EXCLUSIÓN: Si la búsqueda falló, descartar la entrada.
     if (!detailedEntry) {
-        return null; // 🛑 El objeto asociado no existe, la entrada será filtrada.
+      return null; // 🛑 El objeto asociado no existe, la entrada será filtrada.
     }
 
     // 4. Lógica de ASIGNACIÓN (Solo si se encontró el objeto)
@@ -131,155 +131,161 @@ export class EntryDayRepository {
     const fallbackDescription = 'Objeto Encontrado (Sin Nombre)';
 
     switch (entry.type) {
-        case 'Process':
-            description = detailedEntry.name || detailedEntry.description || fallbackDescription;
-            break;
-        case 'Meeting':
-            description = detailedEntry.name || detailedEntry.subject || fallbackDescription;
-            break;
-        case 'Document':
-            description = detailedEntry.name || detailedEntry.fileName || fallbackDescription;
-            break;
-        case 'Audience':
-            description = detailedEntry.name || detailedEntry.summary || fallbackDescription;
-            break;
+      case 'Process':
+        description =
+          detailedEntry.name ||
+          detailedEntry.description ||
+          fallbackDescription;
+        break;
+      case 'Meeting':
+        description =
+          detailedEntry.name || detailedEntry.subject || fallbackDescription;
+        break;
+      case 'Document':
+        description =
+          detailedEntry.name || detailedEntry.fileName || fallbackDescription;
+        break;
+      case 'Audience':
+        description =
+          detailedEntry.name || detailedEntry.summary || fallbackDescription;
+        break;
     }
 
     // 5. Determinar isFallback final
     const isFallback = description === fallbackDescription;
 
     return { description, trackableId, isFallback };
-}
+  }
 
-async getClientDetailByMonth(
+  async getClientDetailByMonth(
     lawyerId: string,
     month: number,
     year: number,
-): Promise<GroupedClientDetail[]> {
+  ): Promise<GroupedClientDetail[]> {
     if (!lawyerId || !month || !year) {
-        throw new Error('lawyerId, month and year are required');
+      throw new Error('lawyerId, month and year are required');
     }
 
     // Paso 1: Traer todas las entries del mes y año indicados
     const entries = await this.repo.find({
-        where: {
-            day: Between(
-                new Date(year, month - 1, 1).toISOString().split('T')[0],
-                new Date(year, month, 0).toISOString().split('T')[0],
-            ),
-        },
-        select: [
-            'id',
-            'day',
-            'durationSec',
-            'type',
-            'clientItemId',
-            'trackableId',
-            'lawyerId',
-        ],
+      where: {
+        day: Between(
+          new Date(year, month - 1, 1).toISOString().split('T')[0],
+          new Date(year, month, 0).toISOString().split('T')[0],
+        ),
+      },
+      select: [
+        'id',
+        'day',
+        'durationSec',
+        'type',
+        'clientItemId',
+        'trackableId',
+        'lawyerId',
+      ],
     });
 
     // 2. Obtener los IDs de todos los abogados únicos
     const lawyerIds = [...new Set(entries.map((e) => e.lawyerId))].filter(
-        (id) => id,
+      (id) => id,
     );
 
     // 3. Traer los nombres de todos los abogados en UNA sola consulta
     const lawyers = await this.LawyerRepo.find({
-        where: { id: In(lawyerIds) },
-        select: ['id', 'firstName', 'lastName'],
+      where: { id: In(lawyerIds) },
+      select: ['id', 'firstName', 'lastName'],
     });
 
     // 4. Crear un caché de nombres: { 'lawyerId': 'Nombre Completo' }
     const lawyerNameCache: Record<string, string> = lawyers.reduce(
-        (acc, lawyer) => {
-            const fullName = `${lawyer.firstName} ${lawyer.lastName}`.trim();
-            acc[lawyer.id] = fullName;
-            return acc;
-        },
-        {} as Record<string, string>,
+      (acc, lawyer) => {
+        const fullName = `${lawyer.firstName} ${lawyer.lastName}`.trim();
+        acc[lawyer.id] = fullName;
+        return acc;
+      },
+      {} as Record<string, string>,
     );
 
     // Función auxiliar para formatear la fecha a YYYY-MM-DD
     const entryDayDate = (entry: EntryDay) =>
-        (entry.day as any) instanceof Date
-            ? entry.day.split('T')[0]
-            : String(entry.day);
+      (entry.day as any) instanceof Date
+        ? entry.day.split('T')[0]
+        : String(entry.day);
 
     // Paso 2: Obtener descripciones detalladas, filtrar nulos y adjuntar el nombre del abogado
     const entriesWithDetails = (
-        await Promise.all(
-            entries.map(async (entry) => {
-                // detailedTaskData puede ser { description, trackableId, isFallback } o null
-                const detailedTaskData = await this.getDetailedTaskData(entry);
+      await Promise.all(
+        entries.map(async (entry) => {
+          // detailedTaskData puede ser { description, trackableId, isFallback } o null
+          const detailedTaskData = await this.getDetailedTaskData(entry);
 
-                // 🛑 FILTRADO EN MAPEO: Si es null (objeto no encontrado), devolvemos null aquí.
-                if (detailedTaskData === null) {
-                    return null;
-                }
+          // 🛑 FILTRADO EN MAPEO: Si es null (objeto no encontrado), devolvemos null aquí.
+          if (detailedTaskData === null) {
+            return null;
+          }
 
-                const name = lawyerNameCache[entry.lawyerId] || 'Abogado Desconocido';
+          const name = lawyerNameCache[entry.lawyerId] || 'Abogado Desconocido';
 
-                return {
-                    ...entry,
-                    detailDescription: detailedTaskData.description,
-                    isFallback: detailedTaskData.isFallback ?? false,
-                    lawyerName: name,
-                };
-            }),
-        )
-    // 🛑 FILTRADO FINAL: Remueve todos los elementos que devolvieron null (tareas sin coincidencia)
-    ).filter((entry) => entry !== null);
-
+          return {
+            ...entry,
+            detailDescription: detailedTaskData.description,
+            isFallback: detailedTaskData.isFallback ?? false,
+            lawyerName: name,
+          };
+        }),
+      )
+    )
+      // 🛑 FILTRADO FINAL: Remueve todos los elementos que devolvieron null (tareas sin coincidencia)
+      .filter((entry) => entry !== null);
 
     // Paso 3: Crear un mapa por clientItemId con solo las entradas válidas
     const grouped: Record<string, GroupedClientDetail> = {};
 
     for (const entry of entriesWithDetails) {
-        const key = entry.clientItemId ?? 'no-clientItem';
+      const key = entry.clientItemId ?? 'no-clientItem';
 
-        if (!grouped[key]) {
-            // Traer nombre del clientItem si existe (Lógica original)
-            let clientName: string | null = null;
-            if (entry.clientItemId) {
-                const item = await this.clientItemRepo.findOne({
-                    where: { id: entry.clientItemId },
-                    select: ['title'],
-                });
-                clientName = item?.title ?? null;
-            }
-
-            grouped[key] = {
-                clientItemId: entry.clientItemId ?? null,
-                clientName,
-                totalByMonth: 0,
-                types: {},
-                tasks: [],
-            };
+      if (!grouped[key]) {
+        // Traer nombre del clientItem si existe (Lógica original)
+        let clientName: string | null = null;
+        if (entry.clientItemId) {
+          const item = await this.clientItemRepo.findOne({
+            where: { id: entry.clientItemId },
+            select: ['title'],
+          });
+          clientName = item?.title ?? null;
         }
 
-        // 1. Sumar al total del mes en horas y tipos (código original)
-        grouped[key].totalByMonth += entry.durationSec / 3600;
-        if (!grouped[key].types[entry.type]) {
-            grouped[key].types[entry.type] = 0;
-        }
-        grouped[key].types[entry.type] += entry.durationSec / 3600;
+        grouped[key] = {
+          clientItemId: entry.clientItemId ?? null,
+          clientName,
+          totalByMonth: 0,
+          types: {},
+          tasks: [],
+        };
+      }
 
-        // 2. Almacenar el detalle granular de la tarea CON INFO DEL ABOGADO
-        grouped[key].tasks.push({
-            day: entryDayDate(entry),
-            durationSec: entry.durationSec,
-            type: entry.type,
-            description: entry.detailDescription,
-            trackableId: entry.trackableId ?? null,
-            lawyerId: entry.lawyerId,
-            lawyerName: entry.lawyerName,
-        } as TaskDetail);
+      // 1. Sumar al total del mes en horas y tipos (código original)
+      grouped[key].totalByMonth += entry.durationSec / 3600;
+      if (!grouped[key].types[entry.type]) {
+        grouped[key].types[entry.type] = 0;
+      }
+      grouped[key].types[entry.type] += entry.durationSec / 3600;
+
+      // 2. Almacenar el detalle granular de la tarea CON INFO DEL ABOGADO
+      grouped[key].tasks.push({
+        day: entryDayDate(entry),
+        durationSec: entry.durationSec,
+        type: entry.type,
+        description: entry.detailDescription,
+        trackableId: entry.trackableId ?? null,
+        lawyerId: entry.lawyerId,
+        lawyerName: entry.lawyerName,
+      } as TaskDetail);
     }
 
     // Paso 4: Convertir el mapa a array
     return Object.values(grouped);
-}
+  }
   async updateEntryDay(timeEntries: CreateTimeEntryDto[]): Promise<EntryDay[]> {
     const updatedEntryDays: EntryDay[] = [];
 
@@ -315,11 +321,13 @@ async getClientDetailByMonth(
         updatedEntryDays.push(saved);
 
         // actualizar activeTime del cliente (atómico)
-        await this.clientRepo.increment(
-          { id: entry.clientId },
-          'activeTime',
-          entry.durationSec,
-        );
+        if (entry.clientId) {
+          await this.clientRepo.increment(
+            { id: entry.clientId },
+            'activeTime',
+            entry.durationSec,
+          );
+        }
 
         // log útil
         console.log('🟢 create EntryDay (Nuevo Abogado o Nueva Tarea)', {
@@ -351,11 +359,13 @@ async getClientDetailByMonth(
       updatedEntryDays.push(saved);
 
       // actualizar activeTime del cliente (atómico)
-      await this.clientRepo.increment(
-        { id: entry.clientId },
-        'activeTime',
-        entry.durationSec,
-      );
+      if (entry.clientId) {
+        await this.clientRepo.increment(
+          { id: entry.clientId },
+          'activeTime',
+          entry.durationSec,
+        );
+      }
 
       console.log('🟡 update EntryDay (Mismo Abogado)', {
         trackableId: entry.trackableId,
@@ -415,6 +425,7 @@ async getClientDetailByMonth(
         start: startOfMonth,
         end: endOfMonth,
       }) */
+      .andWhere('entry."clientId" IS NOT NULL')
       .andWhere('entry.day BETWEEN :start::date AND :end::date', {
         start: startOfMonth.toISOString().slice(0, 10),
         end: endOfMonth.toISOString().slice(0, 10),
@@ -577,6 +588,7 @@ async getClientDetailByMonth(
       .select(`to_char(e.day, 'YYYY-MM-DD')`, 'day')
       .addSelect('SUM(e.durationSec)', 'total')
       .where('e.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('e."clientId" IS NOT NULL')
       .andWhere('e.clientId = :clientId', { clientId })
       .andWhere('e.day BETWEEN :start AND :end', { start, end });
 
@@ -595,6 +607,7 @@ async getClientDetailByMonth(
       .select('EXTRACT(WEEK FROM e.day)::int', 'week')
       .addSelect('SUM(e.durationSec)', 'total')
       .where('e.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('e."clientId" IS NOT NULL')
       .andWhere('e.clientId = :clientId', { clientId })
       .andWhere('e.day BETWEEN :start AND :end', { start, end });
 
@@ -614,6 +627,7 @@ async getClientDetailByMonth(
       .addSelect('e.type', 'type')
       .addSelect('SUM(e.durationSec)', 'total')
       .where('e.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('e."clientId" IS NOT NULL')
       .andWhere('e.clientId = :clientId', { clientId })
       .andWhere('e.day BETWEEN :start AND :end', { start, end });
 
@@ -869,6 +883,7 @@ async getClientDetailByMonth(
       .createQueryBuilder('e')
       .select('SUM(e.durationSec)', 'totalSec')
       .where('e.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('e."clientId" IS NOT NULL')
       .andWhere('e.clientId = :clientId', { clientId })
       .andWhere('e.day BETWEEN :start AND :end', {
         start: start.toISOString().slice(0, 10),
@@ -943,6 +958,7 @@ async getClientDetailByMonth(
     const { totalSec }: any = await this.repo
       .createQueryBuilder('e')
       .select('COALESCE(SUM(e.durationSec),0)', 'totalSec')
+      .andWhere('e."clientId" IS NOT NULL')
       .where('e."clientItemId" = :id', { id: clientItemId })
       .getRawOne<{ totalSec: string }>();
 
@@ -991,6 +1007,7 @@ async getClientDetailByMonth(
     const { totalSec }: any = await this.repo
       .createQueryBuilder('e')
       .select('COALESCE(SUM(e.durationSec),0)', 'totalSec')
+      .andWhere('e."clientId" IS NOT NULL')
       .where('e."clientItemId" = :id', { id: clientItemId })
       .getRawOne<{ totalSec: string }>();
 
@@ -1043,6 +1060,7 @@ async getClientDetailByMonth(
       .select('e."clientItemId"', 'clientItemId')
       .addSelect('COALESCE(SUM(e.durationSec),0)', 'totalSec')
       .where('e."clientId" = :clientId', { clientId })
+      .andWhere('e."clientId" IS NOT NULL')
       .groupBy('e."clientItemId"');
 
     if (year) {
@@ -1249,6 +1267,7 @@ async getClientDetailByMonth(
       .select(`${alias}.name`, 'name')
       .addSelect('COUNT(ci.id)', 'cases')
       .where('ci."clientId" = :clientId::uuid', { clientId })
+      .andWhere('ci."clientId" IS NOT NULL')
       .andWhere(`${alias}.name IS NOT NULL`)
       .groupBy(`${alias}.name`)
       .orderBy('cases', 'DESC')
@@ -1269,6 +1288,7 @@ async getClientDetailByMonth(
         .select(`${alias}.name`, 'name')
         .addSelect('COALESCE(SUM(e.durationSec),0)', 'totalSec')
         .where('e."clientId" = :clientId::uuid', { clientId })
+        .andWhere('e."clientId" IS NOT NULL')
         .andWhere(`${alias}.name IS NOT NULL`)
         .groupBy(`${alias}.name`);
 

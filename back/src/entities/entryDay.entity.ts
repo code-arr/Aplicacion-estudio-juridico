@@ -31,11 +31,11 @@ export class EntryDay {
   @Column('uuid')
   lawyerId: string;
 
-  @Column('uuid')
-  clientId: string;
+  @Column('uuid', { nullable: true })
+  clientId?: string;
 
   @Column('uuid', { nullable: true })
-  clientItemId: string;
+  clientItemId?: string;
 
   @ManyToOne(() => ClientItem, (item) => item.entries)
   @JoinColumn({ name: 'clientItemId' }) // <-- Usa tu columna existente como referencia
