@@ -90,7 +90,7 @@ export class Lawyer {
 
   // Relación Many-to-Many con Cliente
   // Abogado es el propietario: se creará una tabla intermedia 'abogados_clientes'.
-  @ManyToMany(() => Client, (cliente) => cliente.lawyers)
+  @ManyToMany(() => Client, (cliente) => cliente.lawyers , {onDelete : "CASCADE"})
   @JoinTable({
     name: 'lawyers_clients', // Nombre de la tabla intermedia
     joinColumn: {
