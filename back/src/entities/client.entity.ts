@@ -90,7 +90,7 @@ export class Client {
   @UpdateDateColumn({ type: 'timestamptz', default: () => 'now()' })
   updatedAt!: Date;
 
-  @ManyToMany(() => Lawyer, (lawyer) => lawyer.clients)
+  @ManyToMany(() => Lawyer, (lawyer) => lawyer.clients, { onDelete: 'CASCADE' })
   lawyers: Lawyer[];
 
   @OneToMany(() => Meeting, (meeting) => meeting.client)
@@ -99,6 +99,8 @@ export class Client {
   @OneToMany(() => StopWatch, (stopwatch) => stopwatch.client)
   stopwatchs: StopWatch[];
 
-  @OneToMany(() => ClientItem, (clientItem) => clientItem.client ,  {onDelete : "CASCADE"} )
+  @OneToMany(() => ClientItem, (clientItem) => clientItem.client, {
+    onDelete: 'CASCADE',
+  })
   clientItems: ClientItem[];
 }
