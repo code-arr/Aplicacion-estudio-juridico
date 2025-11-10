@@ -99,6 +99,6 @@ export class Client {
   @OneToMany(() => StopWatch, (stopwatch) => stopwatch.client)
   stopwatchs: StopWatch[];
 
-  @OneToMany(() => ClientItem, (clientItem) => clientItem.client)
+  @OneToMany(() => ClientItem, (clientItem) => clientItem.client ,  {onDelete : "CASCADE"} )
   clientItems: ClientItem[];
 }
