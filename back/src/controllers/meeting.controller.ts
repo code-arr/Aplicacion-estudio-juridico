@@ -90,7 +90,7 @@ export class MeetingsController {
     return this.meetingService.getByClientId(clientId, lawyerId);
   }
 
-  @Get()
+  @Get('getByLawyerId')
   async getMeetingsByLawyerId(@Query('lawyerId') lawyerId: string) {
     return this.getMeetingsByLawyerId(lawyerId);
   }
