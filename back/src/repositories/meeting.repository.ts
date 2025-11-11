@@ -6,10 +6,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Meeting } from '../entities/meeting.entity';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, LineString, Repository } from 'typeorm';
 import { ClientItemService } from 'src/services/clientItem.service';
 import { ParentTouchService } from 'src/services/parent-touch.service';
 import { UpdateMeetingDto } from 'src/dtos/updateMeeting.dto';
+import { Lawyer } from 'src/entities/lawyer.entity';
 @Injectable()
 export class MeetingRepository {
   constructor(
@@ -18,12 +19,15 @@ export class MeetingRepository {
     private readonly clientItemService: ClientItemService,
     private readonly dataSource: DataSource,
     private readonly parentTouch: ParentTouchService,
+    @InjectRepository(Lawyer)
+    private readonly lawyerRepo: Repository<Lawyer>,
   ) {}
 
   async createMeeting(
     meetingData: Partial<Meeting>,
     clientItemId: string,
     clientId: string,
+    lawyerId: string,
   ): Promise<Meeting> {
     return this.dataSource.transaction(async (manager) => {
       try {
@@ -31,10 +35,17 @@ export class MeetingRepository {
           await this.clientItemService.getClientItemById(clientItemId);
         if (!clientItem) throw new NotFoundException('ClientItem not found');
 
+        const lawyer = await this.lawyerRepo.findOne({
+          where: { id: lawyerId },
+        });
+        if (!lawyer) {
+          throw new InternalServerErrorException('abogado no encontrado');
+        }
         const repo = manager.getRepository(Meeting);
         const meeting = repo.create(meetingData);
         meeting.clientItem = clientItem;
         meeting.clientId = clientId;
+        meeting.lawyer = lawyer;
 
         const saved = await repo.save(meeting);
 
@@ -178,13 +189,11 @@ export class MeetingRepository {
   async getMeetingsByLawyerId(lawyerId: string) {
     return this.meetingRepository.find({
       where: {
-        clientItem: {
-          lawyer: {
-            id: lawyerId,
-          },
+        lawyer: {
+          id: lawyerId,
         },
       },
-      relations: ['clientItem', 'clientItem.lawyer'],
+      relations: ['lawyer'],
     });
   }
 }

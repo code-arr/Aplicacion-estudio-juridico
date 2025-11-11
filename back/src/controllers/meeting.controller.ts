@@ -29,6 +29,7 @@ export class MeetingsController {
     @Param('clientItemId') clientItemId: string,
     @Body('lawyerEmail') lawyerEmail: string,
     @Body('clientId') clientId: string,
+    @Query("lawyerId") lawyerId : string
   ): Promise<Meeting | null | void> {
     try {
       const meeting = await this.meetingService.createAndSchedule(
@@ -36,6 +37,7 @@ export class MeetingsController {
         clientItemId,
         lawyerEmail,
         clientId,
+        lawyerId
         // cliente principal
       );
       console.log('Reunión programada:', meetingData.name);

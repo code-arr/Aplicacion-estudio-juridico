@@ -26,6 +26,7 @@ export class MeetingService {
     clientItemId: string,
     lawyerEmail: string,
     clientId: string,
+    lawyerId : string
   ): Promise<Meeting | null | void> {
     const { startAt, endAt, name, type, participants } = meetingData;
 
@@ -41,6 +42,7 @@ export class MeetingService {
           { ...meetingData, startAt: startDate, endAt: endDate },
           clientItemId,
           clientId,
+          lawyerId
         );
 
         // 2️⃣ Crear el evento en Google Calendar
@@ -121,6 +123,7 @@ export class MeetingService {
           { ...meetingData, startAt: startDate, endAt: endDate },
           clientItemId,
           clientId,
+          lawyerId
         );
 
         // 6️⃣ Asociar la reunión a otros abogados que figuren como participantes
