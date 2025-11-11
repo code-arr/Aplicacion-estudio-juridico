@@ -34,6 +34,8 @@ export class UserRepository {
 
   async createUser(user: registerUserDto): Promise<Partial<User> | void> {
     try {
+      console.log(user);
+      
       const userExist = await this.userRepository.findOne({
         where: { email: user.email },
       });
@@ -55,12 +57,11 @@ export class UserRepository {
 
       return rest;
     } catch (error) {
-      if (error instanceof BadRequestException) {
+      if (error) {
+        console.log(error);
+
         throw error;
       }
-      throw new InternalServerErrorException(
-        'Error inesperado al crear el usuario. REPOSITORIO',
-      );
     }
   }
   async findOneByEmail(email: string): Promise<User | null> {

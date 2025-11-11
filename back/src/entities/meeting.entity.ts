@@ -13,6 +13,7 @@ import { v4 as uuid } from 'uuid';
 import { ClientItem } from './clientItem.entity';
 import { Client } from './client.entity';
 import * as moment from 'moment-timezone';
+import { Lawyer } from './lawyer.entity';
 
 @Entity('meetings')
 export class Meeting {
@@ -77,4 +78,7 @@ export class Meeting {
 
   @ManyToOne(() => ClientItem, (clientItem) => clientItem.meetings)
   clientItem: ClientItem;
+
+  @ManyToOne(()=>Lawyer , (lawyer)=>lawyer.meetings)
+  lawyer : Lawyer
 }

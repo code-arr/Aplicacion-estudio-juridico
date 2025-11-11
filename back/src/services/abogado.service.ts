@@ -48,6 +48,14 @@ export class AbogadoService {
     lawyerId: string,
     clientId: string,
   ): Promise<Lawyer | null> {
-    return this.abogadoRepository.addClientToLawyer(lawyerId , clientId)
+    return this.abogadoRepository.addClientToLawyer(lawyerId, clientId);
+  }
+
+  findByEmails(emails: [{ name: string; email: string }]) {
+    return this.abogadoRepository.findByEmails(emails);
+  }
+
+  createLawyer(){
+    
   }
 }

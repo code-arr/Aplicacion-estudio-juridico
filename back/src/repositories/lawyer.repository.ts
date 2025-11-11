@@ -12,7 +12,7 @@ import { UserService } from '../services/user.service';
 import { abogadosSeedData } from '../utils/abogados';
 import { casosSeedData } from '../utils/casos';
 import { clientesSeedData } from '../utils/clientes';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { ParentTouchService } from 'src/services/parent-touch.service';
 import { UpdateLawyerDto } from 'src/dtos/updateLawyer.dto';
 
@@ -273,6 +273,16 @@ export class AbogadoRepository {
         console.error('Error updating lawyer:', error);
         throw new InternalServerErrorException('Error updating lawyer');
       }
+    });
+  }
+
+  async findByEmails(emails: [{ name: string; email: string }])
+{
+    const mailList = emails.map((e) => e.email); // extrae solo los correos
+
+    return this.repository.find({
+      where: { user: { email: In(mailList) } },
+      relations: ['user'], // importante para acceder al email del user
     });
   }
 }

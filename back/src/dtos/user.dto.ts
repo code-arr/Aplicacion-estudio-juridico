@@ -1,7 +1,6 @@
-import { UserRole } from "src/entities/user.entity";
+import { UserRole } from 'src/entities/user.entity';
 
 export class registerUserDto {
-    email: string;
-    password: string;
-
+  email: string;
+  password: string;
 }

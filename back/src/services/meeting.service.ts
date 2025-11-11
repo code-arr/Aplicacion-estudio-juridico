@@ -51,7 +51,6 @@ export class MeetingService {
           participants, // participantes adicionales (opcional)
           'America/Santiago', // zona horaria
         );
-        console.log('LELGA ACA 2');
 
         // 3️⃣ Obtener el link del Meet
         const link = googleEvent?.hangoutLink || googleEvent?.htmlLink;
@@ -94,6 +93,20 @@ export class MeetingService {
           lawyerId: lawyer.id,
         });
 
+        // 6️⃣ Asociar la reunión a otros abogados que figuren como participantes
+        if (participants && participants.length > 0) {
+          const lawyerParticipants =
+            await this.lawyerService.findByEmails(participants);
+
+          for (const participantLawyer of lawyerParticipants) {
+            // ⚡ Solo pushear si NO es el organizador
+            if (participantLawyer.user.email !== lawyerEmail) {
+              participantLawyer.meetings.push(meeting);
+              await this.lawyerService.saveAbogado(participantLawyer);
+            }
+          }
+        }
+
         return meeting;
       } catch (error) {
         console.error('Error creando reunión en Google Meet:', error);
@@ -104,11 +117,27 @@ export class MeetingService {
     } else if (type === 'in-person') {
       try {
         // Reunión presencial
-        return this.meetingRepository.createMeeting(
+        const meeting = await this.meetingRepository.createMeeting(
           { ...meetingData, startAt: startDate, endAt: endDate },
           clientItemId,
           clientId,
         );
+
+        // 6️⃣ Asociar la reunión a otros abogados que figuren como participantes
+        if (participants && participants.length > 0) {
+          const lawyerParticipants =
+            await this.lawyerService.findByEmails(participants);
+
+          for (const participantLawyer of lawyerParticipants) {
+            // ⚡ Solo pushear si NO es el organizador
+            if (participantLawyer.user.email !== lawyerEmail) {
+              participantLawyer.meetings.push(meeting);
+              await this.lawyerService.saveAbogado(participantLawyer);
+            }
+          }
+        }
+
+        return meeting;
       } catch (error) {
         console.error('Error creando reunión en persona:', error);
         throw new InternalServerErrorException(
@@ -238,5 +267,9 @@ export class MeetingService {
     },
   ): Promise<Meeting> {
     return this.meetingRepository.updateMeetingNameOrStatus(id, updateData);
+  }
+
+  async getMeetingsByLawyerId(lawyerId: string) {
+    return this.getMeetingsByLawyerId(lawyerId);
   }
 }

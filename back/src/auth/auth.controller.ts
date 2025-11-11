@@ -28,10 +28,10 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @Post('register')
   async register(@Body() user: registerUserDto): Promise<Partial<User> | void> {
-    return this.authRepository.register(user); // sin try/catch
+    return this.authRepository.register(user);
   }
-
   @Public()
   @Post('login')
   async login(

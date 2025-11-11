@@ -90,6 +90,11 @@ export class MeetingsController {
     return this.meetingService.getByClientId(clientId, lawyerId);
   }
 
+  @Get()
+  async getMeetingsByLawyerId(@Query('lawyerId') lawyerId: string) {
+    return this.getMeetingsByLawyerId(lawyerId);
+  }
+
   @Put('/:id')
   async update(@Param('id') id: string, @Body() updateData: UpdateMeetingDto) {
     return this.meetingService.updateMeetingNameOrStatus(id, updateData);

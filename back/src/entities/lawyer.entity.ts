@@ -19,6 +19,7 @@ import { Client } from './client.entity';
 import { ClientItem } from './clientItem.entity';
 import * as moment from 'moment-timezone';
 import { Event } from './events.entity';
+import { Meeting } from './meeting.entity';
 
 export enum lawyerType {
   CRIMINAL = 'criminal',
@@ -77,7 +78,7 @@ export class Lawyer {
   updatedAt!: Date;
 
   //relacion con usuario
-  @OneToOne(() => User, (usuario) => usuario.lawyer , {onDelete : "SET NULL"})
+  @OneToOne(() => User, (usuario) => usuario.lawyer, { onDelete: 'SET NULL' })
   user: User;
 
   // Relación One-to-Many con Cronometro
@@ -90,7 +91,9 @@ export class Lawyer {
 
   // Relación Many-to-Many con Cliente
   // Abogado es el propietario: se creará una tabla intermedia 'abogados_clientes'.
-  @ManyToMany(() => Client, (cliente) => cliente.lawyers , {onDelete : "CASCADE"})
+  @ManyToMany(() => Client, (cliente) => cliente.lawyers, {
+    onDelete: 'CASCADE',
+  })
   @JoinTable({
     name: 'lawyers_clients', // Nombre de la tabla intermedia
     joinColumn: {
@@ -106,4 +109,7 @@ export class Lawyer {
 
   @OneToMany(() => Event, (event) => event.lawyer)
   events: Event[];
+
+  @OneToMany(() => Meeting, (meeting) => meeting.lawyer)
+  meetings: Meeting[];
 }

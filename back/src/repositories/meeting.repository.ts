@@ -139,7 +139,7 @@ export class MeetingRepository {
 
   async updateMeetingNameOrStatus(
     id: string,
-    updateData: UpdateMeetingDto
+    updateData: UpdateMeetingDto,
   ): Promise<Meeting> {
     return this.dataSource.transaction(async (manager) => {
       try {
@@ -172,6 +172,19 @@ export class MeetingRepository {
         console.error('Error updating meeting:', error);
         throw new InternalServerErrorException('Error updating meeting');
       }
+    });
+  }
+
+  async getMeetingsByLawyerId(lawyerId: string) {
+    return this.meetingRepository.find({
+      where: {
+        clientItem: {
+          lawyer: {
+            id: lawyerId,
+          },
+        },
+      },
+      relations: ['clientItem', 'clientItem.lawyer'],
     });
   }
 }
