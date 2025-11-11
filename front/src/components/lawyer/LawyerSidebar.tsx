@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import LawyerUpcomingMeetings from "@/components/meetings/LawyerUpcomingMeetings";
 import { Scale, User, Settings, ChartNoAxesCombined } from "lucide-react";
 import { StaticSidebar } from "../ui/staticSidebar";
 import type { Lawyer } from "@/types/Lawyer";
@@ -61,7 +62,7 @@ const LawyerSidebar = ({ lawyer, onLogout }: LawyerSidebarProps) => {
   return (
     <StaticSidebar
       className={`sticky top-0 h-screen transition-[max-width] duration-300 ease-in-out border-r border-[hsl(216,12%,15%)] overflow-hidden ${
-        collapsed ? "max-w-[74px] items-center" : "max-w-[265px]"
+        collapsed ? "max-w-[74px]" : "max-w-[265px]"
       }`}
       onTransitionEnd={() => {
         // dispara un único “tick” global sin store
@@ -115,7 +116,9 @@ const LawyerSidebar = ({ lawyer, onLogout }: LawyerSidebarProps) => {
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={to}
-                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                        className={`flex items-center ${
+                          collapsed ? "justify-center px-0" : "space-x-3 px-3"
+                        } py-2 rounded-lg transition-colors ${
                           active
                             ? "bg-[hsl(216,12%,15%)]/80 text-[hsl(210,40%,98%)] font-medium"
                             : "text-[hsl(210,40%,98%)] hover:bg-[hsl(216,12%,15%)]/50"
@@ -131,6 +134,34 @@ const LawyerSidebar = ({ lawyer, onLogout }: LawyerSidebarProps) => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Bloque: Próximas reuniones (animación suave + secuenciado) */}
+        <div
+          // contenedor que controla la altura (max-height) — le aplicamos delay condicional
+          className={`flex-shrink-0 mt-2 px-3 border-t border-[hsl(216,12%,15%)] overflow-hidden will-change-[max-height] transition-[max-height] duration-300 ease-in-out ${
+            collapsed ? "max-h-0 delay-75" : "max-h-[420px] delay-0"
+          }`}
+          aria-hidden={collapsed}
+        >
+          {/* wrapper interno que anima transform + opacity (no genera reflow) */}
+          <div
+            className={`transform-gpu origin-top transition-[transform,opacity] will-change-[transform,opacity] ${
+              collapsed
+                ? "scale-y-95 -translate-y-1 opacity-0 pointer-events-none transition-duration-[180ms] delay-0"
+                : "scale-y-100 translate-y-0 opacity-100 pointer-events-auto transition-duration-[220ms] delay-150"
+            }`}
+            style={{ transformOrigin: "top" }}
+          >
+            <div className={`py-2 ${collapsed ? "py-0" : "py-2"}`}>
+              <LawyerUpcomingMeetings
+                collapsed={collapsed}
+                onOpen={(m) => {
+                  console.log("Abriendo reunión desde sidebar:", m);
+                }}
+              />
+            </div>
+          </div>
+        </div>
       </SidebarContent>
 
       <SidebarFooter

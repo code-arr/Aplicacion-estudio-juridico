@@ -34,7 +34,7 @@ export function createSyncApi(opts: {
 
       try {
         // 3) el back espera { entries } en /v1/time-entries/bulk
-        /* await http.post("/time-entries/bulk", { entries }); */
+        await http.post("/entry-day/bulk", { entries });
         // axios tira error si status no es 2xx, así que si llegamos acá: OK
       } catch (err: any) {
         console.log(err);

@@ -6,13 +6,14 @@ import {
   getMeetingsByClient,
   cancelMeeting,
   deleteMeeting,
+  getMeetingsByLawyer,
 } from "@/api/meeting";
 
 // TTL simple para cache (opcional)
 const TTL_MS = 5 * 60 * 1000;
 
 type MeetingState = {
-  meetings: Meeting[];
+  meetingsByLawyer: Meeting[];
   meetingsByClient: Meeting[];
   meetingsByClientItem: Meeting[];
   selectedMeeting: Meeting | null;
@@ -22,19 +23,19 @@ type MeetingState = {
   error?: string;
 
   // acciones sync
-  setMeetings: (meetings: Meeting[]) => void;
+  setMeetingsByLawyer: (meetings: Meeting[]) => void;
   setMeetingsByClient: (meetings: Meeting[]) => void;
   setMeetingsByClientItem: (meetings: Meeting[]) => void;
   cancelMeetingById: (m: Meeting, lawyerEmail: string) => Promise<void>;
   deleteMeetingById: (m: Meeting) => Promise<void>;
 
-  fetchMeetings: () => Promise<void>;
+  fetchMeetingsByLawyer: () => Promise<void>;
   fetchMeetingsByClient: (clientId: string) => Promise<void>;
   fetchMeetingsByClientItemId: (clientItemId: string) => Promise<void>;
 };
 
 export const useMeetingStore = create<MeetingState>((set, get) => ({
-  meetings: [],
+  meetingsByLawyer: [],
   meetingsByClient: [],
   meetingsByClientItem: [],
   selectedMeeting: null,
@@ -43,8 +44,8 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
   isLoading: false,
   error: undefined,
 
-  setMeetings: (meetings: Meeting[]) => {
-    set({ meetings });
+  setMeetingsByLawyer: (meetings: Meeting[]) => {
+    set({ meetingsByLawyer: meetings });
   },
   setMeetingsByClient: (meetings: Meeting[]) => {
     set({ meetingsByClient: meetings });
@@ -88,7 +89,18 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
     }
   },
 
-  fetchMeetings: async () => {},
+  fetchMeetingsByLawyer: async () => {
+    set({ isLoading: true, error: undefined });
+    try {
+      const data = await getMeetingsByLawyer();
+      set({ meetingsByLawyer: data, isLoading: false });
+    } catch (e) {
+      set({
+        isLoading: false,
+        error: e?.message ?? "Error al cargar reuniones",
+      });
+    }
+  },
   fetchMeetingsByClient: async (clientId: string) => {
     set({ isLoading: true, error: undefined });
     try {

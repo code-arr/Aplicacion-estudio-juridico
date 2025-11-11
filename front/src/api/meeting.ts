@@ -5,6 +5,11 @@ export const getAllMeetings = async (): Promise<Meeting[]> => {
   return (await axios.get("meeting/getAll")).data;
 };
 
+export const getMeetingsByLawyer = async (): Promise<Meeting[]> => {
+  const data = await (await axios.get("meeting/getByLawyerId")).data;
+  return data;
+};
+
 export const getMeetingsByClientItem = async (
   itemId: string
 ): Promise<Meeting[]> => {
