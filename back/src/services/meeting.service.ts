@@ -270,6 +270,6 @@ export class MeetingService {
   }
 
   async getMeetingsByLawyerId(lawyerId: string) {
-    return this.getMeetingsByLawyerId(lawyerId);
+    return this.meetingRepository.getMeetingsByLawyerId(lawyerId);
   }
 }
