@@ -318,6 +318,10 @@ export class ClientItemRepository implements OnModuleInit {
   async getByLawyerId(lawyerId: string): Promise<any[]> {
     const rows = await this.clientItemRepository
       .createQueryBuilder('clientItem')
+      .leftJoin('clientItem.activeTime', 'activeTime')
+      .leftJoin('clientItem.isPrivate', 'isPrivate')
+      .leftJoin('clientItem.createdAt', 'createdAt')
+      .leftJoin('clientItem.updatedAt', 'updatedAt')
       .leftJoin('clientItem.itemType', 'itemType')
       .leftJoin('clientItem.client', 'client')
       .leftJoin('clientItem.lawyer', 'lawyer') // propietario
@@ -329,10 +333,6 @@ export class ClientItemRepository implements OnModuleInit {
         'clientItem.id AS id',
         'clientItem.title AS title',
         'clientItem.description AS description',
-        'clientItem.createdAt AS createdAt',
-        'clientItem.updatedAt AS updatedAt',
-        'clientItem.activeTime AS activeTime',
-        'clientItem.isPrivate AS isPrivate',
       ])
       .addSelect('itemType.id', 'itemTypeId')
       .addSelect('client.id', 'clientId')
