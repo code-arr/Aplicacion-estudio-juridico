@@ -16,10 +16,11 @@ import { clientItemModule } from './clientItem.module';
 import { EventModule } from './event.module';
 import { AbogadoModule } from './abogado.module';
 import { ParentTouchService } from 'src/services/parent-touch.service';
+import { Lawyer } from 'src/entities/lawyer.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Meeting]),
+    TypeOrmModule.forFeature([Meeting , Lawyer]),
     UsersModule,
     clientItemModule,
     EventModule,
