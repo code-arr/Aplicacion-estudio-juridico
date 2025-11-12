@@ -31,10 +31,16 @@ export interface ClientItem {
   description?: string;
   status?: ClientItemStatus;
 
-  private?: boolean;
+  isPrivate?: boolean; // <-- Renombrado de 'private' para consistencia con el backend
+  lawyerId?: string; // ID del abogado propietario (dueño)
+
+  // Lista de abogados con acceso (si es privado)
+  // (El backend necesita ser configurado para devolver esto,
+  // probablemente usando 'relations' en el findOne o un 'addSelect' en el queryBuilder)
+  sharedWithLawyers?: { id: string; name: string }[];
+  // ----------------
 
   closedAt?: string; // ISO date string
-
   createdAt?: string; // ISO date string
   updatedAt?: string; // ISO date string
 }

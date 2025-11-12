@@ -4,11 +4,12 @@ export interface Audience {
   name: string;
   size: number;
   fileUrl: string;
-  pages?: number;
-  date?: string;
+  dateTime: string; // ISO 8601 UTC
+  durationSec?: number;
+  mode?: "virtual" | "presencial";
 
   clientId: string;
-  clientItemId: string | null; // ➕ nuevo
+  clientItemId: string | null;
 
   updatedAt?: Date;
   createdAt?: Date;
@@ -22,6 +23,6 @@ export type OpenAud = {
   title: string;
   url: string;
   clientId: string;
-  clientItemId: string | null; // ➕ nuevo
+  clientItemId: string | null;
   versionId?: string;
 };

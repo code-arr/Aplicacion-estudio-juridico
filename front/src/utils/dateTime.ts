@@ -3,10 +3,12 @@ export const formatTimeFromSeconds = (time: any) => {
   console.log(time);
 };
 
-export function localDateTimeToIsoUtc(
-  localValue: string | null | undefined
-): string | null {
-  if (!localValue) return null; // "2025-11-04T23:38"
-  // ✅ Interpreta el string como hora local y lo convierte a UTC real
-  return new Date(localValue).toISOString(); // "2025-11-05T02:38:00.000Z" si estás en -03
+// Recibe "YYYY-MM-DDTHH:MM" y devuelve ISO UTC "2025-11-05T02:38:00.000Z"
+export function localDateTimeToIsoUtc(localValue: string): string {
+  if (!localValue) throw new Error("localDateTimeToIsoUtc: missing localValue");
+  // new Date(localValue) interpreta como local y toISOString() lo convierte a UTC
+  const d = new Date(localValue);
+  if (isNaN(d.getTime()))
+    throw new Error("localDateTimeToIsoUtc: invalid date");
+  return d.toISOString();
 }

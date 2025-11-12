@@ -9,19 +9,28 @@ export const getAllClientItems = async (): Promise<ClientItem[]> => {
 export const getClientItemsByLawyerId = async (
   lawyerId: string
 ): Promise<ClientItem[]> => {
-  return (await axios.get(`/clientItem/getByLawyerId/${lawyerId}`)).data;
+  const { data } = await axios.get(`/clientItem/getByLawyerId/${lawyerId}`);
+  console.log(data);
+
+  return data;
 };
 
 export const getClientItemsByClientId = async (
   clientId: string
 ): Promise<ClientItem[]> => {
-  return (await axios.get(`clientItem/getByClientId/${clientId}`)).data;
+  const { data } = await axios.get(`clientItem/getByClientId/${clientId}`);
+  console.log(data);
+
+  return data;
 };
 
 export const getRecentClientItems = async (
   limit?: number
 ): Promise<ClientItem[]> => {
-  return (await axios.get("/clientItem/recent")).data;
+  const { data } = await axios.get("/clientItem/recent");
+  console.log(data);
+
+  return data;
 };
 
 export const createClientItem = async (
@@ -39,4 +48,26 @@ export const updateClientItem = async (
 
 export const deleteClientItem = async (id: string): Promise<void> => {
   await axios.delete(`/clientItem/delete/${id}`);
+};
+
+// --- NUEVA FUNCIÓN ---
+export interface AccessPayload {
+  isPrivate: boolean;
+  sharedLawyerIds: string[];
+}
+
+export const updateClientItemAccess = async (
+  clientItemId: string,
+  payload: AccessPayload
+): Promise<ClientItem> => {
+  try {
+    const { data } = await axios.put(
+      `/clientItem/${clientItemId}/access`,
+      payload
+    );
+    return data;
+  } catch (error) {
+    console.error("Error updating client item access:", error);
+    throw error;
+  }
 };

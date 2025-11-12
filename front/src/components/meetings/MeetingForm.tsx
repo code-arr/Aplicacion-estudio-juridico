@@ -80,6 +80,7 @@ const MeetingForm = ({
   const fetchMeetingsByClientItemId = useMeetingStore(
     (s) => s.fetchMeetingsByClientItemId
   );
+  const fetchMeetingsByLawyer = useMeetingStore((s) => s.fetchMeetingsByLawyer);
 
   // cuando se abre, inyectamos participantes por defecto
   useEffect(() => {
@@ -199,6 +200,7 @@ const MeetingForm = ({
     try {
       await createMeeting(payload, clientId, clientItemId);
       await fetchMeetingsByClientItemId(clientItemId);
+      await fetchMeetingsByLawyer();
 
       setIsDialogOpen(false);
       setFormData(initialMeeting);

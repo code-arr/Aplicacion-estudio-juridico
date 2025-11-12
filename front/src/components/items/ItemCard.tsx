@@ -28,12 +28,14 @@ import {
   AlignJustify,
   Library,
   EllipsisVertical,
+  UserPlus,
 } from "lucide-react";
 import { formatDateChileShort } from "@/lib/formatDate";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { deleteClientItem } from "@/api/clientItem";
 import { useClientItemStore } from "@/store/useClientItemStore";
 import { useToast } from "@/hooks/useToast";
+import { PermissionsModal } from "./PermissionsModal";
 
 interface ItemCardProps {
   item: ClientItem;
@@ -42,7 +44,9 @@ interface ItemCardProps {
 
 const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
   const navigate = useNavigate();
-  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const location = useLocation();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const clientById = useClientStore((s) =>
     selectClientFromCacheById(s, item.clientId)
   );
@@ -104,8 +108,7 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
       // Si estás parado en el detalle, salí
       const isDetail = location.pathname.includes("/dashboard/item/");
       if (isDetail) {
-        const back = "/dashboard/clientItems";
-        navigate(back, { replace: true });
+        navigate("/dashboard/clientItems", { replace: true });
       }
     } catch (e: any) {
       toast({
@@ -116,7 +119,7 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
     }
   };
 
-  const StatusBadge = (status: ClientItem["status"]) => {
+  const StatusBadge = memo(({ status }: { status?: ClientItem["status"] }) => {
     if (!status) return null;
     const cfg = CLIENTITEM_STATUS_MAP[status] ?? {
       label: "Desconocido",
@@ -127,7 +130,7 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
         <span className="leading-none">{cfg.label}</span>
       </Badge>
     );
-  };
+  });
 
   const getCardIcon = (categoryName: string | undefined) => {
     switch (categoryName) {
@@ -153,79 +156,90 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
   };
 
   return (
-    <Card className="shadow-none hover:shadow-sm transition-shadow duration-200 border border-gray-200 bg-white">
-      <CardContent className="flex pb-2 pt-4 justify-between cursor-default">
-        <div className="flex w-[80%] gap-6" onClick={() => onViewDetails(item)}>
-          <div className="p-2.5 mt-1.5 h-fit bg-gray-100 rounded-md">
-            {getCardIcon(category?.name)}
+    <>
+      <Card className="shadow-none hover:shadow-sm transition-shadow duration-200 border border-gray-200 bg-white">
+        <CardContent className="flex pb-2 pt-4 justify-between cursor-default">
+          <div
+            className="flex w-[80%] gap-6"
+            onClick={() => onViewDetails(item)}
+          >
+            <div className="p-2.5 mt-1.5 h-fit bg-gray-100 rounded-md">
+              {getCardIcon(category?.name)}
+            </div>
+            <div className="flex flex-col capitalize pt-0.5">
+              <h1 className="text-lg font-semibold mb-1.5">{item.title}</h1>
+              <p className="mb-0.5 text-gray-800">
+                {"Cliente: " + (clientName ? clientName : "-")}
+              </p>
+              <p className="text-gray-800">
+                {`Cateogría: ${category?.name}`}{" "}
+                {section ? ` → ${section?.name}` : null}
+              </p>
+            </div>
           </div>
-          <div className="flex flex-col capitalize pt-0.5">
-            <h1 className="text-lg font-semibold mb-1.5">{item.title}</h1>
-            <p className="mb-0.5 text-gray-800">
-              {"Cliente: " + (clientName ? clientName : "-")}
-            </p>
-            <p className="text-gray-800">
-              {`Cateogría: ${category?.name}`}{" "}
-              {section ? ` → ${section?.name}` : null}
-            </p>
+          <div className="flex flex-col w-[20%] items-end gap-5">
+            <DropdownMenuRoot>
+              <DropdownMenuTrigger asChild>
+                <button
+                  aria-label="Opciones del ítem"
+                  className="p-1.5 rounded-md hover:bg-gray-100 leading-none"
+                >
+                  <EllipsisVertical className="w-5 h-5" />
+                </button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent
+                size="1"
+                variant="soft"
+                align="end"
+                sideOffset={6}
+              >
+                <DropdownMenuItem
+                  onSelect={() => onViewDetails(item)}
+                  shortcut="Enter"
+                >
+                  Ver detalles
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onSelect={() => setIsModalOpen(true)}
+                  shortcut="Enter"
+                >
+                  <span className="flex items-center gap-x-1.5">
+                    <UserPlus className="w-4 h-4" />
+                    Compartir
+                  </span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  onSelect={handleDelete}
+                  color="crimson"
+                  shortcut="⌘ ⌫"
+                >
+                  Eliminar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenuRoot>
+            <div className="flex flex-col items-end gap-1">
+              <StatusBadge status={item.status} />
+              <p className="text-sm text-gray-500">
+                {item.updatedAt
+                  ? `Actualizado: ${formatDateChileShort(item.updatedAt)}`
+                  : `Creado: ${formatDateChileShort(item.createdAt!)}`}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-col w-[20%] items-end gap-5">
-          <DropdownMenuRoot>
-            <DropdownMenuTrigger asChild>
-              <button
-                aria-label="Opciones del ítem"
-                className="p-1.5 rounded-md hover:bg-gray-100 leading-none"
-              >
-                <EllipsisVertical className="w-5 h-5" />
-              </button>
-            </DropdownMenuTrigger>
+        </CardContent>
+      </Card>
 
-            <DropdownMenuContent
-              size="1"
-              variant="soft"
-              align="end"
-              sideOffset={6}
-            >
-              <DropdownMenuItem
-                onSelect={() => onViewDetails(item)}
-                shortcut="Enter"
-              >
-                Ver detalles
-              </DropdownMenuItem>
-
-              {/*               <DropdownMenuItem
-                onSelect={() => {
-                  // Abrí tu modal de edición o navegá a la ruta de edición
-                  // openEditModal(item.id) / navigate(...)
-                }}
-                shortcut="⌘ E"
-              >
-                Editar
-              </DropdownMenuItem> */}
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                onSelect={handleDelete}
-                color="crimson"
-                shortcut="⌘ ⌫"
-              >
-                Eliminar
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenuRoot>
-          <div className="flex flex-col items-end gap-1">
-            {StatusBadge(item.status)}
-            <p className="text-sm text-gray-500">
-              {item.updatedAt
-                ? `Actualizado: ${formatDateChileShort(item.updatedAt)}`
-                : `Creado: ${formatDateChileShort(item.createdAt!)}`}
-            </p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      <PermissionsModal
+        item={item}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </>
   );
 };
 

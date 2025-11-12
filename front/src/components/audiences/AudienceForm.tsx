@@ -13,7 +13,11 @@ import { Label } from "@/components/ui/label";
 import { createAudience } from "@/api/audience";
 import { useParams } from "react-router-dom";
 import { useAudienceStore } from "@/store/useAudienceStore";
+import { useLawyerStore } from "@/store/useLawyerStore";
 import { useClientStore } from "@/store/useClientStore";
+import DurationPicker from "@/components/processes/DurationPicker";
+import { localDateTimeToIsoUtc } from "@/utils/dateTime";
+import type { TimeEntry } from "@/types/Timer";
 
 type AudienceFormProps = {
   isDialogOpen: boolean;
@@ -23,14 +27,18 @@ type AudienceFormProps = {
 type NewAudience = {
   name: string;
   file: File | null;
-  date: string; // "YYYY-MM-DD"
+  dateTime: string; // "YYYY-MM-DDTHH:MM"
+  durationSec?: number;
+  mode?: "virtual" | "presencial";
   error?: string | null;
 };
 
 const initialItemState: NewAudience = {
   name: "",
   file: null,
-  date: "",
+  dateTime: "",
+  durationSec: 0,
+  mode: "presencial",
   error: null,
 };
 
@@ -45,14 +53,14 @@ function formatBytes(bytes: number) {
   return `${(bytes / Math.pow(k, i)).toFixed(i === 0 ? 0 : 1)} ${sizes[i]}`;
 }
 
-function isAllowedType(file: File) {
+/* function isAllowedType(file: File) {
   // Validación sencilla por extensión (podés mejorar chequeando MIME real si querés)
   const allowedExt = new Set(["pdf"]);
   const extMatch = file.name.toLowerCase().match(/\.([a-z0-9]+)$/i);
   if (!extMatch) return false;
   const ext = extMatch[1];
   return allowedExt.has(ext);
-}
+} */
 
 function isPdf(file: File) {
   const extOk = /\.pdf$/i.test(file.name);
@@ -60,38 +68,26 @@ function isPdf(file: File) {
   return extOk || mimeOk; // relajado pero útil
 }
 
-// Devuelve un Date si el string es una fecha válida en calendario (incluye bisiestos).
-function parseISODateYYYYMMDD(s: string): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (!m) return null;
-  const y = Number(m[1]);
-  const mo = Number(m[2]);
-  const d = Number(m[3]);
-  // new Date(año, mes-1, día) usa calendario local (no UTC) y normaliza si está fuera de rango.
-  const dt = new Date(y, mo - 1, d);
-  const isSame =
-    dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
-  return isSame ? dt : null;
+// valida "YYYY-MM-DDTHH:MM"
+function isValidLocalDateTime(s: string): boolean {
+  return (
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s) && !isNaN(new Date(s).getTime())
+  );
 }
 
-function isPastOrToday(s: string): boolean {
-  const dt = parseISODateYYYYMMDD(s);
-  if (!dt) return false;
-  const today = new Date();
-  // Comparación por fecha local (00:00)
-  today.setHours(0, 0, 0, 0);
-  dt.setHours(0, 0, 0, 0);
-  return dt.getTime() <= today.getTime();
-}
-
-function isValidISODate(s: string): boolean {
-  return parseISODateYYYYMMDD(s) !== null;
+// comprueba que la fecha/hora local no sea futura (compara timestamps locales)
+function isPastOrTodayLocalDateTime(s: string): boolean {
+  if (!isValidLocalDateTime(s)) return false;
+  const input = new Date(s);
+  const now = new Date();
+  return input.getTime() <= now.getTime();
 }
 
 const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
   const [submitting, setSubmitting] = useState(false);
 
+  const lawyer = useLawyerStore((s) => s.lawyer);
   const clientDetail = useClientStore((s) => s.clientDetail);
 
   const [newAudience, setNewAudience] = useState<NewAudience>(initialItemState);
@@ -127,7 +123,7 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
       ...s,
       file: file,
       name: s.name,
-      date: s.date,
+      dateTime: s.dateTime,
       error: null,
     }));
   }
@@ -135,7 +131,7 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
   const handleAddAudience = async () => {
     const name = newAudience.name.trim();
     const file = newAudience.file;
-    const date = newAudience.date;
+    const dateTime = newAudience.dateTime;
     const clientId = clientDetail?.id;
     if (!clientId) {
       setNewAudience((s) => ({
@@ -144,7 +140,7 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
       }));
       return;
     }
-    if (!name || !file || !date) {
+    if (!name || !file || !dateTime) {
       setNewAudience((s) => ({
         ...s,
         error: "Completá todos los campos.",
@@ -160,16 +156,23 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
       return;
     }
 
-    if (!isValidISODate(date)) {
+    if (!isValidLocalDateTime(dateTime)) {
       setNewAudience((s) => ({
         ...s,
-        error: "Ingresá una fecha válida (YYYY-MM-DD).",
+        error: "Ingresá fecha y hora válidas (YYYY-MM-DDTHH:MM).",
+      }));
+      return;
+    }
+    if (!isPastOrTodayLocalDateTime(dateTime)) {
+      setNewAudience((s) => ({
+        ...s,
+        error: "La fecha y hora no puede ser futura.",
       }));
       return;
     }
 
-    if (!isPastOrToday(date)) {
-      setNewAudience((s) => ({ ...s, error: "La fecha no puede ser futura." }));
+    if (newAudience.durationSec !== undefined && newAudience.durationSec <= 0) {
+      setNewAudience((s) => ({ ...s, error: "Ingresá una duración válida." }));
       return;
     }
 
@@ -179,11 +182,63 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
     const form = new FormData();
     form.append("name", name);
     form.append("file", file);
-    form.append("date", date);
+
+    // dateTime local -> ISO UTC para backend (consistente con ProcessForm)
+    const localDateTime: string = newAudience.dateTime; // "YYYY-MM-DDTHH:MM"
+    const dateTimeIsoUtc: string = localDateTimeToIsoUtc(localDateTime);
+
+    form.append("dateTime", dateTimeIsoUtc);
+
+    // OPCIONAL: también mandar date "YYYY-MM-DD" para compatibilidad con endpoints legacy
+    /* const dateOnly = localDateTime.slice(0, 10);
+    form.append("date", dateOnly); */
+
     form.append("clientId", clientId);
 
+    if (newAudience.durationSec && newAudience.durationSec > 0) {
+      form.append("durationSec", String(newAudience.durationSec));
+    }
+
+    if (newAudience.mode) form.append("mode", newAudience.mode);
+
     try {
-      await createAudience(form, clientItemId!);
+      const created = await createAudience(form, clientItemId!);
+
+      // ENCOLAR TIME-ENTRY PARA AUDIENCIA (mismo patrón que ProcessForm)
+      try {
+        const durationSec = newAudience.durationSec ?? 0;
+        if (durationSec > 0) {
+          // startedAtUTC: usamos el ISO que ya enviamos
+          const startedAtUTC = dateTimeIsoUtc; // string
+          const startMs = Date.parse(startedAtUTC);
+          const endedAtUTC = new Date(
+            startMs + durationSec * 1000
+          ).toISOString();
+
+          // dayKey debe venir del "día local" de inicio:
+          // newAudience.dateTime es "YYYY-MM-DDTHH:MM" local -> dayKey = slice(0,10)
+          const dayKey = newAudience.dateTime.slice(0, 10);
+
+          const entry: TimeEntry = {
+            id: crypto.randomUUID(),
+            trackableType: "Audience",
+            trackableId: created.id!, // id del backend
+            lawyerId: lawyer?.id ?? "",
+            clientId,
+            clientItemId: clientItemId!,
+            dayKey,
+            startedAtUTC,
+            endedAtUTC,
+            durationSec,
+            pauseReason: "switch",
+          };
+
+          await window.electronAPI.timeQueue.appendEntry(entry);
+        }
+      } catch (e) {
+        console.error("[audience time-entry] append failed", e);
+        // opcional: mostrar toast suave pero no romper el flujo
+      }
 
       await fetchAudiencesByClientItemId(clientItemId!);
 
@@ -191,7 +246,7 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
       setNewAudience({
         name: "",
         file: null,
-        date: "",
+        dateTime: "",
         error: null,
       });
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -208,7 +263,7 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
   };
 
   const isDisabled =
-    !newAudience.name.trim() || !newAudience.file || !newAudience.date;
+    !newAudience.name.trim() || !newAudience.file || !newAudience.dateTime;
 
   const fileInputId = "audience-file-input";
 
@@ -253,24 +308,22 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
               />
             </div>
 
-            {/* Fecha */}
-            <div className="grid gap-2">
-              <Label htmlFor="audience-date">Fecha de la audiencia</Label>
+            {/* Fecha y hora de inicio (datetime-local, obligatorio) */}
+            <div>
+              <Label htmlFor="audience-dateTime">Inicio de la audiencia</Label>
               <Input
-                id="audience-date"
-                type="date"
+                id="audience-dateTime"
+                type="datetime-local"
                 required
-                max={new Date().toISOString().slice(0, 10)} // evita fechas futuras si lo querés así
-                value={newAudience.date}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setNewAudience((s) => ({
-                    ...s,
-                    date: v,
-                    error: s.error && isValidISODate(v) ? null : s.error,
-                  }));
-                }}
+                value={newAudience.dateTime}
+                onChange={(e) =>
+                  setNewAudience((s) => ({ ...s, dateTime: e.target.value }))
+                }
+                aria-invalid={!!newAudience.error}
               />
+              <div className="text-[11px] text-gray-500">
+                Se convertirá a UTC para reportes consistentes.
+              </div>
             </div>
 
             {/* Archivo */}
@@ -349,6 +402,38 @@ const AudienceForm = ({ isDialogOpen, onOpenChange }: AudienceFormProps) => {
                 )}
               </div>
             )}
+
+            {/* Modo (virtual/presencial) */}
+            <div className="grid gap-2">
+              <Label htmlFor="audience-mode">Modalidad</Label>
+              <select
+                id="audience-mode"
+                value={newAudience.mode}
+                onChange={(e) =>
+                  setNewAudience((s) => ({
+                    ...s,
+                    mode: e.target.value as "virtual" | "presencial",
+                  }))
+                }
+                className="h-9 rounded-md border px-2"
+              >
+                <option value="presencial">Presencial</option>
+                <option value="virtual">Virtual</option>
+              </select>
+            </div>
+
+            {/* Duración */}
+            <div>
+              <DurationPicker
+                label="Duración de la audiencia"
+                valueSec={newAudience.durationSec ?? 0}
+                onChange={(sec: number) =>
+                  setNewAudience((s) => ({ ...s, durationSec: sec }))
+                }
+                maxHours={12}
+                showSeconds={false}
+              />
+            </div>
 
             {newAudience.error && (
               <p className="text-xs text-red-600 mt-2" aria-live="polite">

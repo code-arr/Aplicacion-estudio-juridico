@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdownMenu";
 import type { Audience } from "@/types/Audience";
+import { formatDayAndTime, formatTimeChile } from "@/lib/formatDate";
 
 interface AudienceCardProps {
   aud: Audience;
@@ -32,6 +33,16 @@ const AudienceCard = ({
       year: "numeric",
     }).format(date);
   }
+
+  function formatDurationFromSeconds(seconds?: number | null) {
+    if (!seconds) return "—";
+    const totalMinutes = Math.floor(seconds / 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  }
+
   return (
     <li key={aud.id} className="p-4">
       {/* fila */}
@@ -44,12 +55,26 @@ const AudienceCard = ({
         {/* contenido */}
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-gray-900 mb-1">{aud.name}</p>
-          <p className=" text-[0.9rem] text-gray-500 grid items-center grid-cols-[15rem_10rem] gap-x-6">
-            <span className="justify-self-start tabular-nums">
-              {`${aud.pages} paginas`}
+          <p className="text-[0.9rem] text-gray-500 grid items-center grid-cols-[14rem_7rem_8rem] gap-x-6">
+            {/* Fecha y hora en nueva celda */}
+            <span
+              className="justify-self-start tabular-nums"
+              title={aud.dateTime ?? aud.date ?? ""}
+            >
+              {aud.dateTime || aud.date
+                ? formatDayAndTime(aud.dateTime ?? aud.date ?? new Date())
+                : "—"}
             </span>
+
+            {/* Duración */}
+            <span className="justify-self-center tabular-nums">
+              {formatDurationFromSeconds(aud.durationSec)}
+            </span>
+
+            {/* Modalidad + hora corta */}
             <span className="justify-self-end tabular-nums">
-              {formatDate(aud.date ?? null)}
+              {/* mostramos modalidad y, si querés, hora sólo: */}
+              {aud.mode === "virtual" ? "Virtual" : "Presencial"}{" "}
             </span>
           </p>
         </div>
