@@ -201,7 +201,7 @@ export class ClientItemRepository implements OnModuleInit {
       .leftJoin('clientItem.sharedWithLawyers', 'sharedLawyer')
       // ----------------------------------------
       .select([
-        // ... (todos tus 'select' y 'addSelect' se mantienen igual)
+        // campos del clientItem (con alias)
         'clientItem.id AS id',
         'clientItem.title AS title',
         'clientItem.description AS description',
@@ -209,20 +209,23 @@ export class ClientItemRepository implements OnModuleInit {
         'clientItem.updatedAt AS updatedAt',
         'clientItem.activeTime AS activeTime',
         'clientItem.isPrivate AS isPrivate',
-        'itemType.id',
-        'itemTypeId',
-        'client.id',
-        'clientId',
-        'lawyer.id',
-        'lawyerId', // <-- ID del propietario
-        'clientItem.status',
-        'status',
-        'category.id',
-        'categoryId',
-        'section.id',
-        'sectionId',
-        'documents.id',
-        'documentId',
+
+        // itemType (id del tipo)
+        'itemType.id AS itemType_id', // si querés el id del itemType
+        'clientItem.itemTypeId AS itemTypeId', // y además el itemTypeId directo
+
+        // client, lawyer, status, category, section, document
+        'client.id AS client_id',
+        'clientItem.clientId AS clientId',
+        'lawyer.id AS lawyer_id',
+        'clientItem.lawyerId AS lawyerId',
+        'clientItem.status AS clientItem_status',
+        'clientItem.status AS status',
+        'category.id AS category_id',
+        'clientItem.categoryId AS categoryId',
+        'section.id AS section_id',
+        'clientItem.sectionId AS sectionId',
+        'documents.id AS documentId',
       ])
       .where('client.id = :clientId', { clientId });
 
