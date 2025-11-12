@@ -189,106 +189,45 @@ export class ClientItemRepository implements OnModuleInit {
       lawyerId ?? '⚠️ No se envió abogado (solo verá públicos)',
     );
 
-    const queryBuilder = this.clientItemRepository
+    // traemos entidades completas (TypeORM mapea todo y evita problemas de alias)
+    const items = await this.clientItemRepository
       .createQueryBuilder('clientItem')
-      .leftJoin('clientItem.itemType', 'itemType')
-      .leftJoin('clientItem.client', 'client')
-      .leftJoin('clientItem.lawyer', 'lawyer') // <-- Propietario
-      .leftJoin('clientItem.category', 'category')
-      .leftJoin('clientItem.section', 'section')
-      .leftJoin('clientItem.documents', 'documents')
-      // --- UNIMOS LA NUEVA TABLA DE PERMISOS ---
-      .leftJoin('clientItem.sharedWithLawyers', 'sharedLawyer')
-      // ----------------------------------------
-      .select([
-        'clientItem.id AS id',
-        'clientItem.title AS title',
-        'clientItem.description AS description',
-        'clientItem.createdAt AS createdAt',
-        'clientItem.updatedAt AS updatedAt',
-        'clientItem.activeTime AS activeTime',
-        'clientItem.isPrivate AS isPrivate',
-        'itemType.id AS itemTypeId',
-        'clientItem.itemTypeId AS itemTypeId', // opcional pero no rompe
-        'client.id AS clientId',
-        'clientItem.clientId AS clientId',
-        'lawyer.id AS lawyerId',
-        'clientItem.lawyerId AS lawyerId',
-        'clientItem.status AS status',
-        'category.id AS categoryId',
-        'clientItem.categoryId AS categoryId',
-        'section.id AS sectionId',
-        'clientItem.sectionId AS sectionId',
-        'documents.id AS documentId',
-      ])
-      .where('client.id = :clientId', { clientId });
+      .leftJoinAndSelect('clientItem.itemType', 'itemType')
+      .leftJoinAndSelect('clientItem.client', 'client')
+      .leftJoinAndSelect('clientItem.lawyer', 'lawyer')
+      .leftJoinAndSelect('clientItem.category', 'category')
+      .leftJoinAndSelect('clientItem.section', 'section')
+      .leftJoinAndSelect('clientItem.documents', 'documents')
+      .leftJoinAndSelect('clientItem.sharedWithLawyers', 'sharedLawyer') // relación ManyToMany
+      .where('client.id = :clientId', { clientId })
+      .getMany();
 
-    // --- LÓGICA DE PERMISOS ACTUALIZADA ---
-    if (lawyerId) {
-      queryBuilder.andWhere(
-        new Brackets((qb) => {
-          // Condición 1: El item es PÚBLICO
-          qb.where('clientItem.isPrivate = false');
+    // filtramos permisos en JS (más claro y menos propenso a errores SQL)
+    const visible = items.filter((ci) => {
+      if (!ci.isPrivate) return true; // público
+      if (!lawyerId) return false; // privado y no hay lawyer identificable
+      if (ci.lawyer?.id === lawyerId) return true; // propietario
+      return !!ci.sharedWithLawyers?.some((s) => s.id === lawyerId); // está en shared list
+    });
 
-          // O Condición 2: El item es RESTRINGIDO...
-          qb.orWhere(
-            new Brackets((privateQb) => {
-              privateQb.where('clientItem.isPrivate = true');
-              // ...Y (soy el propietario O estoy en la lista de compartidos)
-              privateQb.andWhere(
-                new Brackets((accessQb) => {
-                  accessQb.where('lawyer.id = :lawyerId'); // Soy el propietario
-                  accessQb.orWhere('sharedLawyer.id = :lawyerId'); // Estoy en la lista
-                }),
-              );
-            }),
-          );
-        }),
-        { lawyerId }, // Pasamos el ID del abogado que consulta
-      );
-    } else {
-      // Si no hay abogado (ej: un admin system o no logueado), solo ve públicos
-      queryBuilder.andWhere('clientItem.isPrivate = false');
-    }
-    // --------------------------------------------
-
-    const rows = await queryBuilder.getRawMany();
-    console.log('DEBUG rows sample:', rows.slice(0, 5));
-
-    // Tu lógica de 'reduce' para agrupar documentos funciona perfectamente
-    // y manejará los duplicados que genera el leftJoin de sharedLawyer.
-    const result = Object.values(
-      rows.reduce((acc, row) => {
-        if (!acc[row.id]) {
-          acc[row.id] = {
-            id: row.id,
-            title: row.title,
-            description: row.description,
-            createdAt: row.createdAt,
-            updatedAt: row.updatedAt,
-            activeTime: row.activeTime,
-            isPrivate: row.isPrivate,
-            itemTypeId: row.itemTypeId,
-            clientId: row.clientId,
-            lawyerId: row.lawyerId, // Propietario
-            status: row.status,
-            categoryId: row.categoryId,
-            sectionId: row.sectionId,
-            documents: [],
-            // Aquí podrías agregar los sharedLawyerIds si los seleccionas en el query
-          };
-        }
-
-        if (
-          row.documentId &&
-          !acc[row.id].documents.find((d) => d.id === row.documentId)
-        ) {
-          acc[row.id].documents.push({ id: row.documentId });
-        }
-
-        return acc;
-      }, {}),
-    );
+    // mapeamos al formato que espera el front (igual que antes: documents: [{id}], camelCase, etc.)
+    const result = visible.map((ci) => ({
+      id: ci.id,
+      title: ci.title,
+      description: ci.description,
+      createdAt: ci.createdAt,
+      updatedAt: ci.updatedAt,
+      activeTime: ci.activeTime,
+      isPrivate: ci.isPrivate,
+      itemTypeId: ci.itemType?.id ?? null,
+      clientId: ci.client?.id ?? null,
+      lawyerId: ci.lawyer?.id ?? null,
+      status: ci.status,
+      categoryId: ci.category?.id ?? null,
+      sectionId: ci.section?.id ?? null,
+      documents: (ci.documents ?? []).map((d) => ({ id: d.id })),
+      // opcional: sharedLawyers: (ci.sharedWithLawyers ?? []).map(s => s.id)
+    }));
 
     return result;
   }
