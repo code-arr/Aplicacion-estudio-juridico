@@ -226,7 +226,7 @@ export class ClientItemRepository implements OnModuleInit {
       categoryId: ci.category?.id ?? null,
       sectionId: ci.section?.id ?? null,
       documents: (ci.documents ?? []).map((d) => ({ id: d.id })),
-      // opcional: sharedLawyers: (ci.sharedWithLawyers ?? []).map(s => s.id)
+      sharedLawyers: (ci.sharedWithLawyers ?? []).map((s) => s.id),
     }));
 
     return result;
@@ -320,14 +320,11 @@ export class ClientItemRepository implements OnModuleInit {
       .createQueryBuilder('clientItem')
       .leftJoin('clientItem.itemType', 'itemType')
       .leftJoin('clientItem.client', 'client')
-      .leftJoin('clientItem.lawyer', 'lawyer') // <-- Abogado Propietario
+      .leftJoin('clientItem.lawyer', 'lawyer') // propietario
       .leftJoin('clientItem.category', 'category')
       .leftJoin('clientItem.section', 'section')
       .leftJoin('clientItem.documents', 'documents')
-      // --- NUEVO JOIN ---
-      // Unimos la tabla de abogados compartidos
-      .leftJoin('clientItem.sharedWithLawyers', 'sharedLawyer')
-      // ------------------
+      .leftJoin('clientItem.sharedWithLawyers', 'sharedLawyer') // abogados compartidos
       .select([
         'clientItem.id AS id',
         'clientItem.title AS title',
@@ -335,6 +332,7 @@ export class ClientItemRepository implements OnModuleInit {
         'clientItem.createdAt AS createdAt',
         'clientItem.updatedAt AS updatedAt',
         'clientItem.activeTime AS activeTime',
+        'clientItem.isPrivate AS isPrivate',
       ])
       .addSelect('itemType.id', 'itemTypeId')
       .addSelect('client.id', 'clientId')
@@ -343,11 +341,7 @@ export class ClientItemRepository implements OnModuleInit {
       .addSelect('category.id', 'categoryId')
       .addSelect('section.id', 'sectionId')
       .addSelect('documents.id', 'documentId')
-      // --- LÓGICA ACTUALIZADA ---
-      // El abogado verá el item si:
-      // 1. Es el propietario (lawyer.id = :lawyerId)
-      // O
-      // 2. Está en la lista de compartidos (sharedLawyer.id = :lawyerId)
+      .addSelect('sharedLawyer.id', 'sharedLawyerId') // <<-- IMPORTANTE: seleccionamos el id
       .where(
         new Brackets((qb) => {
           qb.where('lawyer.id = :lawyerId').orWhere(
@@ -356,10 +350,9 @@ export class ClientItemRepository implements OnModuleInit {
         }),
         { lawyerId },
       )
-      // ---------------------------
       .getRawMany();
 
-    // 🔹 Agrupamos para evitar duplicados (Tu lógica de reduce ya maneja esto)
+    // Reducimos y deduplicamos documentos y sharedLawyers
     const result = Object.values(
       rows.reduce((acc, row) => {
         if (!acc[row.id]) {
@@ -370,6 +363,7 @@ export class ClientItemRepository implements OnModuleInit {
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             activeTime: row.activeTime,
+            isPrivate: row.isPrivate,
             itemTypeId: row.itemTypeId,
             clientId: row.clientId,
             lawyerId: row.lawyerId,
@@ -377,14 +371,24 @@ export class ClientItemRepository implements OnModuleInit {
             categoryId: row.categoryId,
             sectionId: row.sectionId,
             documents: [],
+            sharedLawyers: [], // <-- acumulador para ids
           };
         }
 
+        // documentos (dedupe)
         if (
           row.documentId &&
           !acc[row.id].documents.find((d) => d.id === row.documentId)
         ) {
           acc[row.id].documents.push({ id: row.documentId });
+        }
+
+        // sharedLawyers (dedupe)
+        if (
+          row.sharedLawyerId &&
+          !acc[row.id].sharedLawyers.find((s) => s === row.sharedLawyerId)
+        ) {
+          acc[row.id].sharedLawyers.push(row.sharedLawyerId);
         }
 
         return acc;
