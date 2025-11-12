@@ -33,6 +33,9 @@ export class AudiencieRepository {
     mimetype: string,
     lawyerId: string,
     clientId: string,
+    dateTimeIsoUtc: string,
+    durationSec: number,
+    mode: string,
   ): Promise<Audience> {
     return this.dataSource.transaction(async (manager) => {
       // 👈 TX
@@ -63,6 +66,9 @@ export class AudiencieRepository {
         audience.clientItem = clientItem;
         audience.clientId = clientId;
         audience.clientItemId = clientItemId;
+        audience.dateTime = new Date(dateTimeIsoUtc);
+        audience.durationSec = durationSec;
+        audience.mode = mode;
 
         const saved = await audienceRepo.save(audience);
 

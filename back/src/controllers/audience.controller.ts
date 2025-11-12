@@ -25,21 +25,24 @@ export class AudienceController {
     @UploadedFile() file: Express.Multer.File,
     @Param('clientItemId') clientItemId: string,
     @Body('name') name: string,
+    @Body('dateTime') dateTime: string, // ISO string (UTC) que manda el front
+    @Body('durationSec') durationSec: string, // viene como string en form-data
+    @Body('mode') mode: string,
     @Body('clientId') clientId: string,
     @Query('lawyerId') lawyerId: string,
   ): Promise<Audience> {
-    const fileBuffer = file.buffer;
-    const originalFileName = file.originalname;
-    const mimetype = file.mimetype; // <-- Obtenemos el mimetype del archivo
-
+    const duration = Number(durationSec);
     return this.audienceService.createAudience(
       clientItemId,
-      fileBuffer,
-      originalFileName,
+      file.buffer,
+      file.originalname,
       name,
-      mimetype,
+      file.mimetype,
       lawyerId,
       clientId,
+      dateTime,
+      duration,
+      mode,
     );
   }
 

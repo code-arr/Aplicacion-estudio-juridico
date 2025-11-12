@@ -33,8 +33,17 @@ export class Audience {
   @Column({ type: 'int', nullable: true })
   pages: number;
 
-  @Column({ type: 'timestamp', nullable: true })
-  date: Date;
+  // nuevo campo canónico con timezone (igual que Process)
+  @Column({ type: 'timestamptz' })
+  dateTime: Date;
+
+  // duración en segundos (opcional)
+  @Column({ type: 'integer' })
+  durationSec: number;
+
+  // modalidad: 'virtual' | 'presencial'
+  @Column({ type: 'varchar', length: 20 })
+  mode: string;
 
   @Column({ type: 'uuid' })
   clientId: string;

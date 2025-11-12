@@ -14,6 +14,9 @@ export class AudienceService {
     mimetype: string,
     lawyerId: string,
     clientId: string,
+    dateTimeIsoUtc: string,
+    durationSec: number,
+    mode: string,
   ): Promise<Audience> {
     return this.audiencieRepository.createAudience(
       clientItemId,
@@ -23,6 +26,9 @@ export class AudienceService {
       mimetype,
       lawyerId,
       clientId,
+      dateTimeIsoUtc,
+      durationSec,
+      mode,
     );
   }
 
@@ -57,5 +63,4 @@ export class AudienceService {
       lawyerId,
     );
   }
-
 }
