@@ -201,7 +201,6 @@ export class ClientItemRepository implements OnModuleInit {
       .leftJoin('clientItem.sharedWithLawyers', 'sharedLawyer')
       // ----------------------------------------
       .select([
-        // campos del clientItem (con alias)
         'clientItem.id AS id',
         'clientItem.title AS title',
         'clientItem.description AS description',
@@ -209,21 +208,16 @@ export class ClientItemRepository implements OnModuleInit {
         'clientItem.updatedAt AS updatedAt',
         'clientItem.activeTime AS activeTime',
         'clientItem.isPrivate AS isPrivate',
-
-        // itemType (id del tipo)
-        'itemType.id AS itemType_id', // si querés el id del itemType
-        'clientItem.itemTypeId AS itemTypeId', // y además el itemTypeId directo
-
-        // client, lawyer, status, category, section, document
-        'client.id AS client_id',
+        'itemType.id AS itemTypeId',
+        'clientItem.itemTypeId AS itemTypeId', // opcional pero no rompe
+        'client.id AS clientId',
         'clientItem.clientId AS clientId',
-        'lawyer.id AS lawyer_id',
+        'lawyer.id AS lawyerId',
         'clientItem.lawyerId AS lawyerId',
-        'clientItem.status AS clientItem_status',
         'clientItem.status AS status',
-        'category.id AS category_id',
+        'category.id AS categoryId',
         'clientItem.categoryId AS categoryId',
-        'section.id AS section_id',
+        'section.id AS sectionId',
         'clientItem.sectionId AS sectionId',
         'documents.id AS documentId',
       ])
@@ -259,6 +253,7 @@ export class ClientItemRepository implements OnModuleInit {
     // --------------------------------------------
 
     const rows = await queryBuilder.getRawMany();
+    console.log('DEBUG rows sample:', rows.slice(0, 5));
 
     // Tu lógica de 'reduce' para agrupar documentos funciona perfectamente
     // y manejará los duplicados que genera el leftJoin de sharedLawyer.
