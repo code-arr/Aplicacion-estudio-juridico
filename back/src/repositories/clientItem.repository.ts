@@ -184,32 +184,24 @@ export class ClientItemRepository implements OnModuleInit {
   async getByClientId(clientId: string, lawyerId?: string): Promise<any[]> {
     console.log('🟦 [getByClientId] Inicio');
     console.log('➡️ clientId:', clientId);
-    console.log('➡️ lawyerId:', lawyerId ?? '⚠️ No se envió abogado');
-    console.log(lawyerId);
+    console.log(
+      '➡️ lawyerId:',
+      lawyerId ?? '⚠️ No se envió abogado (solo verá públicos)',
+    );
 
-    // 🔍 1️⃣ Diagnosticamos los clientItems del cliente antes del filtro
-    const allItems = await this.clientItemRepository
-      .createQueryBuilder('ci')
-      .leftJoin('ci.lawyer', 'lawyer')
-      .select([
-        'ci.id AS id',
-        'ci.title AS title',
-        'ci.isPrivate AS isPrivate',
-        'lawyer.id AS lawyerId',
-      ])
-      .where('ci.client = :clientId', { clientId })
-      .getRawMany();
-
-    // 🔍 2️⃣ Query principal con el filtro
     const queryBuilder = this.clientItemRepository
       .createQueryBuilder('clientItem')
       .leftJoin('clientItem.itemType', 'itemType')
       .leftJoin('clientItem.client', 'client')
-      .leftJoin('clientItem.lawyer', 'lawyer')
+      .leftJoin('clientItem.lawyer', 'lawyer') // <-- Propietario
       .leftJoin('clientItem.category', 'category')
       .leftJoin('clientItem.section', 'section')
       .leftJoin('clientItem.documents', 'documents')
+      // --- UNIMOS LA NUEVA TABLA DE PERMISOS ---
+      .leftJoin('clientItem.sharedWithLawyers', 'sharedLawyer')
+      // ----------------------------------------
       .select([
+        // ... (todos tus 'select' y 'addSelect' se mantienen igual)
         'clientItem.id AS id',
         'clientItem.title AS title',
         'clientItem.description AS description',
@@ -217,33 +209,56 @@ export class ClientItemRepository implements OnModuleInit {
         'clientItem.updatedAt AS updatedAt',
         'clientItem.activeTime AS activeTime',
         'clientItem.isPrivate AS isPrivate',
+        'itemType.id',
+        'itemTypeId',
+        'client.id',
+        'clientId',
+        'lawyer.id',
+        'lawyerId', // <-- ID del propietario
+        'clientItem.status',
+        'status',
+        'category.id',
+        'categoryId',
+        'section.id',
+        'sectionId',
+        'documents.id',
+        'documentId',
       ])
-      .addSelect('itemType.id', 'itemTypeId')
-      .addSelect('client.id', 'clientId')
-      .addSelect('lawyer.id', 'lawyerId')
-      .addSelect('clientItem.status', 'status')
-      .addSelect('category.id', 'categoryId')
-      .addSelect('section.id', 'sectionId')
-      .addSelect('documents.id', 'documentId')
       .where('client.id = :clientId', { clientId });
 
+    // --- LÓGICA DE PERMISOS ACTUALIZADA ---
     if (lawyerId) {
       queryBuilder.andWhere(
         new Brackets((qb) => {
+          // Condición 1: El item es PÚBLICO
           qb.where('clientItem.isPrivate = false');
+
+          // O Condición 2: El item es RESTRINGIDO...
           qb.orWhere(
-            '(clientItem.isPrivate = true AND lawyer.id = :lawyerId)',
-            { lawyerId },
+            new Brackets((privateQb) => {
+              privateQb.where('clientItem.isPrivate = true');
+              // ...Y (soy el propietario O estoy en la lista de compartidos)
+              privateQb.andWhere(
+                new Brackets((accessQb) => {
+                  accessQb.where('lawyer.id = :lawyerId'); // Soy el propietario
+                  accessQb.orWhere('sharedLawyer.id = :lawyerId'); // Estoy en la lista
+                }),
+              );
+            }),
           );
         }),
+        { lawyerId }, // Pasamos el ID del abogado que consulta
       );
     } else {
+      // Si no hay abogado (ej: un admin system o no logueado), solo ve públicos
       queryBuilder.andWhere('clientItem.isPrivate = false');
     }
+    // --------------------------------------------
 
     const rows = await queryBuilder.getRawMany();
 
-    // 🔹 3️⃣ Agrupamos resultados
+    // Tu lógica de 'reduce' para agrupar documentos funciona perfectamente
+    // y manejará los duplicados que genera el leftJoin de sharedLawyer.
     const result = Object.values(
       rows.reduce((acc, row) => {
         if (!acc[row.id]) {
@@ -257,15 +272,19 @@ export class ClientItemRepository implements OnModuleInit {
             isPrivate: row.isPrivate,
             itemTypeId: row.itemTypeId,
             clientId: row.clientId,
-            lawyerId: row.lawyerId,
+            lawyerId: row.lawyerId, // Propietario
             status: row.status,
             categoryId: row.categoryId,
             sectionId: row.sectionId,
             documents: [],
+            // Aquí podrías agregar los sharedLawyerIds si los seleccionas en el query
           };
         }
 
-        if (row.documentId) {
+        if (
+          row.documentId &&
+          !acc[row.id].documents.find((d) => d.id === row.documentId)
+        ) {
           acc[row.id].documents.push({ id: row.documentId });
         }
 
@@ -343,8 +362,8 @@ export class ClientItemRepository implements OnModuleInit {
       relations: [
         'itemType.section',
         'documents',
-        "processes",
-        "meetings",
+        'processes',
+        'meetings',
         'itemType.section.category',
         'category',
         'category.clientItems',
@@ -364,10 +383,14 @@ export class ClientItemRepository implements OnModuleInit {
       .createQueryBuilder('clientItem')
       .leftJoin('clientItem.itemType', 'itemType')
       .leftJoin('clientItem.client', 'client')
-      .leftJoin('clientItem.lawyer', 'lawyer')
+      .leftJoin('clientItem.lawyer', 'lawyer') // <-- Abogado Propietario
       .leftJoin('clientItem.category', 'category')
       .leftJoin('clientItem.section', 'section')
       .leftJoin('clientItem.documents', 'documents')
+      // --- NUEVO JOIN ---
+      // Unimos la tabla de abogados compartidos
+      .leftJoin('clientItem.sharedWithLawyers', 'sharedLawyer')
+      // ------------------
       .select([
         'clientItem.id AS id',
         'clientItem.title AS title',
@@ -383,10 +406,23 @@ export class ClientItemRepository implements OnModuleInit {
       .addSelect('category.id', 'categoryId')
       .addSelect('section.id', 'sectionId')
       .addSelect('documents.id', 'documentId')
-      .where('lawyer.id = :lawyerId', { lawyerId }) // 🔹 filtro por lawyer
+      // --- LÓGICA ACTUALIZADA ---
+      // El abogado verá el item si:
+      // 1. Es el propietario (lawyer.id = :lawyerId)
+      // O
+      // 2. Está en la lista de compartidos (sharedLawyer.id = :lawyerId)
+      .where(
+        new Brackets((qb) => {
+          qb.where('lawyer.id = :lawyerId').orWhere(
+            'sharedLawyer.id = :lawyerId',
+          );
+        }),
+        { lawyerId },
+      )
+      // ---------------------------
       .getRawMany();
 
-    // 🔹 Agrupamos para evitar duplicados
+    // 🔹 Agrupamos para evitar duplicados (Tu lógica de reduce ya maneja esto)
     const result = Object.values(
       rows.reduce((acc, row) => {
         if (!acc[row.id]) {
@@ -407,7 +443,10 @@ export class ClientItemRepository implements OnModuleInit {
           };
         }
 
-        if (row.documentId) {
+        if (
+          row.documentId &&
+          !acc[row.id].documents.find((d) => d.id === row.documentId)
+        ) {
           acc[row.id].documents.push({ id: row.documentId });
         }
 
@@ -549,6 +588,30 @@ export class ClientItemRepository implements OnModuleInit {
       }
     }
   }
+
+  async updateClientItemAccess(
+    clientItemId: string,
+    accessData: { isPrivate: boolean; sharedLawyerIds: string[] },
+  ): Promise<ClientItem> {
+    const clientItem = await this.clientItemRepository.findOne({
+      where: { id: clientItemId },
+    });
+    if (!clientItem) {
+      throw new NotFoundException('ClientItem no encontrado');
+    }
+
+    // Asumimos que existe este método en tu lawyerService (AbogadoRepository)
+    // Debería usar: return this.abogadoRepository.find({ where: { id: In(ids) } });
+    const lawyers = await this.lawyerService.getLawyersByIds(
+      accessData.sharedLawyerIds,
+    );
+
+    clientItem.isPrivate = accessData.isPrivate;
+    clientItem.sharedWithLawyers = lawyers;
+
+    return await this.clientItemRepository.save(clientItem);
+  }
+
   async updateClientItemSimple(
     clientItemId: string,
     updateData: UpdateClientItemDto,

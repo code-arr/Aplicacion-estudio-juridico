@@ -36,16 +36,16 @@ export class ClientItemController {
   }
 
   @Get('getById/:id')
-  async getClientItemById(@Param('id') id: string ): Promise<any> {
+  async getClientItemById(@Param('id') id: string): Promise<any> {
     return this.ClientItemService.getClientItemById(id);
   }
 
   @Get('getByClientId/:clientId')
   async getClientItemsByClientId(
     @Param('clientId') clientId: string,
-    @Query("lawyerId") lawyerId : string
+    @Query('lawyerId') lawyerId: string,
   ): Promise<any> {
-    return this.ClientItemService.getByClientId(clientId , lawyerId);
+    return this.ClientItemService.getByClientId(clientId, lawyerId);
   }
 
   @Get('getByLawyerId/:lawyerId')
@@ -53,6 +53,17 @@ export class ClientItemController {
     @Param('lawyerId') lawyerId: string,
   ): Promise<any> {
     return this.ClientItemService.getClientItemsByLawyerId(lawyerId);
+  }
+
+  @Put('/:clientItemId/access')
+  async updateClientItemAccess(
+    @Param('clientItemId') clientItemId: string,
+    @Body() accessData: { isPrivate: boolean; sharedLawyerIds: string[] },
+  ): Promise<any> {
+    return this.ClientItemService.updateClientItemAccess(
+      clientItemId,
+      accessData,
+    );
   }
 
   @Put('/:clientItemId')

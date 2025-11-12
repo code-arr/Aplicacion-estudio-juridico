@@ -6,6 +6,8 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  ManyToMany,
+  JoinTable,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -64,6 +66,17 @@ export class ClientItem {
 
   @ManyToOne(() => Lawyer, (lawyer) => lawyer.clientItems)
   lawyer: Lawyer;
+
+  // --- NUEVA RELACIÓN MANY-TO-MANY ---
+  // Esta lista define "con quién más" se comparte este item
+  // si 'isPrivate' es true.
+  @ManyToMany(() => Lawyer, (lawyer) => lawyer.sharedClientItems)
+  @JoinTable({
+    name: 'client_item_shared_lawyers', // Nombre de la tabla pívot
+    joinColumn: { name: 'clientItemId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'lawyerId', referencedColumnName: 'id' },
+  })
+  sharedWithLawyers: Lawyer[];
 
   @OneToMany(() => Document, (document) => document.clientItem)
   documents: Document[];

@@ -155,6 +155,18 @@ export class AbogadoRepository {
     return await this.repository.find();
   }
 
+  async getLawyersByIds(ids: string[]): Promise<Lawyer[]> {
+    if (!ids || ids.length === 0) {
+      return []; // Devuelve vacío si no hay IDs
+    }
+
+    return this.repository.find({
+      where: {
+        id: In(ids), // Usa el operador 'In' de TypeORM
+      },
+    });
+  }
+
   async deleteClientFromLawyer(
     lawyerId: string,
     clientId: string,
@@ -276,8 +288,7 @@ export class AbogadoRepository {
     });
   }
 
-  async findByEmails(emails: [{ name: string; email: string }])
-{
+  async findByEmails(emails: [{ name: string; email: string }]) {
     const mailList = emails.map((e) => e.email); // extrae solo los correos
 
     return this.repository.find({

@@ -89,6 +89,9 @@ export class Lawyer {
   @OneToMany(() => ClientItem, (clientItem) => clientItem.lawyer)
   clientItems: ClientItem[];
 
+  @ManyToMany(() => ClientItem, (clientItem) => clientItem.sharedWithLawyers)
+  sharedClientItems: ClientItem[];
+
   // Relación Many-to-Many con Cliente
   // Abogado es el propietario: se creará una tabla intermedia 'abogados_clientes'.
   @ManyToMany(() => Client, (cliente) => cliente.lawyers, {

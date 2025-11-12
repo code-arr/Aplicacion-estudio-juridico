@@ -12,23 +12,20 @@ export class ClientItemService {
     clientItem: ClientItemDto,
     lawyerId: string,
   ): Promise<ClientItem> {
-    return this.clientItemRepository.createClientItem(
-      clientItem,
-      lawyerId,
-    );
+    return this.clientItemRepository.createClientItem(clientItem, lawyerId);
   }
 
   async createClientItemCategory(
     clientItem: ClientItemDto,
     categoryId: string,
     lawyerId: string,
-    clientId: string
+    clientId: string,
   ): Promise<ClientItem> {
     return this.clientItemRepository.createClientItemCategory(
       clientItem,
       categoryId,
       lawyerId,
-      clientId
+      clientId,
     );
   }
 
@@ -40,13 +37,13 @@ export class ClientItemService {
     clientItem: ClientItemDto,
     sectionId: string,
     lawyerId: string,
-    clientId: string
+    clientId: string,
   ): Promise<ClientItem> {
     return this.clientItemRepository.createClientItemInSection(
       clientItem,
       sectionId,
       lawyerId,
-      clientId
+      clientId,
     );
   }
 
@@ -57,8 +54,20 @@ export class ClientItemService {
   async getClientItemById(id: string): Promise<ClientItem> {
     return await this.clientItemRepository.getClientItemById(id);
   }
-  async getByClientId(clientId: string , lawyerId : string): Promise<ClientItem[]> {
-    return this.clientItemRepository.getByClientId(clientId , lawyerId);
+  async getByClientId(
+    clientId: string,
+    lawyerId: string,
+  ): Promise<ClientItem[]> {
+    return this.clientItemRepository.getByClientId(clientId, lawyerId);
+  }
+  async updateClientItemAccess(
+    clientItemId: string,
+    accessData: { isPrivate: boolean; sharedLawyerIds: string[] },
+  ): Promise<ClientItem> {
+    return this.clientItemRepository.updateClientItemAccess(
+      clientItemId,
+      accessData,
+    );
   }
   async updateClientItem(
     clientItemId: string,
@@ -66,7 +75,7 @@ export class ClientItemService {
   ): Promise<ClientItem> {
     return this.clientItemRepository.updateClientItemSimple(
       clientItemId,
-      updateData
+      updateData,
     );
   }
 }
