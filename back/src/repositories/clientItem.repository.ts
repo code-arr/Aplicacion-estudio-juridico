@@ -316,84 +316,46 @@ export class ClientItemRepository implements OnModuleInit {
   }
 
   async getByLawyerId(lawyerId: string): Promise<any[]> {
-    const rows = await this.clientItemRepository
+    // Trae entidades completas con relaciones necesarias
+    const items = await this.clientItemRepository
       .createQueryBuilder('clientItem')
-      .leftJoin('clientItem.activeTime', 'activeTime')
-      .leftJoin('clientItem.isPrivate', 'isPrivate')
-      .leftJoin('clientItem.createdAt', 'createdAt')
-      .leftJoin('clientItem.updatedAt', 'updatedAt')
-      .leftJoin('clientItem.itemType', 'itemType')
-      .leftJoin('clientItem.client', 'client')
-      .leftJoin('clientItem.lawyer', 'lawyer') // propietario
-      .leftJoin('clientItem.category', 'category')
-      .leftJoin('clientItem.section', 'section')
-      .leftJoin('clientItem.documents', 'documents')
-      .leftJoin('clientItem.sharedWithLawyers', 'sharedLawyer') // abogados compartidos
-      .select([
-        'clientItem.id AS id',
-        'clientItem.title AS title',
-        'clientItem.description AS description',
-      ])
-      .addSelect('itemType.id', 'itemTypeId')
-      .addSelect('client.id', 'clientId')
-      .addSelect('lawyer.id', 'lawyerId')
-      .addSelect('clientItem.status', 'status')
-      .addSelect('category.id', 'categoryId')
-      .addSelect('section.id', 'sectionId')
-      .addSelect('documents.id', 'documentId')
-      .addSelect('sharedLawyer.id', 'sharedLawyerId') // <<-- IMPORTANTE: seleccionamos el id
+      .leftJoinAndSelect('clientItem.itemType', 'itemType')
+      .leftJoinAndSelect('clientItem.client', 'client')
+      .leftJoinAndSelect('clientItem.lawyer', 'lawyer') // propietario
+      .leftJoinAndSelect('clientItem.category', 'category')
+      .leftJoinAndSelect('clientItem.section', 'section')
+      .leftJoinAndSelect('clientItem.documents', 'documents')
+      .leftJoinAndSelect('clientItem.sharedWithLawyers', 'sharedLawyers') // abogados compartidos
       .where(
         new Brackets((qb) => {
           qb.where('lawyer.id = :lawyerId').orWhere(
-            'sharedLawyer.id = :lawyerId',
+            'sharedLawyers.id = :lawyerId',
           );
         }),
         { lawyerId },
       )
-      .getRawMany();
+      .getMany();
 
-    // Reducimos y deduplicamos documentos y sharedLawyers
-    const result = Object.values(
-      rows.reduce((acc, row) => {
-        if (!acc[row.id]) {
-          acc[row.id] = {
-            id: row.id,
-            title: row.title,
-            description: row.description,
-            createdAt: row.createdAt,
-            updatedAt: row.updatedAt,
-            activeTime: row.activeTime,
-            isPrivate: row.isPrivate,
-            itemTypeId: row.itemTypeId,
-            clientId: row.clientId,
-            lawyerId: row.lawyerId,
-            status: row.status,
-            categoryId: row.categoryId,
-            sectionId: row.sectionId,
-            documents: [],
-            sharedLawyers: [], // <-- acumulador para ids
-          };
-        }
-
-        // documentos (dedupe)
-        if (
-          row.documentId &&
-          !acc[row.id].documents.find((d) => d.id === row.documentId)
-        ) {
-          acc[row.id].documents.push({ id: row.documentId });
-        }
-
-        // sharedLawyers (dedupe)
-        if (
-          row.sharedLawyerId &&
-          !acc[row.id].sharedLawyers.find((s) => s === row.sharedLawyerId)
-        ) {
-          acc[row.id].sharedLawyers.push(row.sharedLawyerId);
-        }
-
-        return acc;
-      }, {}),
-    );
+    // Mapear al formato que espera el front (compacto y sin duplicados)
+    const result = items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      activeTime: item.activeTime,
+      isPrivate: item.isPrivate,
+      itemTypeId: item.itemType?.id ?? null,
+      clientId: item.client?.id ?? null,
+      lawyerId: item.lawyer?.id ?? null,
+      status: item.status,
+      categoryId: item.category?.id ?? null,
+      sectionId: item.section?.id ?? null,
+      documents: (item.documents || []).map((d: any) => ({ id: d.id })),
+      sharedLawyers: Array.from(
+        new Set((item.sharedWithLawyers || []).map((l: any) => l.id)),
+      ),
+    }));
 
     return result;
   }
