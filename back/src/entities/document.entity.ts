@@ -39,7 +39,7 @@ export class Document {
   @ManyToOne(() => ClientItem, (clientItem) => clientItem.documents)
   clientItem: ClientItem;
 
-  @Column({ name: '"fileUrl"', type: 'varchar', length: 1000, nullable: true })
+  @Column({ name: 'fileUrl', type: 'varchar', length: 1000, nullable: true })
   fileUrl: string | null;
 
   @OneToMany(() => DocumentVersion, (v) => v.document, { cascade: true })

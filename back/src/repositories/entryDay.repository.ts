@@ -550,34 +550,6 @@ export class EntryDayRepository {
 
     return updatedEntryDays;
   }
-  async getByClientId(clientId: string, lawyerId: string) {
-    const entryDays = await this.repo.find({ where: { clientId, lawyerId } });
-    let totalDocumentTime = 0;
-    let totalMeetingTime = 0;
-    let totalAudienceTime = 0;
-    let totalClientTime = 0;
-    let totalProcessTime = 0;
-    let totalStats: { type: string; durationSec: number }[] = [];
-    for (const entryDay of entryDays) {
-      if (entryDay.type === 'Document') {
-        totalDocumentTime += entryDay.durationSec;
-      } else if (entryDay.type === 'Meeting') {
-        totalMeetingTime += entryDay.durationSec;
-      } else if (entryDay.type === 'Audience') {
-        totalAudienceTime += entryDay.durationSec;
-      } else if (entryDay.type === 'Client') {
-        totalClientTime += entryDay.durationSec;
-      } else if (entryDay.type === 'Process') {
-        totalProcessTime += entryDay.durationSec;
-      }
-    }
-    totalStats.push({ type: 'Document', durationSec: totalDocumentTime });
-    totalStats.push({ type: 'Meeting', durationSec: totalMeetingTime });
-    totalStats.push({ type: 'Audience', durationSec: totalAudienceTime });
-    totalStats.push({ type: 'Client', durationSec: totalClientTime });
-    totalStats.push({ type: 'Process', durationSec: totalProcessTime });
-    return totalStats;
-  }
 
   async getTop10ByLawyerId(lawyerId: string) {
     if (!lawyerId) {
