@@ -213,13 +213,24 @@ export class EntryDayRepository {
         ? entry.day.split('T')[0]
         : String(entry.day);
 
-    console.log('entryDayDate: ', entryDayDate);
+    const entryDayDate2 = (entry: EntryDay) => {
+      // Normalizamos a unknown para que TS deje usar instanceof sin error
+      const raw: unknown = (entry as any).day;
 
-    const entryDayDate2 = (entry: EntryDay) =>
-      (entry.day as any) instanceof Date
-        ? entry.day.toISOString().slice(0, 10)
-        : String(entry.day).slice(0, 10);
-    console.log('entryDayDate2: ', entryDayDate2);
+      // 1) Si ya es Date válido, lo usamos
+      if (raw instanceof Date && !isNaN(raw.getTime())) {
+        return raw.toISOString().slice(0, 10);
+      }
+
+      // 2) Intentamos parsear como Date (maneja strings "YYYY-MM-DD" o timestamps)
+      const parsed = new Date(String(raw));
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString().slice(0, 10);
+      }
+
+      // 3) Fallback: devolvemos la representación tal cual (recortada por precaución)
+      return String(raw).slice(0, 10);
+    };
 
     // Paso 2: Obtener descripciones detalladas, filtrar nulos y adjuntar el nombre del abogado
     const entriesWithDetails = (
@@ -279,6 +290,9 @@ export class EntryDayRepository {
         grouped[key].types[entry.type] = 0;
       }
       grouped[key].types[entry.type] += entry.durationSec / 3600;
+
+      console.log('entryDayDate: ', entryDayDate(entry));
+      console.log('entryDayDate2: ', entryDayDate2(entry));
 
       // 2. Almacenar el detalle granular de la tarea CON INFO DEL ABOGADO
       grouped[key].tasks.push({

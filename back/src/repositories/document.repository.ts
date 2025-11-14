@@ -375,17 +375,16 @@ export class DocumentRepository {
 
         const saved = await documentRepo.save(document);
 
-        await this.eventService.createEvent({
+        /* await this.eventService.createEvent({
           action: 'update',
           entityName: saved.name,
           entityId: saved.id,
           // tomamos el mimeType de la versión actual si existe
-          entityType:
-            saved.versions?.find(
-              (v) => v.versionNumber === saved.currentVersion,
-            )?.mimeType || null,
+          entityType: saved.versions?.find(
+            (v) => v.versionNumber === saved.currentVersion,
+          )?.mimeType,
           lawyerId,
-        });
+        }); */
 
         if (document.clientItemId) {
           await this.parentTouch.touchClientItem(
