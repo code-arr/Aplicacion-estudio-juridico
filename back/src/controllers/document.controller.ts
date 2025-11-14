@@ -1,3 +1,4 @@
+// src/controllers/document.controller.ts
 import {
   BadRequestException,
   Body,
@@ -11,7 +12,6 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { DocumentDto } from '../dtos/document.dto';
 import { Document } from '../entities/document.entity';
 import { DocumentService } from '../services/document.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -29,38 +29,44 @@ export class DocumentController {
     @Body('clientId') clientId: string,
     @Query('lawyerId') lawyerId: string,
   ): Promise<Document> {
-    const fileBuffer = file.buffer;
-    const originalFileName = file.originalname;
-    const mimetype = file.mimetype; // <-- Obtenemos el mimetype del archivo
-
+    if (!file) throw new BadRequestException('File required');
     return this.documentService.createDocument(
       clientItemId,
-      fileBuffer,
-      originalFileName,
+      file.buffer,
+      file.originalname,
       name,
-      mimetype,
+      file.mimetype,
       lawyerId,
       clientId,
     );
   }
-  @Delete('/delete/:documentId')
-  async deleteDocumentByUrl(
-    @Body('fileUrl') fileUrl: string,
-    @Param('documentId') documentId: string,
-  ): Promise<Document> {
-    return this.documentService.deleteDocumentByUrl(fileUrl, documentId);
-  }
 
   @Get('getAll')
-  async getAllDocuments(): Promise<Document[]> {
+  async getAll() {
     return this.documentService.getAllDocuments();
   }
 
   @Get('getByClientItemId/:clientItemId')
-  async getDocumentsByClientItemId(
-    @Param('clientItemId') clientItemId: string,
-  ): Promise<Document[]> {
+  async getByClientItem(@Param('clientItemId') clientItemId: string) {
     return this.documentService.getDocumentsByClientItemId(clientItemId);
+  }
+
+  @Get('/:documentId/versions')
+  async getVersions(@Param('documentId') documentId: string) {
+    return this.documentService.getVersionsByDocumentId(documentId);
+  }
+
+  @Delete(':documentId/version/:versionId')
+  async deleteVersion(
+    @Param('documentId') documentId: string,
+    @Param('versionId') versionId: string,
+  ) {
+    return this.documentService.deleteVersion(documentId, versionId);
+  }
+
+  @Delete(':documentId')
+  async deleteDocument(@Param('documentId') documentId: string) {
+    return this.documentService.deleteDocument(documentId);
   }
 
   @Put(':documentId')
@@ -73,6 +79,10 @@ export class DocumentController {
       throw new BadRequestException('New name is required');
     }
 
-    return this.documentService.updateDocument(documentId, newName.trim(), lawyerId);
+    return this.documentService.updateDocument(
+      documentId,
+      newName.trim(),
+      lawyerId,
+    );
   }
 }

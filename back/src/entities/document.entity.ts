@@ -1,17 +1,16 @@
 import { IsUUID } from 'class-validator';
 import {
-  BeforeInsert,
-  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { ClientItem } from './clientItem.entity';
-import * as moment from 'moment-timezone';
+import { DocumentVersion } from './documentVersion.entity';
 
 @Entity('documents')
 export class Document {
@@ -22,23 +21,14 @@ export class Document {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  fileUrl: string | null;
-
-  @Column({ type: 'varchar', length: 50 })
-  type: string;
-
-  @Column({ type: 'int' })
-  size: number;
-
-  @Column({ type: 'int', default: 0 })
-  activeTime: number;
-
   @Column({ type: 'uuid' })
   clientId: string;
 
-  @Column({ type: 'uuid' })
+  @Column({ type: 'uuid', nullable: true })
   clientItemId?: string;
+
+  @Column({ type: 'int', default: 1 })
+  currentVersion: number;
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
   createdAt!: Date;
@@ -48,4 +38,10 @@ export class Document {
 
   @ManyToOne(() => ClientItem, (clientItem) => clientItem.documents)
   clientItem: ClientItem;
+
+  @Column({ name: '"fileUrl"', type: 'varchar', length: 1000, nullable: true })
+  fileUrl: string | null;
+
+  @OneToMany(() => DocumentVersion, (v) => v.document, { cascade: true })
+  versions: DocumentVersion[];
 }

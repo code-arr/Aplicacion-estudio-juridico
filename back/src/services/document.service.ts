@@ -1,7 +1,10 @@
+// src/services/document.service.ts
 import { Injectable } from '@nestjs/common';
-import { DocumentDto } from '../dtos/document.dto';
 import { Document } from '../entities/document.entity';
-import { DocumentRepository } from '../repositories/document.repository';
+import {
+  DocumentRepository,
+  VersionWithLawyer,
+} from '../repositories/document.repository';
 
 @Injectable()
 export class DocumentService {
@@ -30,25 +33,29 @@ export class DocumentService {
     return this.documentRepository.getAllDocuments();
   }
 
+  async getDocumentsByClientItemId(clientItemId: string): Promise<Document[]> {
+    return this.documentRepository.getDocumentsByClientItemId(clientItemId);
+  }
+
   async getDocumentByUrl(fileUrl: string): Promise<Document> {
     return this.documentRepository.getDocumentByUrl(fileUrl);
   }
 
-  async deleteDocumentByUrl(
-    fileUrl: string,
+  async getVersionsByDocumentId(
     documentId: string,
-  ): Promise<Document> {
-    return this.documentRepository.deleteDocumentByUrl(fileUrl, documentId);
+  ): Promise<VersionWithLawyer[]> {
+    return this.documentRepository.getVersionsByDocumentId(documentId);
   }
 
-  async getDocumentsByClientItemId(clientItemId: string): Promise<Document[]> {
-    return this.documentRepository.getDocumentsByClientItemId(clientItemId);
+  async deleteVersion(documentId: string, versionId: string) {
+    return this.documentRepository.deleteVersion(documentId, versionId);
   }
-  async updateDocument(
-    documentId: string,
-    newName: string,
-    lawyerId: string,
-  ): Promise<Document> {
+
+  async deleteDocument(documentId: string) {
+    return this.documentRepository.deleteDocument(documentId);
+  }
+
+  async updateDocument(documentId: string, newName: string, lawyerId: string) {
     return this.documentRepository.updateDocument(
       documentId,
       newName,

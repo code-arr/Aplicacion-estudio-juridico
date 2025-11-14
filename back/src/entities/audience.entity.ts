@@ -1,7 +1,5 @@
 import { IsUUID } from 'class-validator';
 import {
-  BeforeInsert,
-  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,

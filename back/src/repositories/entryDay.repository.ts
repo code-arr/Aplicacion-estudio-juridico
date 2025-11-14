@@ -76,6 +76,7 @@ export class EntryDayRepository {
     const entity = this.repo.create(entryDay);
     return this.repo.save(entity);
   }
+
   private async getDetailedTaskData(entry: EntryDay) {
     const trackableId = (entry as any).trackableId;
 
@@ -211,6 +212,14 @@ export class EntryDayRepository {
       (entry.day as any) instanceof Date
         ? entry.day.split('T')[0]
         : String(entry.day);
+
+    console.log('entryDayDate: ', entryDayDate);
+
+    const entryDayDate2 = (entry: EntryDay) =>
+      (entry.day as any) instanceof Date
+        ? entry.day.toISOString().slice(0, 10)
+        : String(entry.day).slice(0, 10);
+    console.log('entryDayDate2: ', entryDayDate2);
 
     // Paso 2: Obtener descripciones detalladas, filtrar nulos y adjuntar el nombre del abogado
     const entriesWithDetails = (
