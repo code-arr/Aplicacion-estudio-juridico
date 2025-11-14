@@ -186,26 +186,154 @@ export class EntryDayRepository {
       ],
     });
 
-    // 2. Obtener los IDs de todos los abogados únicos
-    const lawyerIds = [...new Set(entries.map((e) => e.lawyerId))].filter(
-      (id) => id,
-    );
+    // --- PREFETCH para evitar N+1 ---
+    const processIds = new Set<string>();
+    const meetingIds = new Set<string>();
+    const documentIds = new Set<string>();
+    const audienceIds = new Set<string>();
+    const clientItemIdSet = new Set<string>();
 
-    // 3. Traer los nombres de todos los abogados en UNA sola consulta
-    const lawyers = await this.LawyerRepo.find({
-      where: { id: In(lawyerIds) },
-      select: ['id', 'firstName', 'lastName'],
+    entries.forEach((e) => {
+      if (e.trackableId) {
+        switch (e.type) {
+          case 'Process':
+            processIds.add(e.trackableId);
+            break;
+          case 'Meeting':
+            meetingIds.add(e.trackableId);
+            break;
+          case 'Document':
+            documentIds.add(e.trackableId);
+            break;
+          case 'Audience':
+            audienceIds.add(e.trackableId);
+            break;
+        }
+      }
+      if (e.clientItemId) clientItemIdSet.add(e.clientItemId);
     });
 
-    // 4. Crear un caché de nombres: { 'lawyerId': 'Nombre Completo' }
+    // 1) Prefetch por tipo (máximo 4 queries) y prefetchear clientItems (titles)
+    const [processes, meetings, documents, audiences, clientItems] =
+      await Promise.all([
+        processIds.size
+          ? this.ProcessRepo.findBy({ id: In([...processIds]) })
+          : Promise.resolve([]),
+        meetingIds.size
+          ? this.MeetingRepo.findBy({ id: In([...meetingIds]) })
+          : Promise.resolve([]),
+        documentIds.size
+          ? this.DocumentRepo.findBy({ id: In([...documentIds]) })
+          : Promise.resolve([]),
+        audienceIds.size
+          ? this.AudienceRepo.findBy({ id: In([...audienceIds]) })
+          : Promise.resolve([]),
+        clientItemIdSet.size
+          ? this.clientItemRepo.findBy({
+              id: In([...clientItemIdSet]),
+            })
+          : Promise.resolve([]),
+      ]);
+
+    const processMap = new Map(processes.map((p) => [p.id, p]));
+    const meetingMap = new Map(meetings.map((m) => [m.id, m]));
+    const documentMap = new Map(documents.map((d) => [d.id, d]));
+    const audienceMap = new Map(audiences.map((a) => [a.id, a]));
+    const clientItemTitleMap = new Map(
+      clientItems.map((ci) => [ci.id, ci.title]),
+    );
+
+    // 3) Helper local que obtiene { description, trackableId, isFallback } o null (si no existe)
+    const getDetailFromMaps = (entry: EntryDay) => {
+      if (!entry.trackableId) {
+        return {
+          description: 'Extras / Tareas sin objeto asociado',
+          trackableId: null,
+          isFallback: false,
+        };
+      }
+
+      const id = entry.trackableId;
+      const fallback = 'Objeto Encontrado (Sin Nombre)';
+      let obj: any;
+      let description = fallback;
+
+      switch (entry.type) {
+        case 'Process':
+          obj = processMap.get(id);
+          if (!obj) return null;
+          description = obj.name || obj.description || fallback;
+          break;
+        case 'Meeting':
+          obj = meetingMap.get(id);
+          if (!obj) return null;
+          description = obj.name || obj.subject || fallback;
+          break;
+        case 'Document':
+          obj = documentMap.get(id);
+          if (!obj) return null;
+          description =
+            obj.name ||
+            (obj.fileUrl ? obj.fileUrl.split('/').pop() : '') ||
+            fallback;
+          break;
+        case 'Audience':
+          obj = audienceMap.get(id);
+          if (!obj) return null;
+          description = obj.name || obj.summary || fallback;
+          break;
+        default:
+          return {
+            description: 'Otras tareas / Tipo de objeto no rastreado',
+            trackableId: id,
+            isFallback: false,
+          };
+      }
+
+      const isFallback = description === fallback;
+      return { description, trackableId: id, isFallback };
+    };
+
+    // 4) Construir lawyerNameCache (ya lo tenías arriba — lo re-uso)
+    const lawyerIds = [
+      ...new Set(entries.map((e) => e.lawyerId).filter(Boolean)),
+    ];
+    const lawyers = lawyerIds.length
+      ? await this.LawyerRepo.find({
+          where: { id: In(lawyerIds) },
+          select: ['id', 'firstName', 'lastName'],
+        })
+      : [];
     const lawyerNameCache: Record<string, string> = lawyers.reduce(
-      (acc, lawyer) => {
-        const fullName = `${lawyer.firstName} ${lawyer.lastName}`.trim();
-        acc[lawyer.id] = fullName;
+      (acc, l) => {
+        acc[l.id] =
+          `${l.firstName || ''} ${l.lastName || ''}`.trim() ||
+          'Abogado Desconocido';
         return acc;
       },
       {} as Record<string, string>,
     );
+
+    // 5) Generar entriesWithDetails SIN consultas adicionales (map + filter)
+    const entriesWithDetails = entries
+      .map((entry) => {
+        const detail = getDetailFromMaps(entry);
+        if (detail === null) return null; // objeto asociado no existe -> filtrar
+
+        const lawyerName =
+          lawyerNameCache[entry.lawyerId] || 'Abogado Desconocido';
+        return {
+          ...entry,
+          detailDescription: detail.description,
+          isFallback: detail.isFallback ?? false,
+          lawyerName,
+          // opcional: incluir clientItemTitle directo para usar en agrupado sin buscar DB
+          clientItemTitle: entry.clientItemId
+            ? (clientItemTitleMap.get(entry.clientItemId) ?? null)
+            : null,
+        };
+      })
+      .filter((e) => e !== null) as Array<any>;
 
     // Función auxiliar para formatear la fecha a YYYY-MM-DD
     const entryDayDate = (entry: EntryDay) =>
@@ -232,6 +360,27 @@ export class EntryDayRepository {
       return String(raw).slice(0, 10);
     };
 
+    /* // 2. Obtener los IDs de todos los abogados únicos
+    const lawyerIds = [...new Set(entries.map((e) => e.lawyerId))].filter(
+      (id) => id,
+    );
+
+    // 3. Traer los nombres de todos los abogados en UNA sola consulta
+    const lawyers = await this.LawyerRepo.find({
+      where: { id: In(lawyerIds) },
+      select: ['id', 'firstName', 'lastName'],
+    });
+
+    // 4. Crear un caché de nombres: { 'lawyerId': 'Nombre Completo' }
+    const lawyerNameCache: Record<string, string> = lawyers.reduce(
+      (acc, lawyer) => {
+        const fullName = `${lawyer.firstName} ${lawyer.lastName}`.trim();
+        acc[lawyer.id] = fullName;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+
     // Paso 2: Obtener descripciones detalladas, filtrar nulos y adjuntar el nombre del abogado
     const entriesWithDetails = (
       await Promise.all(
@@ -256,7 +405,7 @@ export class EntryDayRepository {
       )
     )
       // 🛑 FILTRADO FINAL: Remueve todos los elementos que devolvieron null (tareas sin coincidencia)
-      .filter((entry) => entry !== null);
+      .filter((entry) => entry !== null); */
 
     // Paso 3: Crear un mapa por clientItemId con solo las entradas válidas
     const grouped: Record<string, GroupedClientDetail> = {};
