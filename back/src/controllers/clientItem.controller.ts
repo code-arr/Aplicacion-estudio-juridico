@@ -1,3 +1,4 @@
+// src/controllers/clientItem.controller.ts
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ClientItemDto } from '../dtos/clientItem.dto';
 import { ItemType } from '../entities/itemType.entity';

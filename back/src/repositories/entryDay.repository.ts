@@ -3,13 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { groupEnd } from 'console';
 import { CreateTimeEntryDto } from 'src/dtos/timeEntry.dto';
 import { Audience } from 'src/entities/audience.entity';
-import { Client, Currency } from 'src/entities/client.entity';
+import { Client, clientType, Currency } from 'src/entities/client.entity';
 import { ClientItem, status as CIStatus } from 'src/entities/clientItem.entity';
 import { Document } from 'src/entities/document.entity';
 import { EntryDay } from 'src/entities/entryDay.entity';
 import { Lawyer } from 'src/entities/lawyer.entity';
 import { Meeting } from 'src/entities/meeting.entity';
 import { Process } from 'src/entities/process.entity';
+import { resolveEffectivePricing } from 'src/utils/rates.util';
 import { Between, In, Repository } from 'typeorm';
 
 type CostSummaryInput = {
@@ -610,108 +611,6 @@ export class EntryDayRepository {
     return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   }
 
-  // async getClientDetail(lawyerId: string, clientId: string , clientItemId?: string) {
-  //   if (!lawyerId || !clientId) {
-  //     throw new Error('lawyerId and clientId are required');
-  //   }
-
-  //   // Rango: año UTC actual (coincide con tu front)
-  //   const now = new Date();
-  //   const year = now.getUTCFullYear();
-  //   const start = `${year}-01-01`;
-  //   const end = `${year}-12-31`;
-
-  //   // 1) Por DÍA — usar to_char para forzar "YYYY-MM-DD"
-  //   const byDay = await this.repo
-  //     .createQueryBuilder('e')
-  //     .select(`to_char(e.day, 'YYYY-MM-DD')`, 'day') // 👈 cambio clave
-  //     .addSelect('SUM(e.durationSec)', 'total')
-  //     .where('e.lawyerId = :lawyerId', { lawyerId })
-  //     .andWhere('e.clientId = :clientId', { clientId })
-  //     .andWhere('e.day BETWEEN :start AND :end', { start, end })
-  //     .groupBy('day')
-  //     .orderBy('day', 'ASC')
-  //     .getRawMany<{ day: string; total: string }>();
-
-  //   // ===== 2) Acumulado por SEMANA ISO (Postgres) =====
-  //   // EXTRACT(WEEK FROM e.day) evita problemas de zona horaria.
-  //   const byWeek = await this.repo
-  //     .createQueryBuilder('e')
-  //     .select('EXTRACT(WEEK FROM e.day)::int', 'week')
-  //     .addSelect('SUM(e.durationSec)', 'total')
-  //     .where('e.lawyerId = :lawyerId', { lawyerId })
-  //     .andWhere('e.clientId = :clientId', { clientId })
-  //     .andWhere('e.day BETWEEN :start AND :end', { start, end })
-  //     .groupBy('week')
-  //     .orderBy('week', 'ASC')
-  //     .getRawMany<{ week: number; total: string }>();
-
-  //   // ===== 3) Acumulado por MES + TIPO (para categorías y total mensual) =====
-  //   const byMonthType = await this.repo
-  //     .createQueryBuilder('e')
-  //     .select('EXTRACT(MONTH FROM e.day)::int', 'month')
-  //     .addSelect('e.type', 'type')
-  //     .addSelect('SUM(e.durationSec)', 'total')
-  //     .where('e.lawyerId = :lawyerId', { lawyerId })
-  //     .andWhere('e.clientId = :clientId', { clientId })
-  //     .andWhere('e.day BETWEEN :start AND :end', { start, end })
-  //     .groupBy('month')
-  //     .addGroupBy('e.type')
-  //     .orderBy('month', 'ASC')
-  //     .getRawMany<{ month: number; type: string; total: string }>();
-
-  //   // Si no hay nada en el año, devolvemos null como antes
-  //   if (!byDay.length && !byWeek.length && !byMonthType.length) {
-  //     return null;
-  //   }
-
-  //   // ===== Armado de MAPS =====
-  //   const totalByDay: Record<string, number> = {};
-  //   byDay.forEach((r) => {
-  //     totalByDay[r.day] = Number(r.total); // r.day ya es "YYYY-MM-DD"
-  //   });
-
-  //   const totalByWeek: Record<number, number> = {};
-  //   byWeek.forEach((r) => {
-  //     totalByWeek[r.week] = Number(r.total);
-  //   });
-
-  //   const totalByMonth: Record<number, number> = {};
-  //   const totalByMonthByType: Record<number, Record<string, number>> = {};
-  //   let totalByYear = 0;
-
-  //   byMonthType.forEach((r) => {
-  //     const m = Number(r.month);
-  //     const t = r.type;
-  //     const v = Number(r.total);
-
-  //     totalByMonth[m] = (totalByMonth[m] ?? 0) + v;
-  //     if (!totalByMonthByType[m]) totalByMonthByType[m] = {};
-  //     totalByMonthByType[m][t] = (totalByMonthByType[m][t] ?? 0) + v;
-
-  //     totalByYear += v;
-  //   });
-
-  //   // ===== Datos del cliente (como antes) =====
-  //   const client = await this.clientRepo.findOne({
-  //     where: { id: clientId },
-  //     select: ['id', 'firstName', 'lastName', 'email'],
-  //   });
-
-  //   return {
-  //     clientId,
-  //     clientName: client
-  //       ? `${client.firstName} ${client.lastName}`
-  //       : 'Desconocido',
-  //     email: client?.email ?? null,
-  //     totalByDay, // { 'YYYY-MM-DD': seconds }
-  //     totalByWeek, // { 1..53: seconds } (ISO)
-  //     totalByMonth, // { 1..12: seconds }
-  //     totalByYear, // seconds
-  //     totalByMonthByType, // { month: { type: seconds } }
-  //   };
-  // }
-
   async getClientDetail(
     lawyerId: string,
     clientId: string,
@@ -1022,10 +921,10 @@ export class EntryDayRepository {
       ? new Date(Date.UTC(y, month, 0, 23, 59, 59))
       : new Date(Date.UTC(y, 11, 31, 23, 59, 59));
 
-    // Sumar segundos
+    // 1) Total segundos (para time.totalSec / time.totalHours)
     const qb = this.repo
       .createQueryBuilder('e')
-      .select('SUM(e.durationSec)', 'totalSec')
+      .select('COALESCE(SUM(e.durationSec),0)', 'totalSec')
       .where('e.lawyerId = :lawyerId', { lawyerId })
       .andWhere('e."clientId" IS NOT NULL')
       .andWhere('e.clientId = :clientId', { clientId })
@@ -1042,16 +941,107 @@ export class EntryDayRepository {
     const totalSec = Number(row?.totalSec ?? 0);
     const totalHours = totalSec / 3600;
 
+    // 2) Ahora: obtener totalSec por clientItemId para el mismo rango (para aplicar overrides por case)
+    const rowsByItem = await this.repo
+      .createQueryBuilder('e')
+      .select('COALESCE(e."clientItemId", :noItem)', 'clientItemId')
+      .addSelect('COALESCE(SUM(e.durationSec),0)', 'totalSec')
+      .where('e.lawyerId = :lawyerId', { lawyerId })
+      .andWhere('e."clientId" = :clientId', { clientId })
+      .andWhere('e.day BETWEEN :start AND :end', {
+        start: start.toISOString().slice(0, 10),
+        end: end.toISOString().slice(0, 10),
+      })
+      .groupBy('clientItemId')
+      .setParameters({ noItem: 'no-clientItem' })
+      .getRawMany<{ clientItemId: string; totalSec: string }>();
+
+    // 3) Traer clientItems involucrados (omitir 'no-clientItem')
+    const itemIds = rowsByItem
+      .map((r) => r.clientItemId)
+      .filter((id) => id && id !== 'no-clientItem');
+    const clientItemsById = new Map<string, any>();
+    if (itemIds.length) {
+      const cis = await this.clientItemRepo.find({
+        where: { id: In(itemIds) },
+        relations: ['client'],
+        select: [
+          'id',
+          'hourlyRateOverride',
+          'currencyOverride',
+          'client',
+        ] as any,
+      });
+      cis.forEach((ci) => clientItemsById.set(ci.id, ci));
+    }
+
+    // 4) Traer cliente (fallback tarifario)
     const client = await this.clientRepo.findOne({
       where: { id: clientId },
-      select: ['id', 'hourlyRate', 'currency', 'firstName', 'lastName'],
+      select: [
+        'id',
+        'hourlyRate',
+        'currency',
+        'firstName',
+        'lastName',
+        'companyName',
+        'legalRepresentative',
+        'type',
+      ] as any, // TypeORM select typing workaround
     });
 
-    // Si no hay tarifa → costo 0
-    const hourlyRate = client?.hourlyRate ? Number(client.hourlyRate) : 0;
-    const currency = client?.currency ?? Currency.CLP;
+    // construir un nombre amigable que funcione para persona física o compañía
+    const clientDisplayName = client
+      ? client.type === clientType.JURIDICA
+        ? (client.companyName ?? client.legalRepresentative ?? 'Empresa')
+        : `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim() ||
+          'Desconocido'
+      : 'Desconocido';
 
-    const totalCost = +(totalHours * hourlyRate).toFixed(2);
+    // 5) Acumular por moneda sin mezclar ni convertir
+    const costsByCurrency: Record<string, number> = {};
+    const usedCurrencies = new Set<string>();
+
+    for (const r of rowsByItem) {
+      const secs = Number(r.totalSec ?? 0);
+      const hours = secs / 3600;
+
+      let pricing;
+      if (r.clientItemId === 'no-clientItem') {
+        pricing = resolveEffectivePricing({ clientItem: null, client });
+      } else {
+        const ci = clientItemsById.get(r.clientItemId);
+        pricing = resolveEffectivePricing({ clientItem: ci ?? null, client });
+      }
+
+      const rate = pricing.hourlyRate ?? 0;
+      const cur = (pricing.currency as string) ?? 'UNKNOWN';
+      const cost = rate * hours;
+
+      costsByCurrency[cur] = (costsByCurrency[cur] ?? 0) + cost;
+      usedCurrencies.add(cur);
+    }
+
+    // 6) Formatear salida
+    const roundedCostsByCurrency = Object.fromEntries(
+      Object.entries(costsByCurrency).map(([k, v]) => [
+        k,
+        Math.round(v * 100) / 100,
+      ]),
+    );
+
+    const formattedCostsByCurrency = Object.fromEntries(
+      Object.entries(roundedCostsByCurrency).map(([k, v]) => {
+        // usá formatMoney sólo para monedas conocidas; si 'UNKNOWN' mantené el número
+        if (k === 'CLP' || k === 'USD' || k === 'UF') {
+          return [k, formatMoney(v as number, k as any)];
+        }
+        return [k, v];
+      }),
+    );
+
+    const mixedCurrency =
+      Array.from(usedCurrencies).filter((c) => c !== 'UNKNOWN').length > 1;
 
     return {
       scope: {
@@ -1066,14 +1056,20 @@ export class EntryDayRepository {
         totalHours: +totalHours.toFixed(2),
       },
       pricing: {
-        hourlyRate,
-        currency,
+        // tarifa fallback del cliente (puede no reflejar overrides individuales)
+        hourlyRate: client?.hourlyRate ? Number(client.hourlyRate) : 0,
+        currency: (client?.currency as Currency) ?? null,
       },
-      totalCost,
-      // opcional: string formateado (si querés devolver ya formateado)
+      costsByCurrency: roundedCostsByCurrency, // números decimales, por moneda
+      mixedCurrency,
+      client: {
+        id: client?.id ?? null,
+        name: clientDisplayName,
+        // opcional: devolver si es juridica o fisica
+        type: client?.type ?? null,
+      },
       formatted: {
-        hourlyRate: formatMoney(hourlyRate, currency),
-        totalCost: formatMoney(totalCost, currency),
+        costsByCurrencyFormatted: formattedCostsByCurrency,
       },
     };
   }
@@ -1134,20 +1130,23 @@ export class EntryDayRepository {
     if (!clientItemId)
       throw new BadRequestException('clientItemId is required');
 
+    // 1) Traer el clientItem junto con su client (para fallback tarifario)
     const item = await this.clientItemRepo.findOne({
       where: { id: clientItemId },
       relations: { client: true },
       select: {
         id: true,
+        // campos nuevos / overrides
+        hourlyRateOverride: true,
+        currencyOverride: true,
+        // client fallback
         client: { id: true, hourlyRate: true, currency: true },
-      },
+      } as any,
     });
+
     if (!item) throw new BadRequestException('clientItem not found');
 
-    const rate = item.client?.hourlyRate ? Number(item.client.hourlyRate) : 0;
-    const currency: Currency | null =
-      (item.client?.currency as Currency) ?? null;
-
+    // 2) Obtener total de segundos trabajados para este caso
     const { totalSec }: any = await this.repo
       .createQueryBuilder('e')
       .select('COALESCE(SUM(e.durationSec),0)', 'totalSec')
@@ -1156,13 +1155,57 @@ export class EntryDayRepository {
       .getRawOne<{ totalSec: string }>();
 
     const hours = secToHours(toNumber(totalSec));
-    const costRaw = Math.round(rate * hours * 100) / 100;
+
+    // 3) Resolver tarifa aplicada: override del item > tarifa del cliente padre
+    // item.hourlyRateOverride y item.currencyOverride pueden ser string | null
+    const itemRate =
+      item.hourlyRateOverride !== undefined && item.hourlyRateOverride !== null
+        ? Number(item.hourlyRateOverride)
+        : null;
+    const itemCurrency = item.currencyOverride ?? null;
+
+    const clientRate =
+      item.client && item.client.hourlyRate
+        ? Number(item.client.hourlyRate)
+        : 0;
+    const clientCurrency = item.client?.currency ?? null;
+
+    const appliedRate = itemRate ?? clientRate;
+    const appliedCurrency = itemCurrency ?? clientCurrency ?? null;
+
+    // 4) Calcular costo (solo por la moneda aplicada). No se hacen conversiones.
+    const costForCurrency = Math.round(appliedRate * hours * 100) / 100;
+
+    // 5) Preparar salida consistente con el resto de endpoints (costsByCurrency)
+    const costsByCurrency = appliedCurrency
+      ? { [appliedCurrency]: costForCurrency }
+      : { UNKNOWN: costForCurrency };
+
+    const formattedCostsByCurrency = Object.fromEntries(
+      Object.entries(costsByCurrency).map(([k, v]) => {
+        if (k === 'CLP' || k === 'USD' || k === 'UF') {
+          return [k, formatMoney(v as number, k as any)];
+        }
+        return [k, v];
+      }),
+    );
 
     return {
       clientItemId,
-      time: { totalHours: hours },
-      pricing: { hourlyRate: rate, currency },
-      cost: { raw: costRaw, currency },
+      time: { totalHours: hours, totalSec: toNumber(totalSec) },
+      pricing: {
+        // detalle para UI: override (si existe) y fallback del cliente
+        hourlyRateOverride: itemRate,
+        currencyOverride: itemCurrency,
+        clientHourlyRate: clientRate,
+        clientCurrency: clientCurrency,
+        appliedRate,
+        appliedCurrency,
+      },
+      costsByCurrency,
+      formatted: {
+        costsByCurrencyFormatted: formattedCostsByCurrency,
+      },
     };
   }
 
@@ -1181,21 +1224,31 @@ export class EntryDayRepository {
       select: ['id', 'status', 'createdAt', 'closedAt'],
     });
 
+    // Traer tarifa del cliente (fallback)
     const client = await this.clientRepo.findOne({
       where: { id: clientId },
       select: ['hourlyRate', 'currency'],
     });
-    const rate = client?.hourlyRate ? Number(client.hourlyRate) : 0;
-    const currency: Currency | null = (client?.currency as Currency) ?? null;
+    const clientFallbackRate = client?.hourlyRate
+      ? Number(client.hourlyRate)
+      : 0;
+    const clientFallbackCurrency = (client?.currency as Currency) ?? null;
 
     if (!items.length) {
       return {
         clientId,
         cases: { total: 0, open: 0, closed: 0 },
         hours: { total: 0, avgPerCase: 0 },
-        cost: { currency, avgPerCase: 0 },
+        cost: {
+          currency: clientFallbackCurrency,
+          avgPerCase: 0,
+          costsByCurrency: {},
+        },
         timeToClose: { avgDays: 0 },
-        pricing: { hourlyRate: rate, currency },
+        pricing: {
+          hourlyRate: clientFallbackRate,
+          currency: clientFallbackCurrency,
+        },
       };
     }
 
@@ -1232,29 +1285,95 @@ export class EntryDayRepository {
     const avgHoursPerCase = totalCases
       ? Math.round((totalHours / totalCases) * 10) / 10
       : 0;
-    const avgCostPerCase = Math.round(avgHoursPerCase * rate * 100) / 100;
 
-    const closedItems = items.filter((i) => i.closedAt && i.createdAt);
-    const avgDaysToClose = closedItems.length
-      ? Math.round(
-          closedItems.reduce(
+    // ---- NUEVO: calcular costos por moneda ----
+    // traer clientItems involucrados con overrides + su client (fallback local por si alguien cambió)
+    const itemIds = rows.map((r) => r.clientItemId).filter(Boolean);
+    const clientItems = itemIds.length
+      ? await this.clientItemRepo.find({
+          where: { id: In(itemIds) },
+          relations: ['client'],
+          select: [
+            'id',
+            'hourlyRateOverride',
+            'currencyOverride',
+            'client',
+          ] as any,
+        })
+      : [];
+    const itemMap = new Map(clientItems.map((ci) => [ci.id, ci]));
+
+    const costsByCurrency: Record<string, number> = {};
+    for (const r of rows) {
+      const secs = toNumber(r.totalSec);
+      const hrs = secToHours(secs);
+
+      const ci = itemMap.get(r.clientItemId);
+      // si no hay clientItem en el map (puede pasar), usamos fallback client global
+      const pricing = resolveEffectivePricing({
+        clientItem: ci ?? null,
+        client: ci?.client ?? client,
+      });
+
+      const rate = pricing.hourlyRate ?? 0;
+      const cur = pricing.currency ?? 'UNKNOWN';
+      const cost = rate * hrs;
+
+      costsByCurrency[cur] = (costsByCurrency[cur] ?? 0) + cost;
+    }
+
+    // Formatear y detectar mixedCurrency
+    const roundedCostsByCurrency = Object.fromEntries(
+      Object.entries(costsByCurrency).map(([k, v]) => [
+        k,
+        Math.round(v * 100) / 100,
+      ]),
+    );
+    const knownCurrencies = Object.keys(roundedCostsByCurrency).filter(
+      (c) => c !== 'UNKNOWN',
+    );
+    const mixedCurrency = knownCurrencies.length > 1;
+
+    // avg cost per case sólo si hay una única moneda conocida (sino null)
+    let avgCostPerCase = 0;
+    let costCurrency: Currency | null = null;
+    if (!mixedCurrency && knownCurrencies.length === 1) {
+      costCurrency = knownCurrencies[0] as Currency;
+      const totalCostSingle = roundedCostsByCurrency[costCurrency] ?? 0;
+      avgCostPerCase = totalCases
+        ? Math.round((totalCostSingle / totalCases) * 100) / 100
+        : 0;
+    }
+
+    return {
+      clientId,
+      cases: { total: totalCases, open: openCount, closed: closedCount },
+      hours: { total: totalHours, avgPerCase: avgHoursPerCase },
+      cost: {
+        currency: costCurrency,
+        avgPerCase: avgCostPerCase,
+        costsByCurrency: roundedCostsByCurrency,
+        mixedCurrency,
+      },
+      timeToClose: {
+        avgDays: (() => {
+          const closedItems = items.filter((i) => i.closedAt && i.createdAt);
+          if (!closedItems.length) return 0;
+          const sumDays = closedItems.reduce(
             (acc, i) =>
               acc +
               Math.ceil(
                 (+new Date(i.closedAt!) - +new Date(i.createdAt)) / 86400000,
               ),
             0,
-          ) / closedItems.length,
-        )
-      : 0;
-
-    return {
-      clientId,
-      cases: { total: totalCases, open: openCount, closed: closedCount },
-      hours: { total: totalHours, avgPerCase: avgHoursPerCase },
-      cost: { currency, avgPerCase: avgCostPerCase },
-      timeToClose: { avgDays: avgDaysToClose },
-      pricing: { hourlyRate: rate, currency },
+          );
+          return Math.round(sumDays / closedItems.length);
+        })(),
+      },
+      pricing: {
+        hourlyRate: clientFallbackRate,
+        currency: clientFallbackCurrency,
+      },
     };
   }
 
@@ -1282,7 +1401,6 @@ export class EntryDayRepository {
       totalSec: string;
     }>();
 
-    // --- Si no hay horas registradas, igual devolvemos estructura completa ---
     const emptyResponse = {
       scope: lawyerId ? 'lawyer' : 'studio',
       year: year ?? null,
@@ -1300,7 +1418,6 @@ export class EntryDayRepository {
     };
 
     // --- 2) Promedio de resolución (clientItems cerrados) ---
-    // Tomamos CLOSED y filtramos opcionalmente por lawyerId y/o por year (en closedAt)
     const qbRes = this.clientItemRepo
       .createQueryBuilder('ci')
       .select(
@@ -1321,18 +1438,14 @@ export class EntryDayRepository {
       ? Math.round(Number(rowRes.avgDaysToClose))
       : 0;
 
-    // --- 3) Si no hubo horas (rows vacío), retornar con resolutionDaysAvg calculado arriba ---
     if (!rows.length) {
       return {
         ...emptyResponse,
-        averages: {
-          ...emptyResponse.averages,
-          resolutionDaysAvg,
-        },
+        averages: { ...emptyResponse.averages, resolutionDaysAvg },
       };
     }
 
-    // --- 4) Cargar tarifas por cliente para costo total ---
+    // --- 3) Cargar tarifas por cliente y overrides por clientItem ---
     const clientIds = Array.from(new Set(rows.map((r) => r.clientId)));
     const clients = await this.clientRepo.find({
       where: { id: In(clientIds) },
@@ -1348,30 +1461,84 @@ export class EntryDayRepository {
       ]),
     );
 
-    const casesCount = rows.length;
+    // Obtener todos los clientItems mencionados para leer overrides y su client
+    const itemIds = Array.from(
+      new Set(rows.map((r) => r.clientItemId).filter(Boolean)),
+    );
+    const clientItems = itemIds.length
+      ? await this.clientItemRepo.find({
+          where: { id: In(itemIds) },
+          relations: ['client'],
+          select: [
+            'id',
+            'hourlyRateOverride',
+            'currencyOverride',
+            'client',
+          ] as any,
+        })
+      : [];
+    const itemMap = new Map(clientItems.map((ci) => [ci.id, ci]));
+
+    // --- 4) Calcular totales y costos por moneda ---
+    const costsByCurrency: Record<string, number> = {};
     const clientSet = new Set<string>();
     let totalHours = 0;
-    let totalCost = 0;
-    let currency: Currency | null = null;
+    let casesCount = 0;
 
     for (const r of rows) {
-      clientSet.add(r.clientId);
-      const hrs = secToHours(toNumber(r.totalSec));
+      const secs = toNumber(r.totalSec);
+      const hrs = secToHours(secs);
       totalHours += hrs;
-      const info = rateByClient.get(r.clientId) ?? { rate: 0, currency: null };
-      totalCost += info.rate * hrs;
-      if (!currency) currency = info.currency;
-      if (currency && info.currency && info.currency !== currency)
-        currency = null; // monedas mixtas
+      casesCount += 1;
+      clientSet.add(r.clientId);
+
+      const ci = itemMap.get(r.clientItemId);
+      const pricing = resolveEffectivePricing({
+        clientItem: ci ?? null,
+        client: ci?.client ?? {
+          hourlyRate: rateByClient.get(r.clientId)?.rate ?? 0,
+          currency: rateByClient.get(r.clientId)?.currency ?? null,
+        },
+      });
+
+      const rate = pricing.hourlyRate ?? 0;
+      const cur = pricing.currency ?? 'UNKNOWN';
+      const cost = rate * hrs;
+
+      costsByCurrency[cur] = (costsByCurrency[cur] ?? 0) + cost;
     }
 
+    const roundedCostsByCurrency = Object.fromEntries(
+      Object.entries(costsByCurrency).map(([k, v]) => [
+        k,
+        Math.round(v * 100) / 100,
+      ]),
+    );
+    const knownCurrencies = Object.keys(roundedCostsByCurrency).filter(
+      (c) => c !== 'UNKNOWN',
+    );
+    const mixedCurrency = knownCurrencies.length > 1;
+
+    // totals
     const clientsCount = clientSet.size;
-    const costPerCase = casesCount
-      ? Math.round((totalCost / casesCount) * 100) / 100
-      : 0;
-    const costPerClient = clientsCount
-      ? Math.round((totalCost / clientsCount) * 100) / 100
-      : 0;
+    const costPerCase = 0; // if single currency compute below
+    const totalCostSingle =
+      !mixedCurrency && knownCurrencies.length === 1
+        ? (roundedCostsByCurrency[knownCurrencies[0]] ?? 0)
+        : null;
+
+    const costPerCaseVal =
+      totalCostSingle !== null
+        ? casesCount
+          ? Math.round((totalCostSingle / casesCount) * 100) / 100
+          : 0
+        : null;
+    const costPerClientVal =
+      totalCostSingle !== null
+        ? clientsCount
+          ? Math.round((totalCostSingle / clientsCount) * 100) / 100
+          : 0
+        : null;
 
     return {
       scope: lawyerId ? 'lawyer' : 'studio',
@@ -1380,13 +1547,35 @@ export class EntryDayRepository {
         clients: clientsCount,
         cases: casesCount,
         hours: Math.round(totalHours * 10) / 10,
-        cost: { raw: Math.round(totalCost * 100) / 100, currency },
+        cost: {
+          raw: totalCostSingle ?? null,
+          currency:
+            knownCurrencies.length === 1
+              ? (knownCurrencies[0] as Currency)
+              : null,
+          costsByCurrency: roundedCostsByCurrency,
+        },
       },
       averages: {
-        costPerClient: { raw: costPerClient, currency },
-        costPerCase: { raw: costPerCase, currency },
-        // 👇 NUEVO
+        costPerClient: {
+          raw: costPerClientVal ?? 0,
+          currency:
+            knownCurrencies.length === 1
+              ? (knownCurrencies[0] as Currency)
+              : null,
+        },
+        costPerCase: {
+          raw: costPerCaseVal ?? 0,
+          currency:
+            knownCurrencies.length === 1
+              ? (knownCurrencies[0] as Currency)
+              : null,
+        },
         resolutionDaysAvg,
+      },
+      totalsBreakdown: {
+        mixedCurrency,
+        costsByCurrency: roundedCostsByCurrency,
       },
     };
   }
@@ -1402,7 +1591,7 @@ export class EntryDayRepository {
 
     const alias = { category: 'cat', section: 'sec', itemType: 'it' }[level];
 
-    // Conteo de casos por área
+    // 1) Conteo de casos por área (igual que antes)
     const counts = await this.clientItemRepo
       .createQueryBuilder('ci')
       .leftJoin('ci.category', 'cat')
@@ -1417,66 +1606,122 @@ export class EntryDayRepository {
       .orderBy('cases', 'DESC')
       .getRawMany<{ name: string; cases: string }>();
 
-    let hoursByName = new Map<string, number>();
-    let costByName = new Map<string, number>();
-    let currency: Currency | null = null;
+    // Si no queremos horas ni costos, devolvemos rápido con counts
+    if (!includeHours && !includeCost) {
+      const items = counts.map((r) => ({
+        name: r.name,
+        cases: Number(r.cases),
+      }));
+      return { clientId, level, items };
+    }
 
-    if (includeHours || includeCost) {
-      // horas por área a partir de EntryDay
-      const ed = this.repo
-        .createQueryBuilder('e')
-        .leftJoin(ClientItem, 'ci', 'ci.id = e."clientItemId"::uuid')
-        .leftJoin('ci.category', 'cat')
-        .leftJoin('ci.section', 'sec')
-        .leftJoin('ci.itemType', 'it')
-        .select(`${alias}.name`, 'name')
-        .addSelect('COALESCE(SUM(e.durationSec),0)', 'totalSec')
-        .where('e."clientId" = :clientId::uuid', { clientId })
-        .andWhere('e."clientId" IS NOT NULL')
-        .andWhere(`${alias}.name IS NOT NULL`)
-        .groupBy(`${alias}.name`);
-
-      if (year) {
-        const { start, end } = yearBounds(year);
-        ed.andWhere('e.day BETWEEN :start AND :end', { start, end });
-        /*         ed.andWhere('entry.day BETWEEN :start::date AND :end::date', {
-  start: startOfMonth.toISOString().slice(0,10), // 'YYYY-MM-DD'
-  end: endOfMonth.toISOString().slice(0,10), */
-      }
-
-      const rows = await ed.getRawMany<{ name: string; totalSec: string }>();
-      hoursByName = new Map(
-        rows.map((r) => [r.name, secToHours(toNumber(r.totalSec))]),
+    // --- 2) Horas por área + campos de pricing en la misma query para evitar N+1 ---
+    // Usamos leftJoin ClientItem (ci) y su client para fallback tarifario
+    const ed = this.repo
+      .createQueryBuilder('e')
+      .leftJoin(ClientItem, 'ci', 'ci.id = e."clientItemId"::uuid')
+      .leftJoin('ci.category', 'cat')
+      .leftJoin('ci.section', 'sec')
+      .leftJoin('ci.itemType', 'it')
+      .leftJoin('ci.client', 'client') // fallback tarifario local por caso
+      .select(`${alias}.name`, 'name')
+      .addSelect('COALESCE(SUM(e.durationSec),0)', 'totalSec')
+      // selects extra para coste: override del case y tarifa del client (fallback)
+      .addSelect('ci.hourlyRateOverride', 'ci_hourlyOverride')
+      .addSelect('ci.currencyOverride', 'ci_currencyOverride')
+      .addSelect('client.hourlyRate', 'client_hourlyRate')
+      .addSelect('client.currency', 'client_currency')
+      .where('e."clientId" = :clientId::uuid', { clientId })
+      .andWhere('e."clientId" IS NOT NULL')
+      .andWhere(`${alias}.name IS NOT NULL`)
+      // agrupamos por los selects no agregados para que Postgres no se queje
+      .groupBy(
+        `${alias}.name, ci.hourlyRateOverride, ci.currencyOverride, client.hourlyRate, client.currency`,
       );
 
+    if (year) {
+      const { start, end } = yearBounds(year);
+      ed.andWhere('e.day BETWEEN :start AND :end', { start, end });
+    }
+
+    const rows = await ed.getRawMany<{
+      name: string;
+      totalSec: string;
+      ci_hourlyOverride?: string | null;
+      ci_currencyOverride?: string | null;
+      client_hourlyRate?: string | null;
+      client_currency?: string | null;
+    }>();
+
+    // 3) Procesar filas: acumular horas y costos por nombre
+    const hoursByName = new Map<string, number>();
+    const costsByName = new Map<string, Record<string, number>>();
+
+    for (const r of rows) {
+      const name = r.name;
+      const hrs = secToHours(toNumber(r.totalSec));
+      hoursByName.set(name, (hoursByName.get(name) ?? 0) + hrs);
+
       if (includeCost) {
-        const client = await this.clientRepo.findOne({
-          where: { id: clientId },
-          select: ['hourlyRate', 'currency'],
+        // resolver pricing por fila (override del CI > client)
+        const pricing = resolveEffectivePricing({
+          clientItem: {
+            hourlyRateOverride: r.ci_hourlyOverride ?? null,
+            currencyOverride: r.ci_currencyOverride ?? null,
+          },
+          client: {
+            hourlyRate: r.client_hourlyRate ?? null,
+            currency: r.client_currency ?? null,
+          },
         });
-        const rate = client?.hourlyRate ? Number(client.hourlyRate) : 0;
-        currency = (client?.currency as Currency) ?? null;
-        for (const [name, hrs] of hoursByName.entries()) {
-          costByName.set(name, Math.round(rate * hrs * 100) / 100);
-        }
+
+        const cur = (pricing.currency ?? 'UNKNOWN') as string;
+        const cost = Math.round(pricing.hourlyRate * hrs * 100) / 100;
+
+        const current = costsByName.get(name) ?? {};
+        current[cur] = (current[cur] ?? 0) + cost;
+        costsByName.set(name, current);
       }
     }
 
+    // 4) Construir la salida final combinando counts + hours + costs
     const items = counts.map((r) => {
       const name = r.name;
       const out: any = { name, cases: Number(r.cases) };
-      if (includeHours)
+
+      if (includeHours) {
         out.hours = Math.round((hoursByName.get(name) ?? 0) * 10) / 10;
-      if (includeCost)
-        out.cost = {
-          raw: Math.round((costByName.get(name) ?? 0) * 100) / 100,
-          currency,
-        };
-      if (includeCost && includeHours) {
-        out.avgCostPerCase = out.cases
-          ? Math.round((out.cost.raw / out.cases) * 100) / 100
-          : 0;
       }
+
+      if (includeCost) {
+        const costObj = costsByName.get(name) ?? {};
+        const roundedCostObj = Object.fromEntries(
+          Object.entries(costObj).map(([k, v]) => [
+            k,
+            Math.round(v * 100) / 100,
+          ]),
+        );
+        const knownCurrencies = Object.keys(roundedCostObj).filter(
+          (c) => c !== 'UNKNOWN',
+        );
+        const mixedCurrency = knownCurrencies.length > 1;
+
+        out.cost = {
+          costsByCurrency: roundedCostObj,
+          mixedCurrency,
+        };
+
+        // si hay UNA sola moneda conocida, dejamos un atajo `raw` + `currency`
+        if (!mixedCurrency && knownCurrencies.length === 1) {
+          const only = knownCurrencies[0];
+          out.cost.raw = roundedCostObj[only];
+          out.cost.currency = only;
+        } else {
+          out.cost.raw = null;
+          out.cost.currency = null;
+        }
+      }
+
       return out;
     });
 

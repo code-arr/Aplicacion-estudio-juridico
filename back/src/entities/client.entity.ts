@@ -1,14 +1,10 @@
+// src/entities/client.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
   ManyToMany,
-  JoinTable,
-  OneToOne,
-  JoinColumn,
-  BeforeInsert,
-  BeforeUpdate,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -18,7 +14,6 @@ import { Lawyer } from './lawyer.entity';
 import { StopWatch } from './stopwatch.entity';
 import { Category } from './category.entity';
 import { ClientItem } from './clientItem.entity';
-import * as moment from 'moment-timezone';
 import { Meeting } from './meeting.entity';
 
 export enum clientType {

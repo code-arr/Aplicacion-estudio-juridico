@@ -1,3 +1,4 @@
+// src/services/clientItem.service.ts
 import { Injectable } from '@nestjs/common';
 import { ClientItemDto } from '../dtos/clientItem.dto';
 import { ClientItem } from '../entities/clientItem.entity';

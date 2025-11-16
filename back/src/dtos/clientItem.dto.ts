@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsString } from 'class-validator';
+import { Currency } from 'src/entities/clientItem.entity';
 
 export class ClientItemDto {
   @IsNotEmpty()
@@ -7,6 +8,11 @@ export class ClientItemDto {
 
   @IsString()
   description?: string;
+
+  @IsString()
+  hourlyRateOverride?: string | null;
+
+  currencyOverride?: Currency | null;
 
   @IsString()
   itemTypeId?: string;

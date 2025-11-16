@@ -1,3 +1,4 @@
+// src/repositories/clientItem.repository.ts
 import {
   Injectable,
   NotFoundException,
@@ -12,34 +13,15 @@ import { ItemTypeService } from '../services/itemType.service';
 import { Brackets, DataSource, Repository } from 'typeorm';
 import { AbogadoRepository } from './lawyer.repository';
 import {
-  ArbitrajesEnCursoClientItems,
-  ArbitrajesFinalizadosClientItems,
-  ArbitrajesLaudosClientItems,
-  ConfidencialidadClientItems,
   ConstitucionClientItems,
-  ContratosArrendamientoClientItems,
-  ContratosComercialesClientItems,
   ContratosLaboralesClientItems,
-  ContratosServiciosClientItems,
   DisolucionClientItems,
-  JointVenturesClientItems,
-  JuiciosAdministrativosClientItems,
-  JuiciosCivilesClientItems,
-  JuiciosComercialesClientItems,
-  JuiciosLaboralesClientItems,
-  JuiciosPenalesClientItems,
   JuntasActasClientItems,
   JuntasExtraordinariasClientItems,
   JuntasOrdinariasClientItems,
   ModificacionesClientItems,
   NombramientosClientItems,
   PoderesClientItems,
-  PrivadosEnCursoClientItems,
-  PrivadosFinalizadosClientItems,
-  PrivadosLaudosClientItems,
-  PublicosEnCursoClientItems,
-  PublicosFinalizadosClientItems,
-  PublicosLaudosClientItems,
   RenunciasClientItems,
 } from 'src/utils/clientItems';
 import { CategoryService } from 'src/services/category.service';

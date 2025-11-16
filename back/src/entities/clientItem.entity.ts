@@ -1,7 +1,6 @@
+// src/entities/clientItem.entity.ts
 import { IsUUID } from 'class-validator';
 import {
-  BeforeInsert,
-  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -22,13 +21,18 @@ import { Audience } from './audience.entity';
 import { Meeting } from './meeting.entity';
 import { Category } from './category.entity';
 import { Section } from './section.entity';
-import * as moment from 'moment-timezone';
 import { EntryDay } from './entryDay.entity';
 
 export enum status {
   OPEN = 'open',
   ON_HOLD = 'on_hold',
   CLOSED = 'closed',
+}
+
+export enum Currency {
+  CLP = 'CLP',
+  USD = 'USD',
+  UF = 'UF',
 }
 
 @Entity('clientItems')
@@ -54,6 +58,12 @@ export class ClientItem {
 
   @Column({ type: 'timestamptz', nullable: true })
   closedAt: Date | null;
+
+  @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
+  hourlyRateOverride?: string | null;
+
+  @Column({ type: 'enum', enum: Currency, nullable: true })
+  currencyOverride?: Currency | null;
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
   createdAt!: Date;
