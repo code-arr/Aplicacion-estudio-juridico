@@ -944,7 +944,7 @@ export class EntryDayRepository {
     // 2) Ahora: obtener totalSec por clientItemId para el mismo rango (para aplicar overrides por case)
     const rowsByItem = await this.repo
       .createQueryBuilder('e')
-      .select('COALESCE(e."clientItemId", :noItem)', 'clientItemId')
+      .select('COALESCE(e."clientItemId"::text, :noItem)', 'clientItemId')
       .addSelect('COALESCE(SUM(e.durationSec),0)', 'totalSec')
       .where('e.lawyerId = :lawyerId', { lawyerId })
       .andWhere('e."clientId" = :clientId', { clientId })
@@ -952,7 +952,7 @@ export class EntryDayRepository {
         start: start.toISOString().slice(0, 10),
         end: end.toISOString().slice(0, 10),
       })
-      .groupBy('e."clientItemId"')
+      .groupBy('COALESCE(e."clientItemId"::text, :noItem)')
       .setParameters({ noItem: 'no-clientItem' })
       .getRawMany<{ clientItemId: string; totalSec: string }>();
 
