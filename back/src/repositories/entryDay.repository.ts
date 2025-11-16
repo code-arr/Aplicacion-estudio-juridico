@@ -952,7 +952,7 @@ export class EntryDayRepository {
         start: start.toISOString().slice(0, 10),
         end: end.toISOString().slice(0, 10),
       })
-      .groupBy('clientItemId')
+      .groupBy('e."clientItemId"')
       .setParameters({ noItem: 'no-clientItem' })
       .getRawMany<{ clientItemId: string; totalSec: string }>();
 
