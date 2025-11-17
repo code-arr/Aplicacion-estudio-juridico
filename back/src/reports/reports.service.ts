@@ -21,20 +21,25 @@ import { EntryDay } from 'src/entities/entryDay.entity';
 // === INTERFACES DE TIPOS ===
 // ===========================================
 type TaskDetail = {
-  day: string; // Formato YYYY-MM-DD
+  day: string;
   description: string;
   durationSec: number;
   trackableId: string | null;
-  lawyerId: string; // ID del abogado
-  lawyerName: string; // Nombre completo del abogado
+  lawyerId: string;
+  lawyerName: string;
+  hourlyRate?: number; // NUEVO: tarifa aplicada a esa tarea (opcional)
+  currency?: Currency; // NUEVO: moneda aplicada para esa tarea (opcional)
+  cost?: { raw: number; currency: Currency }; // o directamente costo ya calculado por tarea
 };
 
-type GroupedClientDetail = {
+export type GroupedClientDetail = {
   clientItemId: string | null;
   clientName: string | null;
   types: Record<string, number>;
-  totalByMonth: number;
-  tasks: TaskDetail[]; // Lista de tareas granulares (con info del abogado)
+  totalByMonth: number; // horas (o segundos según convención — en tu código es horas)
+  hourlyRate?: number; // NUEVO: tarifa efectiva del clientItem (si aplica)
+  currency?: Currency; // NUEVO: moneda del clientItem
+  tasks: TaskDetail[];
 };
 type BuildOpts = {
   lawyerId: string;
@@ -104,42 +109,92 @@ export class ReportsService {
         lawyerId,
         Number(month),
         year,
+        client.id,
       );
 
     const clientItemsWithTasks = clientItems;
-    const allTasksFlat = clientItems.flatMap((item) => item.tasks);
+    const allTasksFlat = clientItems.flatMap((item) =>
+      item.tasks.map((t) => ({ ...t, __clientItem: item })),
+    );
+
+    // Fallbacks del cliente
+    const clientHourlyRate = Number(client.hourlyRate) || 0;
+    const clientCurrency = client.currency ?? Currency.CLP;
 
     // =========================================================================
     // === LÓGICA CLAVE: CALCULAR HORAS POR PROFESIONAL PARA LA TABLA NUEVA ===
     // =========================================================================
+    // Recalcular professionalTotals (horas + valor)
     const professionalTotals = allTasksFlat.reduce(
       (acc, task) => {
+        const project = (task as any).__clientItem as
+          | GroupedClientDetail
+          | undefined;
+        const { rate } = this.resolveRateForTask(
+          task as TaskDetail,
+          project,
+          clientHourlyRate,
+          clientCurrency,
+        );
+        const hours = (task.durationSec ?? 0) / 3600;
+        const value = rate * hours;
+
         if (task.lawyerId) {
           if (!acc[task.lawyerId]) {
             acc[task.lawyerId] = {
               name: task.lawyerName,
               totalHours: 0,
+              totalValue: 0,
             };
           }
-          acc[task.lawyerId].totalHours += task.durationSec / 3600;
+          acc[task.lawyerId].totalHours += hours;
+          acc[task.lawyerId].totalValue += value;
         }
         return acc;
       },
-      {} as Record<string, { name: string; totalHours: number }>,
+      {} as Record<
+        string,
+        { name: string; totalHours: number; totalValue: number }
+      >,
     );
 
-    const participatingProfessionals = Object.values(professionalTotals);
-    // =========================================================================
+    // Participating professionals list (convertimos a arreglo,
+    // incluyendo totalValue para mostrar)
+    const participatingProfessionals = Object.values(professionalTotals).map(
+      (p) => ({
+        name: p.name,
+        totalHours: p.totalHours,
+        totalValue: p.totalValue,
+      }),
+    );
 
-    // Calcular el total de horas (sumando todos los proyectos)
+    // Calcular totalMonthHours (sigue igual: horas por proyectos)
     const totalMonthHours = clientItems.reduce(
       (sum, e) => sum + (e.totalByMonth ?? 0),
       0,
     );
 
-    const rate = Number(client.hourlyRate) || 0;
-    const currency = client.currency ?? Currency.CLP;
-    const totalEstimated = rate ? totalMonthHours * rate : 0;
+    // Calcular totalEstimated sumando valor de cada tarea usando su tarifa efectiva
+    let totalEstimated = 0;
+    const currencySet = new Set<Currency>();
+    for (const item of clientItems) {
+      for (const task of item.tasks) {
+        const { rate, currency } = this.resolveRateForTask(
+          task,
+          item,
+          clientHourlyRate,
+          clientCurrency,
+        );
+        const taskHours = (task.durationSec ?? 0) / 3600;
+        const taskValue = rate * taskHours;
+        totalEstimated += taskValue;
+        currencySet.add(currency);
+      }
+    }
+
+    // moneda dominante (si varias, fallback a clientCurrency)
+    const currency =
+      currencySet.size === 1 ? [...currencySet][0] : clientCurrency;
 
     const [totalCases, openCases, closedCases] =
       await this.getVeryLightCasesStats(clientId);
@@ -202,13 +257,21 @@ export class ReportsService {
     // === Resumen ejecutivo ===
     doc.moveDown(1);
     this.drawSectionTitle(doc, 'Resumen ejecutivo', pageWidth);
-    if (rate)
+
+    // Mostrar tarifa horaria del cliente como referencia (si existe)
+    if (clientHourlyRate) {
       this.kv(
         doc,
-        'Tarifa horaria',
-        this.formatMoney(rate, currency),
+        'Tarifa horaria (cliente)',
+        this.formatMoney(clientHourlyRate, clientCurrency),
         pageWidth,
       );
+    } else {
+      // si hay mezcla de tarifas por item/task, mostrar nota
+      if (currencySet.size > 0 && currencySet.size !== 1) {
+        this.kv(doc, 'Tarifas', 'Tarifas mixtas por proyecto/tarea', pageWidth);
+      }
+    }
     this.kv(
       doc,
       'Horas registradas',
@@ -258,8 +321,20 @@ export class ReportsService {
         const itemName = isExtras
           ? 'Extras (ordenar documentos, tareas varias)'
           : item.clientName;
-        const itemTotal = item.totalByMonth;
-        const itemValue = rate ? itemTotal * rate : 0;
+        const itemTotal = item.totalByMonth; // horas
+
+        // calcular valor del proyecto sumando tareas (tarifa por task/project/client)
+        const projectTotalValue = (item.tasks ?? []).reduce((s, t) => {
+          const { rate: taskRate } = this.resolveRateForTask(
+            t,
+            item,
+            clientHourlyRate,
+            clientCurrency,
+          );
+          const hours = (t.durationSec ?? 0) / 3600;
+          return s + taskRate * hours;
+        }, 0);
+        const itemValue = projectTotalValue;
 
         doc.font(this.fontRegular()).fontSize(11).fillColor('#0f172a');
         const startY = doc.y;
@@ -354,7 +429,7 @@ export class ReportsService {
       // Fila para CADA Abogado
       participatingProfessionals.forEach((prof) => {
         const totalHours = prof.totalHours;
-        const totalValue = rate ? totalHours * rate : 0;
+        const totalValue = prof.totalValue ?? 0;
 
         const startY = doc.y;
         doc.font(this.fontRegular()).fontSize(11).fillColor('#0f172a');
@@ -518,8 +593,14 @@ export class ReportsService {
 
           // DIBUJAR LAS TAREAS DEL PROYECTO
           project.tasks.forEach((task) => {
-            const taskHours = task.durationSec / 3600;
-            const taskValue = rate ? taskHours * rate : 0;
+            const { rate: taskRate } = this.resolveRateForTask(
+              task,
+              project,
+              clientHourlyRate,
+              clientCurrency,
+            );
+            const taskHours = (task.durationSec ?? 0) / 3600;
+            const taskValue = taskRate * taskHours;
             const taskHoursFormatted = this.formatHours(taskHours);
 
             const taskWidth = col4X - col3X - 5;
@@ -594,7 +675,14 @@ export class ReportsService {
           // =================================================
 
           const projectTotalHours = project.totalByMonth;
-          const projectTotalValue = rate ? projectTotalHours * rate : 0;
+          const projectTotalValue = (project.tasks ?? []).reduce((s, t) => {
+            const { rate: taskRate } = this.resolveRateForTask(
+              t as TaskDetail,
+              project,
+            );
+            const hours = (t.durationSec ?? 0) / 3600;
+            return s + taskRate * hours;
+          }, 0);
 
           // Línea separadora sutil antes del total
           doc.moveDown(0.3);
@@ -963,6 +1051,25 @@ export class ReportsService {
       );
     }
     return c.companyName || 'Cliente';
+  }
+
+  private resolveRateForTask(
+    task: TaskDetail,
+    project: GroupedClientDetail | undefined,
+    clientHourlyRate: number | undefined,
+    clientCurrency: Currency | undefined,
+  ) {
+    const rate =
+      (task && (task.hourlyRate ?? undefined)) ??
+      (project && (project.hourlyRate ?? undefined)) ??
+      clientHourlyRate ??
+      0;
+    const currency =
+      (task && (task.currency ?? undefined)) ??
+      (project && (project.currency ?? undefined)) ??
+      clientCurrency ??
+      Currency.CLP;
+    return { rate: Number(rate) || 0, currency };
   }
 
   /**

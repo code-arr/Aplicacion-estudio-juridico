@@ -31,15 +31,17 @@ function yearBounds(y: number) {
   return { start: `${y}-01-01`, end: `${y}-12-31` };
 }
 
-interface TaskDetail {
+type TaskDetail = {
   day: string;
-  durationSec: number;
-  type: string;
   description: string;
+  durationSec: number;
   trackableId: string | null;
   lawyerId: string;
-  lawyerName: string; // ¡Nuevo! Nombre completo del abogado
-}
+  lawyerName: string;
+  hourlyRate?: number; // NUEVO: tarifa aplicada a esa tarea (opcional)
+  currency?: Currency; // NUEVO: moneda aplicada para esa tarea (opcional)
+  cost?: { raw: number; currency: Currency }; // o directamente costo ya calculado por tarea
+};
 
 /**
  * Estructura agrupada final por caso/proyecto (ClientItem)
@@ -47,9 +49,11 @@ interface TaskDetail {
 export type GroupedClientDetail = {
   clientItemId: string | null;
   clientName: string | null;
-  totalByMonth: number; // Total de horas del caso en el mes
-  types: Record<string, number>; // Horas agrupadas por tipo (Process, Meeting, etc.)
-  tasks: TaskDetail[]; // Lista de tareas granulares
+  types: Record<string, number>;
+  totalByMonth: number; // horas (o segundos según convención — en tu código es horas)
+  hourlyRate?: number; // NUEVO: tarifa efectiva del clientItem (si aplica)
+  currency?: Currency; // NUEVO: moneda del clientItem
+  tasks: TaskDetail[];
 };
 
 @Injectable()
@@ -163,9 +167,10 @@ export class EntryDayRepository {
     lawyerId: string,
     month: number,
     year: number,
+    clientId?: string,
   ): Promise<GroupedClientDetail[]> {
-    if (!lawyerId || !month || !year) {
-      throw new Error('lawyerId, month and year are required');
+    if (!lawyerId || !month || !year || !clientId) {
+      throw new Error('lawyerId, clientId, month and year are required');
     }
 
     // Paso 1: Traer todas las entries del mes y año indicados
@@ -175,6 +180,8 @@ export class EntryDayRepository {
           new Date(year, month - 1, 1).toISOString().split('T')[0],
           new Date(year, month, 0).toISOString().split('T')[0],
         ),
+        lawyerId,
+        clientId,
       },
       select: [
         'id',
@@ -240,8 +247,16 @@ export class EntryDayRepository {
     const meetingMap = new Map(meetings.map((m) => [m.id, m]));
     const documentMap = new Map(documents.map((d) => [d.id, d]));
     const audienceMap = new Map(audiences.map((a) => [a.id, a]));
-    const clientItemTitleMap = new Map(
-      clientItems.map((ci) => [ci.id, ci.title]),
+    const clientItemMap = new Map(
+      clientItems.map((ci) => [
+        ci.id,
+        {
+          title: ci.title ?? null,
+          hourlyRate: (ci as any).hourlyRate ?? undefined,
+          currency: (ci as any).currency ?? undefined,
+          raw: ci,
+        },
+      ]),
     );
 
     // 3) Helper local que obtiene { description, trackableId, isFallback } o null (si no existe)
@@ -330,19 +345,19 @@ export class EntryDayRepository {
           lawyerName,
           // opcional: incluir clientItemTitle directo para usar en agrupado sin buscar DB
           clientItemTitle: entry.clientItemId
-            ? (clientItemTitleMap.get(entry.clientItemId) ?? null)
+            ? (clientItemMap.get(entry.clientItemId)?.title ?? null)
             : null,
         };
       })
       .filter((e) => e !== null) as Array<any>;
 
     // Función auxiliar para formatear la fecha a YYYY-MM-DD
-    const entryDayDate = (entry: EntryDay) =>
+    /*    const entryDayDate = (entry: EntryDay) =>
       (entry.day as any) instanceof Date
         ? entry.day.split('T')[0]
-        : String(entry.day);
+        : String(entry.day); */
 
-    const entryDayDate2 = (entry: EntryDay) => {
+    const entryDayDate = (entry: EntryDay) => {
       // Normalizamos a unknown para que TS deje usar instanceof sin error
       const raw: unknown = (entry as any).day;
 
@@ -418,12 +433,12 @@ export class EntryDayRepository {
         // Traer nombre del clientItem si existe (Lógica original)
         let clientName: string | null = null;
         if (entry.clientItemId) {
-          const item = await this.clientItemRepo.findOne({
-            where: { id: entry.clientItemId },
-            select: ['title'],
-          });
-          clientName = item?.title ?? null;
+          clientName = clientItemMap.get(entry.clientItemId)?.title ?? null;
         }
+
+        const clientItemMeta = entry.clientItemId
+          ? clientItemMap.get(entry.clientItemId)
+          : undefined;
 
         grouped[key] = {
           clientItemId: entry.clientItemId ?? null,
@@ -431,20 +446,23 @@ export class EntryDayRepository {
           totalByMonth: 0,
           types: {},
           tasks: [],
+          hourlyRate: clientItemMeta?.hourlyRate,
+          currency: clientItemMeta?.currency,
         };
       }
 
       // 1. Sumar al total del mes en horas y tipos (código original)
-      grouped[key].totalByMonth += entry.durationSec / 3600;
-      if (!grouped[key].types[entry.type]) {
-        grouped[key].types[entry.type] = 0;
-      }
-      grouped[key].types[entry.type] += entry.durationSec / 3600;
+      const hours = secToHours(entry.durationSec);
 
-      console.log('entryDayDate: ', entryDayDate(entry));
-      console.log('entryDayDate2: ', entryDayDate2(entry));
+      grouped[key].totalByMonth += hours;
+      if (!grouped[key].types[entry.type]) grouped[key].types[entry.type] = 0;
+      grouped[key].types[entry.type] += hours;
 
       // 2. Almacenar el detalle granular de la tarea CON INFO DEL ABOGADO
+      const clientItemMeta = entry.clientItemId
+        ? clientItemMap.get(entry.clientItemId)
+        : undefined;
+
       grouped[key].tasks.push({
         day: entryDayDate(entry),
         durationSec: entry.durationSec,
@@ -453,6 +471,10 @@ export class EntryDayRepository {
         trackableId: entry.trackableId ?? null,
         lawyerId: entry.lawyerId,
         lawyerName: entry.lawyerName,
+        // tarifa específica de la tarea (si hubiera una columna en EntryDay con tarifa),
+        // o tomamos la tarifa del clientItem (si existe). Ajustá según tu modelo.
+        hourlyRate: (entry as any).hourlyRate ?? clientItemMeta?.hourlyRate,
+        currency: (entry as any).currency ?? clientItemMeta?.currency,
       } as TaskDetail);
     }
 
