@@ -136,7 +136,7 @@ export class ReportsService {
           clientHourlyRate,
           clientCurrency,
         );
-        const hours = (task.durationSec ?? 0) / 3600;
+        const hours = this.secToHours(task.durationSec);
         const value = rate * hours;
 
         if (task.lawyerId) {
@@ -331,7 +331,7 @@ export class ReportsService {
             clientHourlyRate,
             clientCurrency,
           );
-          const hours = (t.durationSec ?? 0) / 3600;
+          const hours = this.secToHours(t.durationSec);
           return s + taskRate * hours;
         }, 0);
         const itemValue = projectTotalValue;
@@ -677,10 +677,12 @@ export class ReportsService {
           const projectTotalHours = project.totalByMonth;
           const projectTotalValue = (project.tasks ?? []).reduce((s, t) => {
             const { rate: taskRate } = this.resolveRateForTask(
-              t as TaskDetail,
+              t,
               project,
+              clientHourlyRate,
+              clientCurrency,
             );
-            const hours = (t.durationSec ?? 0) / 3600;
+            const hours = this.secToHours(t.durationSec);
             return s + taskRate * hours;
           }, 0);
 
@@ -1107,6 +1109,11 @@ export class ReportsService {
       maximumFractionDigits: dec,
     });
     return `${formattedAmount} USD`;
+  }
+
+  private secToHours(sec?: number): number {
+    if (!sec) return 0;
+    return Math.round((sec / 3600) * 10) / 10; // 1 decimal como en EntryDayRepository
   }
 
   private formatHours(totalHours: number): string {
