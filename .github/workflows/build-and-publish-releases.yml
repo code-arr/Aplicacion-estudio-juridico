@@ -64,7 +64,7 @@ jobs:
           name: electron-installers-${{ matrix.os }}
           path: release-${{ matrix.os }}
 
-  publish_release:
+publish_release:
   needs: build
   runs-on: ubuntu-latest
   env:
