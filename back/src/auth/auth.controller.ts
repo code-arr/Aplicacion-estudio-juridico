@@ -155,8 +155,12 @@ export class AuthController {
         googleRefreshToken: googleTokens.refreshToken,
       });
 
-      // única redirección al final (usar returnTo)
-      return res.redirect(`${process.env.FRONTEND_URL}${returnTo}`);
+      const encodedReturn = encodeURIComponent(
+        returnTo || '/#/dashboard/settings',
+      );
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/oauth/done?status=success&returnTo=${encodedReturn}`,
+      );
     } catch (error) {
       console.error('Error al linkear cuenta Google:', error);
       return res.redirect(
