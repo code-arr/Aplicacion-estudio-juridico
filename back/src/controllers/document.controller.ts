@@ -21,7 +21,7 @@ export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
   @Post('/create/:clientItemId')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file' , { limits: { fileSize: 50 * 1024 * 1024 } })) // Limite de 50MB
   async createDocument(
     @UploadedFile() file: Express.Multer.File,
     @Param('clientItemId') clientItemId: string,
