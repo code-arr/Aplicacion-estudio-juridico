@@ -2,7 +2,7 @@ name: Build & Publish Electron App (Releases)
 
 on:
   push:
-    branches: [main]
+    branches: [main, front]
   workflow_dispatch:
 
 permissions:
