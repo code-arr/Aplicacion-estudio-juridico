@@ -105,9 +105,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Attach assets to run-release
+      - name: Attach assets to run-release (robust)
+        if: always()
         run: |
-          set -e
+          set -euo pipefail
           RELEASE_TAG="${{ env.RUN_TAG }}"
           API="https://api.github.com"
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
@@ -120,11 +121,18 @@ jobs:
             exit 1
           fi
 
-          for f in $(find ./collected -type f -print); do
+          # Use null-separated list to safely handle filenames with spaces/newlines.
+          find ./collected -type f -print0 | while IFS= read -r -d '' f; do
             FNAME=$(basename "$f")
-            echo "Uploading $FNAME ..."
-            UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$FNAME"
-            curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
+            echo "Uploading file: [$f] as asset name: [$FNAME]"
+            UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")"
+            # Upload file, quoting path and streaming binary
+            curl --fail -X POST \
+              -H "Authorization: $AUTH" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary @"$f" \
+              "$UPLOAD_URL"
+            echo " -> uploaded $FNAME"
           done
         shell: bash
 
