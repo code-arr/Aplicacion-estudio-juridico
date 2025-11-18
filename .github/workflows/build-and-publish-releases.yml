@@ -142,3 +142,7 @@ jobs:
       - name: Final info
         run: |
           echo "Release published. Check: https://github.com/${{ github.repository }}/releases/tag/${{ steps.create_release.outputs.tag_name }}"
+
+      - name: Final info
+        run: |
+          echo "Release published. Check: https://github.com/${{ github.repository }}/releases/tag/${{ steps.create_release.outputs.tag_name }}"
