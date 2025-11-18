@@ -175,11 +175,7 @@ jobs:
             | while IFS= read -r -d '' f; do
                 FNAME=$(basename "$f")
                 echo " -> Uploading $FNAME from $f"
-                ENCODED_NAME=$(python3 - <<'PY'
-                import sys, urllib.parse
-                print(urllib.parse.quote(sys.argv[1]))
-                PY
-                "$FNAME")
+                ENCODED_NAME=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")
                 UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$LID/assets?name=$ENCODED_NAME"
                 curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
                 echo "    uploaded $FNAME"
