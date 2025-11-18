@@ -65,85 +65,78 @@ jobs:
           path: release-${{ matrix.os }}
 
   publish_release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: electron-installers-windows-latest
-          path: ./collected || true
+  needs: build
+  runs-on: ubuntu-latest
+  env:
+    RELEASE_TAG: release-${{ github.run_id }}   # tag seguro y válido
+  steps:
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: electron-installers-windows-latest
+        path: ./collected || true
 
-      - name: Download Mac artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: electron-installers-macos-latest
-          path: ./collected || true
+    - name: Download Mac artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: electron-installers-macos-latest
+        path: ./collected || true
 
-      - name: List collected files
-        run: |
-          echo "FILES:"
-          find ./collected -maxdepth 3 -type f -print || true
-        shell: bash
+    - name: List collected files
+      run: |
+        echo "FILES:"
+        find ./collected -maxdepth 3 -type f -print || true
+      shell: bash
 
-      - name: Create Release (tag = commit short SHA)
-        id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: release-${{ github.sha_short }}
-          release_name: Release ${{ github.sha_short }} (from push)
-          body: |
-            Auto-generated release from commit ${{ github.sha }} on branch ${{ github.ref_name }}.
-            **NOTA:** este repo es privado; solo colaboradores pueden descargar los instaladores.
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create Release (tag = run id)
+      id: create_release
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ env.RELEASE_TAG }}
+        release_name: Release ${{ env.RELEASE_TAG }} (from run ${{ github.run_id }})
+        body: |
+          Auto-generated release from commit ${{ github.sha }} on branch ${{ github.ref_name }}.
+          **NOTA:** este repo es privado; solo colaboradores pueden descargar los instaladores.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload installer assets to Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.create_release.outputs.tag_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload installer assets to Release (softprops)
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ env.RELEASE_TAG }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Attach assets to release (loop)
-        if: always()
-        run: |
-          set -e
-          RELEASE_TAG="${{ steps.create_release.outputs.tag_name }}"
-          API="https://api.github.com"
-          AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
+    - name: Attach assets to release (loop - fallback)
+      if: always()
+      run: |
+        set -e
+        RELEASE_TAG="${{ env.RELEASE_TAG }}"
+        API="https://api.github.com"
+        AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
 
-          echo "Releasing with tag: $RELEASE_TAG"
-          for f in $(find ./collected -type f -print); do
-            echo "Uploading $f ..."
-            # use Gh CLI if available: fallback to curl upload
-            FNAME=$(basename "$f")
-            # get upload_url from create_release outputs
-            UPLOAD_URL=$(jq -r '.upload_url' <<<"${{ steps.create_release.outputs }}" 2>/dev/null || echo "")
-            # softprops/action-gh-release should have already done attachments; but we keep this as extra safe
-            # Use GitHub Releases API - simplified: use gh cli if available
-            if command -v gh >/dev/null 2>&1; then
-              gh release upload "$RELEASE_TAG" "$f" --clobber
-            else
-              echo "gh cli not available; attempting curl upload (may fail for large files)"
-              # fetch release id
-              RELEASE_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" | jq -r .id)
-              if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
-                echo "Cannot find release id for $RELEASE_TAG"
-                continue
-              fi
-              # determine upload url
-              UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$FNAME"
-              curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
+        echo "Releasing with tag: $RELEASE_TAG"
+        for f in $(find ./collected -type f -print); do
+          echo "Uploading $f ..."
+          FNAME=$(basename "$f")
+          if command -v gh >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$f" --clobber
+          else
+            echo "gh cli not available; attempting curl upload"
+            RELEASE_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" | jq -r .id)
+            if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
+              echo "Cannot find release id for $RELEASE_TAG"
+              continue
             fi
-          done
+            UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$FNAME"
+            curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
+          fi
+        done
+      shell: bash
 
-      - name: Final info
-        run: |
-          echo "Release published. Check: https://github.com/${{ github.repository }}/releases/tag/${{ steps.create_release.outputs.tag_name }}"
-
-      - name: Final info
-        run: |
-          echo "Release published. Check: https://github.com/${{ github.repository }}/releases/tag/${{ steps.create_release.outputs.tag_name }}"
+    - name: Final info
+      run: |
+        echo "Release published. Check: https://github.com/${{ github.repository }}/releases/tag/${{ env.RELEASE_TAG }}"
+      shell: bash
