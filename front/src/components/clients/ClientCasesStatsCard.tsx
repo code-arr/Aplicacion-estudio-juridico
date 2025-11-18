@@ -367,7 +367,11 @@ export default function ClientCasesStatsCard() {
                   <Row
                     label="Costo estimado"
                     value={
-                      cst ? formatMoney(cst.cost.raw, cst.cost.currency) : "—"
+                      cst && cst.cost
+                        ? cst.cost.currency
+                          ? formatMoney(cst.cost.raw ?? 0, cst.cost.currency)
+                          : `${(cst.cost.raw ?? 0).toFixed(2)}`
+                        : "—"
                     }
                   />
                 </div>

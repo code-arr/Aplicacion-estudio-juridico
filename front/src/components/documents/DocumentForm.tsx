@@ -10,9 +10,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/useToast";
 import { useClientStore } from "@/store/useClientStore";
 import { useDocumentStore } from "@/store/useDocumentStore";
-import { use, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 type DocumentFormProps = {
@@ -55,6 +56,8 @@ function isAllowedType(file: File) {
 const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
   const [submitting, setSubmitting] = useState(false);
+
+  const { toast } = useToast?.() ?? { toast: () => {} };
 
   const clientDetail = useClientStore((s) => s.clientDetail);
 
@@ -132,7 +135,16 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
     form.append("clientId", clientId);
 
     try {
-      await createDocument(form, clientItemId!);
+      const res = await createDocument(form, clientItemId!);
+      // Si el backend te devolvió currentVersion o versiones, podés mostrar mensaje:
+      if (res.currentVersion && res.currentVersion > 1) {
+        toast?.({
+          title: "Nueva versión subida",
+          description: `Versión ${res.currentVersion} creada.`,
+        });
+      } else {
+        toast?.({ title: "Documento creado" });
+      }
 
       await fetchDocumentsByClientItemId(clientItemId!);
 

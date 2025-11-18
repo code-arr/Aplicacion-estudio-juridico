@@ -31,6 +31,21 @@ function useDocIdsFromQuery() {
   }, [search]);
 }
 
+function isPdfDoc(d: any) {
+  const type = (d.type ?? "").toString().toLowerCase();
+  const mime = (d.mimeType ?? d.versions?.[0]?.mimeType ?? "")
+    .toString()
+    .toLowerCase();
+  const url = (d.fileUrl ?? d.versions?.[0]?.fileUrl ?? "")
+    .toString()
+    .toLowerCase();
+
+  if (type === "pdf") return true;
+  if (mime.includes("pdf")) return true;
+  if (url.endsWith(".pdf")) return true;
+  return false;
+}
+
 const DocumentViewerPage = () => {
   const user = useAuthStore((s) => s.user);
   const lawyerId = useLawyerStore((s) => s.lawyer?.id);
@@ -84,22 +99,28 @@ const DocumentViewerPage = () => {
     setPool(Array.from(map.values()));
 
     // D2) Abrir SOLO PDFs que falten
-    const pdfs = docs.filter((d) => (d.type || "").toLowerCase() === "pdf");
+    const pdfs = docs.filter((d) => isPdfDoc(d));
     if (pdfs.length) {
       const already = new Set(
         usePdfManagerStore.getState().openDocs.map((d) => d.id)
       );
-      pdfs
-        .filter((d) => !already.has(d.id))
-        .forEach((d) =>
-          open({
-            id: d.id,
-            title: d.name,
-            url: d.fileUrl,
-            clientId: d.clientId,
-            clientItemId: d.clientItemId ?? null,
-          })
-        );
+
+      pdfs.filter((d) => !already.has(d.id));
+      pdfs.forEach((d) => {
+        const resolvedUrl = d.fileUrl ?? d.versions?.[0]?.fileUrl ?? null;
+        if (!resolvedUrl) {
+          console.warn(`[viewer] documento ${d.id} sin url`);
+          return; // sale del callback sólo
+        }
+
+        open({
+          id: d.id,
+          title: d.name,
+          url: resolvedUrl as string, // aserción segura porque comprobamos arriba
+          clientId: d.clientId,
+          clientItemId: d.clientItemId ?? null,
+        });
+      });
     }
 
     // D3) Activar pestaña si corresponde y es PDF válido
@@ -145,23 +166,28 @@ const DocumentViewerPage = () => {
     const resolved = ids
       .map((id) => poolById.get(id))
       .filter(Boolean) as AppDocument[];
-    const pdfs = resolved.filter((d) => (d.type || "").toLowerCase() === "pdf");
+    const pdfs = resolved.filter((d) => isPdfDoc(d));
     if (!pdfs.length) return;
 
     const alreadyOpen = new Set(
       usePdfManagerStore.getState().openDocs.map((d) => d.id)
     );
-    pdfs
-      .filter((d) => !alreadyOpen.has(d.id))
-      .forEach((d) =>
-        open({
-          id: d.id,
-          title: d.name,
-          url: d.fileUrl,
-          clientId: d.clientId,
-          clientItemId: d.clientItemId ?? null,
-        })
-      );
+    pdfs.filter((d) => !alreadyOpen.has(d.id));
+    pdfs.forEach((d) => {
+      const resolvedUrl = d.fileUrl ?? d.versions?.[0]?.fileUrl ?? null;
+      if (!resolvedUrl) {
+        console.warn(`[viewer] documento ${d.id} sin url`);
+        return; // sale del callback sólo
+      }
+
+      open({
+        id: d.id,
+        title: d.name,
+        url: resolvedUrl as string, // aserción segura porque comprobamos arriba
+        clientId: d.clientId,
+        clientItemId: d.clientItemId ?? null,
+      });
+    });
 
     const nextActive =
       (active && pdfs.find((d) => d.id === active)?.id) || pdfs[0]?.id || null;

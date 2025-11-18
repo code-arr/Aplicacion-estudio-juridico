@@ -17,8 +17,10 @@ import { useEffect, useState } from "react";
 import DocumentCard from "@/components/documents/DocumentCard";
 import RowSkeleton from "@/components/shared/RowSkeleton";
 import { useToast } from "@/hooks/useToast";
-import { updateDocument } from "@/api/document";
+import { createDocument, updateDocument } from "@/api/document";
 import RenameDocumentModal from "@/components/documents/RenameDocumentModal";
+import DocumentVersionsModal from "@/components/documents/DocumentVersionsModal";
+import { usePdfManagerStore } from "@/store/usePdfManagerStore";
 
 function EmptyItemDocuments() {
   return (
@@ -51,6 +53,10 @@ const ItemDocumentsPage = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [versionsOpenFor, setVersionsOpenFor] = useState<Document | null>(null);
+
+  const handleShowVersions = (doc: Document) => setVersionsOpenFor(doc);
 
   const documentsByClientItem = useDocumentStore(
     (s) => s.documentsByClientItem
@@ -247,11 +253,27 @@ const ItemDocumentsPage = () => {
                     openInViewer={openInViewer}
                     onDelete={handleDelete}
                     onEdit={handleEdit}
+                    onShowVersions={handleShowVersions}
                     deleting={deletingId === doc.id}
                   />
                 ))
               ) : (
                 <EmptyItemDocuments />
+              )}
+              {versionsOpenFor && (
+                <DocumentVersionsModal
+                  open={!!versionsOpenFor}
+                  document={versionsOpenFor}
+                  onOpenChange={(open) => {
+                    if (!open) setVersionsOpenFor(null);
+                  }}
+                  onUploadNewVersion={async (form) => {
+                    // reusar createDocument/uploadNewVersion
+                    await createDocument(form, versionsOpenFor.clientItemId!);
+                    await fetchDocumentsByClientItemId(clientItemId!); // refresh pool
+                    // opcional: reabrir modal con datos nuevos
+                  }}
+                />
               )}
               <RenameDocumentModal
                 open={editOpen}

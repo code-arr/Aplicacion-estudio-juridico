@@ -25,7 +25,8 @@ import { createClientItem } from "@/api/clientItem";
 import { useClientItemStore } from "@/store/useClientItemStore";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import type { Client } from "@/types/Client";
-import { Switch } from "@/components/ui/switch"; // ⬅️ tu switch
+import { Switch } from "@/components/ui/switch";
+import { ChevronDown } from "lucide-react";
 
 type ItemFormProps = {
   isDialogOpen: boolean;
@@ -39,7 +40,9 @@ type NewItem = {
   title: string;
   description: string;
   clientId: string;
-  private: boolean; // ⬅️ nuevo
+  private: boolean;
+  hourlyRateOverride?: string; // string con formato "1234.50"
+  currencyOverride?: "CLP" | "USD" | "UF";
 };
 
 const initialItemState: NewItem = {
@@ -49,8 +52,62 @@ const initialItemState: NewItem = {
   title: "",
   description: "",
   clientId: "",
-  private: true, // ⬅️ por defecto privado (solo el abogado que lo crea)
+  private: true,
+  hourlyRateOverride: undefined,
+  currencyOverride: undefined,
 };
+
+/* ---------------- OptionalPricingPanel (reutilizable) ---------------- */
+function OptionalPricingPanel({
+  children,
+  openInitially = false,
+}: {
+  children: React.ReactNode;
+  openInitially?: boolean;
+}) {
+  const [open, setOpen] = useState<boolean>(openInitially);
+
+  useEffect(() => {
+    setOpen(openInitially);
+  }, [openInitially]);
+
+  return (
+    <div className="border rounded-md overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((s) => !s)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-white hover:bg-gray-50 focus:outline-none"
+        aria-expanded={open}
+      >
+        <div className="text-sm text-left">
+          <div className="font-medium">
+            Tarifa por hora{" "}
+            <span className="text-xs text-gray-500"> (opcional)</span>
+          </div>
+          <div className="text-xs text-gray-500">
+            Define una tarifa específica sólo para este ítem
+          </div>
+        </div>
+        <ChevronDown
+          className={`transition-transform ${open ? "rotate-180" : ""}`}
+          size={18}
+        />
+      </button>
+
+      <div
+        className={`px-3 py-3 bg-[hsl(225,8%,98%)] transition-[max-height,opacity] duration-200 ${
+          open
+            ? "max-h-96 opacity-100"
+            : "max-h-0 opacity-0 pointer-events-none"
+        }`}
+        style={{ overflow: "hidden" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+/* -------------------------------------------------------------------- */
 
 const ClientSelectRow = React.memo(function ClientSelectRow({
   value,
@@ -239,14 +296,12 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
   useEffect(() => {
     if (!isDialogOpen) return;
 
-    // si hay cliente actual, precargarlo y limpiar el resto
     if (actualClient?.id) {
       setNewItem({
         ...initialItemState,
         clientId: String(actualClient.id),
       });
     } else {
-      // si no hay, reset normal vacío
       setNewItem(initialItemState);
     }
   }, [isDialogOpen, actualClient?.id]);
@@ -271,6 +326,14 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
     return null;
   }
 
+  // normalize helper: convierte "" a undefined y fija 2 decimales cuando corresponde
+  const normalizeHourly = (v?: string) => {
+    if (!v) return undefined;
+    const n = parseFloat(v);
+    if (Number.isNaN(n)) return undefined;
+    return n.toFixed(2);
+  };
+
   const handleAddItem = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const err = validate();
@@ -282,11 +345,12 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
     setErrorMsg(null);
 
     try {
-      // ⬇️ Mandamos private junto al payload
       await createClientItem({
         ...newItem,
-        private: !!newItem.private,
-      } as any);
+        isPrivate: !!newItem.private,
+        hourlyRateOverride: normalizeHourly(newItem.hourlyRateOverride),
+        currencyOverride: newItem.currencyOverride ?? undefined,
+      });
 
       if (hasActualClient) {
         await fetchClientItemsByClientId(actualClient.id!);
@@ -412,7 +476,7 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
             />
           </div>
 
-          {/* ⬇️ NUEVO: Privacidad */}
+          {/* Privacidad */}
           <div className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-3">
             <div className="flex flex-col">
               <Label className="mb-0.5">Privado (solo yo)</Label>
@@ -428,6 +492,52 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
               aria-label="Marcar ítem como privado"
             />
           </div>
+
+          {/* Optional pricing panel */}
+          <OptionalPricingPanel
+            openInitially={
+              !!(newItem.hourlyRateOverride || newItem.currencyOverride)
+            }
+          >
+            <div className="grid gap-2">
+              <Label htmlFor="hourlyRate">Tarifa por hora</Label>
+              <Input
+                id="hourlyRate"
+                type="number"
+                step="0.01"
+                value={newItem.hourlyRateOverride ?? ""}
+                onChange={(e) =>
+                  setNewItem((prev) => ({
+                    ...prev,
+                    hourlyRateOverride: e.target.value,
+                  }))
+                }
+                placeholder="p. ej. 120000.00"
+              />
+            </div>
+
+            <div className="grid gap-2 mt-2">
+              <Label>Moneda</Label>
+              <Select
+                value={newItem.currencyOverride ?? ""}
+                onValueChange={(v) =>
+                  setNewItem((prev) => ({
+                    ...prev,
+                    currencyOverride: (v as any) || undefined,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Elige moneda" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CLP">CLP</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="UF">UF</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </OptionalPricingPanel>
 
           {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
 

@@ -60,10 +60,19 @@ export interface CostSummary {
     hourlyRate: number;
     currency: Currency;
   };
-  totalCost: number;
-  formatted: {
-    hourlyRate: string;
-    totalCost: string;
+  // totalCost puede seguir existiendo como shortcut (legacy)
+  totalCost?: number;
+
+  // breakdowns y formatos: opcionales porque no siempre vienen
+  costsByCurrency?: Record<string, number>; // { CLP: 1234.5, USD: 45.6 }
+  mixedCurrency?: boolean;
+
+  // formatted para UI (strings listos para mostrar)
+  formatted?: {
+    hourlyRate?: string; // p.e. "$1.000"
+    totalCost?: string; // p.e. "USD 1,600"
+    // nuevo: map con cada moneda formateada
+    costsByCurrencyFormatted?: Record<string, string>; // { CLP: '$1.000', USD: 'USD 1,600' }
   };
 }
 
@@ -124,7 +133,7 @@ export interface PracticeAreasRes {
   items: PracticeAreasItem[];
 }
 
-export interface CostSummaryRes {
+/* export interface CostSummaryRes {
   scope: {
     year: number;
     month: number | null;
@@ -136,7 +145,9 @@ export interface CostSummaryRes {
   pricing: { hourlyRate: number; currency: Currency };
   totalCost: number;
   formatted: { hourlyRate: string; totalCost: string };
-}
+} */
+
+export interface CostSummaryRes extends CostSummary {}
 
 // GET /entry-day/getMonthlyTimeByLawyerId?lawyerId=...
 export type MonthlyTimeByLawyerRaw = Record<number, number>; // 1..12 -> sec

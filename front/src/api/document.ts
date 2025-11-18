@@ -1,5 +1,5 @@
 // src/api/document.ts
-import type { Document } from "@/types/Document";
+import type { Document, DocumentVersion } from "@/types/Document";
 import axios from "./axios";
 
 export const getAllDocuments = async (): Promise<Document[]> => {
@@ -10,6 +10,14 @@ export const getDocumentsByClientItem = async (
   itemId: string
 ): Promise<Document[]> => {
   const data = (await axios.get(`document/getByClientItemId/${itemId}`)).data;
+  return data;
+};
+
+export const getVersionsByDocumentId = async (
+  documentId: string
+): Promise<DocumentVersion[]> => {
+  // Llamar a /document/:documentId/versions (back actual)
+  const { data } = await axios.get(`document/${documentId}/versions`);
   console.log(data);
   return data;
 };
@@ -19,6 +27,24 @@ export const createDocument = async (
   clientItemId: string
 ): Promise<Document> => {
   return (await axios.post(`document/create/${clientItemId}`, newDocument))
+    .data;
+};
+
+// Reusar createDocument para subir nueva versión.
+// newForm must include: name (igual al document.name), file, clientId
+export const uploadNewVersion = async (
+  form: FormData,
+  clientItemId: string
+): Promise<Document> => {
+  // backend: POST document/create/:clientItemId -> crea doc o crea versión
+  return (await axios.post(`document/create/${clientItemId}`, form)).data;
+};
+
+export const deleteVersion = async (
+  documentId: string,
+  versionId: string
+): Promise<{ document: Document }> => {
+  return (await axios.delete(`document/version/${documentId}/${versionId}`))
     .data;
 };
 
@@ -34,7 +60,7 @@ export const deleteDocument = async (
   fileUrl: string
 ): Promise<Document> => {
   return (
-    await axios.delete(`document/delete/${documentId}`, {
+    await axios.delete(`document/${documentId}`, {
       data: { fileUrl },
     })
   ).data;

@@ -10,8 +10,6 @@ export const getClientItemsByLawyerId = async (
   lawyerId: string
 ): Promise<ClientItem[]> => {
   const { data } = await axios.get(`/clientItem/getByLawyerId/${lawyerId}`);
-  console.log(data);
-
   return data;
 };
 
@@ -19,8 +17,6 @@ export const getClientItemsByClientId = async (
   clientId: string
 ): Promise<ClientItem[]> => {
   const { data } = await axios.get(`clientItem/getByClientId/${clientId}`);
-  console.log(data);
-
   return data;
 };
 
@@ -28,8 +24,6 @@ export const getRecentClientItems = async (
   limit?: number
 ): Promise<ClientItem[]> => {
   const { data } = await axios.get("/clientItem/recent");
-  console.log(data);
-
   return data;
 };
 

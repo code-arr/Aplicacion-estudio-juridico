@@ -204,17 +204,28 @@ export default function ClientStatsCard({
 
   useEffect(() => {
     async function loadCost() {
-      if (!selectedClient?.id) return;
+      if (!selectedClient?.id) {
+        setCost(null);
+        return;
+      }
       const today = new Date();
       const year = today.getFullYear();
       const month = today.getMonth() + 1;
-      const data = await getCostSummary({
-        clientId: selectedClient.id,
-        year,
-        month,
-      });
-      // Commiteamos en transición para no pelear con la animación
-      startTransition(() => setCost(data));
+
+      try {
+        const data = await getCostSummary({
+          clientId: selectedClient.id,
+          year,
+          month,
+        });
+        // Commiteamos en transición para no pelear con la animación
+        startTransition(() => setCost(data));
+      } catch (err) {
+        // logueamos y dejamos cost en null para que la UI muestre placeholders
+        // si querés podés setear un estado de error para mostrar mensaje en UI
+        // console.error('getCostSummary error', err);
+        startTransition(() => setCost(null));
+      }
     }
     loadCost();
   }, [selectedClient?.id]);
@@ -321,6 +332,38 @@ export default function ClientStatsCard({
       hours: map.get(key) ?? 0,
     }));
   }, [categories]);
+
+  function displayTotalCost(cost?: CostSummary | null): string {
+    if (!cost) return "—";
+
+    // 1) preferimos formatted.totalCost si existe
+    const formatted = cost.formatted;
+    if (formatted?.totalCost) return formatted.totalCost;
+
+    // 2) si hay costsByCurrencyFormatted devolvemos la primera moneda formateada
+    const cbf = formatted?.costsByCurrencyFormatted;
+    if (cbf) {
+      const first = Object.values(cbf)[0];
+      if (first) return first;
+    }
+
+    // 3) como fallback si hay costsByCurrency (números) devolvemos "X.YY CUR"
+    if (cost.costsByCurrency) {
+      const firstKey = Object.keys(cost.costsByCurrency)[0];
+      if (firstKey) {
+        const val = cost.costsByCurrency[firstKey];
+        // formateo sencillo: 2 decimales + código moneda
+        return `${val.toFixed(2)} ${firstKey}`;
+      }
+    }
+
+    // 4) si existe totalCost numérico, mostrar con .toFixed
+    if (typeof cost.totalCost === "number") {
+      return cost.totalCost.toFixed(2);
+    }
+
+    return "—";
+  }
 
   return (
     <div
@@ -496,19 +539,23 @@ export default function ClientStatsCard({
         <div className="rounded-xl bg-slate-50 p-4">
           <div className="text-slate-600 text-sm">Tarifa por hora</div>
           <div className="text-2xl font-semibold text-slate-900">
-            {cost ? cost.formatted.hourlyRate : "—"}
+            {/* Tarifa por hora */}
+            {cost?.formatted?.hourlyRate ?? "—"}
           </div>
         </div>
         <div className="rounded-xl bg-slate-50 p-4">
           <div className="text-slate-600 text-sm">Horas (mes)</div>
           <div className="text-2xl font-semibold text-slate-900">
-            {cost ? `${cost.time.totalHours.toFixed(1)}hs` : "—"}
+            {/* Horas (mes) */}
+            {cost?.time?.totalHours != null
+              ? `${cost.time.totalHours.toFixed(1)}hs`
+              : "—"}
           </div>
         </div>
         <div className="rounded-xl bg-slate-50 p-4">
           <div className="text-slate-600 text-sm">Costo (mes)</div>
           <div className="text-2xl font-semibold text-slate-900">
-            {cost ? cost.formatted.totalCost : "—"}
+            {displayTotalCost(cost)}
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 // src/types/ClientItem.ts
 export type ClientItemStatus = "open" | "on_hold" | "closed";
+export type Currency = "CLP" | "USD" | "UF";
 
 export const CLIENTITEM_STATUS_MAP: Record<
   ClientItemStatus,
@@ -30,6 +31,8 @@ export interface ClientItem {
   title: string;
   description?: string;
   status?: ClientItemStatus;
+  hourlyRateOverride?: string;
+  currencyOverride?: Currency;
 
   isPrivate?: boolean; // <-- Renombrado de 'private' para consistencia con el backend
   lawyerId?: string; // ID del abogado propietario (dueño)

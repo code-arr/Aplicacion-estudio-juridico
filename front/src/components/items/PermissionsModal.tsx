@@ -13,7 +13,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/useToast";
 
@@ -24,8 +23,6 @@ interface Props {
 }
 
 export const PermissionsModal = ({ item, isOpen, onClose }: Props) => {
-  /* console.log(item); */
-
   const [isPrivate, setIsPrivate] = useState(Boolean(item.isPrivate));
   const [selectedLawyerIds, setSelectedLawyerIds] = useState<string[]>([]);
   const lawyers = useLawyerStore((s) => s.lawyers);

@@ -23,7 +23,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { updateClientItem } from "@/api/clientItem";
 import { useClientItemStore } from "@/store/useClientItemStore";
 import { useToast } from "@/hooks/useToast";
-import { Switch } from "@/components/ui/switch"; // ⬅️ tu Switch
+import { Switch } from "@/components/ui/switch";
+import { ChevronDown } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -37,6 +38,58 @@ const STATUS_OPTIONS = [
   { value: "closed", label: "Cerrado" },
 ] as const;
 
+/* ---------------- OptionalPricingPanel (reutilizable) ---------------- */
+function OptionalPricingPanel({
+  children,
+  openInitially = false,
+}: {
+  children: React.ReactNode;
+  openInitially?: boolean;
+}) {
+  const [open, setOpen] = useState<boolean>(openInitially);
+
+  useEffect(() => {
+    setOpen(openInitially);
+  }, [openInitially]);
+
+  return (
+    <div className="border rounded-md overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((s) => !s)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-white hover:bg-gray-50 focus:outline-none"
+        aria-expanded={open}
+      >
+        <div className="text-sm text-left">
+          <div className="font-medium">
+            Tarifa por hora{" "}
+            <span className="text-xs text-gray-500"> (opcional)</span>
+          </div>
+          <div className="text-xs text-gray-500">
+            Define una tarifa específica sólo para este ítem
+          </div>
+        </div>
+        <ChevronDown
+          className={`transition-transform ${open ? "rotate-180" : ""}`}
+          size={18}
+        />
+      </button>
+
+      <div
+        className={`px-3 py-3 bg-[hsl(225,8%,98%)] transition-[max-height,opacity] duration-200 ${
+          open
+            ? "max-h-96 opacity-100"
+            : "max-h-0 opacity-0 pointer-events-none"
+        }`}
+        style={{ overflow: "hidden" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+/* -------------------------------------------------------------------- */
+
 export default function EditClientItemDialog({
   open,
   onOpenChange,
@@ -49,7 +102,14 @@ export default function EditClientItemDialog({
   const [status, setStatus] = useState<ClientItem["status"]>(
     item.status ?? "open"
   );
-  const [isPrivate, setIsPrivate] = useState<boolean>(item.private ?? true);
+  const [isPrivate, setIsPrivate] = useState<boolean>(item.isPrivate ?? true);
+  const [hourlyRateOverride, setHourlyRateOverride] = useState<
+    string | undefined
+  >(item.hourlyRateOverride ?? undefined);
+  const [currencyOverride, setCurrencyOverride] = useState<
+    ClientItem["currencyOverride"]
+  >(item.currencyOverride ?? undefined);
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -57,8 +117,18 @@ export default function EditClientItemDialog({
     setTitle(item.title ?? "");
     setDescription(item.description ?? "");
     setStatus(item.status ?? "open");
-    setIsPrivate(item.private ?? true);
+    setIsPrivate(item.isPrivate ?? true);
+    setHourlyRateOverride(item.hourlyRateOverride ?? undefined);
+    setCurrencyOverride(item.currencyOverride ?? undefined);
   }, [open, item]);
+
+  // normalize helper: convierte "" a undefined y fija 2 decimales cuando corresponde
+  const normalizeHourly = (v?: string) => {
+    if (!v) return undefined;
+    const n = parseFloat(v);
+    if (Number.isNaN(n)) return undefined;
+    return n.toFixed(2);
+  };
 
   const onSubmit = async () => {
     const trimmed = title.trim();
@@ -71,15 +141,15 @@ export default function EditClientItemDialog({
     }
     setSaving(true);
     try {
-      // 1) Request directo a la API (incluye `private`)
       const updated = await updateClientItem(item.id!, {
         title: trimmed,
         description,
         status,
-        private: !!isPrivate,
+        isPrivate: !!isPrivate,
+        hourlyRateOverride: normalizeHourly(hourlyRateOverride),
+        currencyOverride: currencyOverride ?? undefined,
       });
 
-      // 2) Merge local (detalles + listas del store)
       const S = useClientItemStore.getState();
       const curAll = S.clientItems ?? null;
       const curByClient = S.clientItemsByClientId ?? null;
@@ -162,7 +232,7 @@ export default function EditClientItemDialog({
             />
           </div>
 
-          {/* ⬇️ NUEVO: Privado / Compartido */}
+          {/* Privado / Compartido */}
           <div className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-3">
             <div className="flex flex-col">
               <Label className="mb-0.5">Privado (solo yo)</Label>
@@ -176,6 +246,42 @@ export default function EditClientItemDialog({
               aria-label="Marcar ítem como privado"
             />
           </div>
+
+          {/* Optional pricing panel */}
+          <OptionalPricingPanel
+            openInitially={!!(hourlyRateOverride || currencyOverride)}
+          >
+            <div className="grid gap-2">
+              <Label htmlFor="hr-edit">Tarifa por hora</Label>
+              <Input
+                id="hr-edit"
+                type="number"
+                step="0.01"
+                value={hourlyRateOverride ?? ""}
+                placeholder="Ej: 55000"
+                onChange={(e) => setHourlyRateOverride(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-2 mt-2">
+              <Label>Moneda</Label>
+              <Select
+                value={currencyOverride ?? ""}
+                onValueChange={(v) =>
+                  setCurrencyOverride((v as any) || undefined)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Moneda (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CLP">CLP</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="UF">UF</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </OptionalPricingPanel>
         </div>
 
         <DialogFooter>

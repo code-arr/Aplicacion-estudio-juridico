@@ -92,8 +92,6 @@ const ItemsPage = () => {
     return filtered.sort(ORDER_CMP[key]);
   }, [clientItems, filters]);
 
-  /* console.log(filteredClientItems); */
-
   const total = filteredClientItems.length;
   const visibleItems = useMemo(
     () =>
