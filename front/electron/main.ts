@@ -7,7 +7,6 @@ import {
   nativeImage,
   shell,
 } from "electron";
-import { autoUpdater } from "electron-updater";
 import { config as loadEnv } from "dotenv";
 import * as path from "path";
 import fs from "fs";
@@ -25,6 +24,8 @@ import { createHash } from "crypto";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { machineIdSync } = require("node-machine-id"); // ✅ CJS en ESM
+const updaterPkg = require("electron-updater");
+const autoUpdater = updaterPkg.autoUpdater ?? updaterPkg.default?.autoUpdater;
 
 const _rawMachineId = machineIdSync(); // estable por equipo
 const _deviceId = createHash("sha256")
@@ -357,6 +358,16 @@ app.whenReady().then(() => {
   const win = createWindow(); // guarda la ref principal
 
   // auto-updates (solo en build empaquetada)
+  type UpdateInfo = {
+    version?: string;
+    releaseName?: string;
+    releaseNotes?:
+      | string
+      | { title?: string; body?: string }
+      | Array<{ title?: string; body?: string }>;
+    files?: Array<{ url?: string; name?: string }>;
+  };
+
   if (app.isPackaged) {
     autoUpdater.checkForUpdatesAndNotify();
 
@@ -364,8 +375,9 @@ app.whenReady().then(() => {
       console.log("[autoUpdater] checking for update...");
     });
 
-    autoUpdater.on("update-available", (info) => {
-      console.log("[autoUpdater] update available:", info.version);
+    autoUpdater.on("update-available", (info: UpdateInfo) => {
+      const ver = info?.version ?? "unknown";
+      console.log("[autoUpdater] update available:", ver);
       mainWindow?.webContents.send("app:update-available", info);
     });
 
@@ -373,14 +385,17 @@ app.whenReady().then(() => {
       console.log("[autoUpdater] no update available");
     });
 
-    autoUpdater.on("update-downloaded", (info) => {
-      console.log("[autoUpdater] update downloaded:", info.version);
+    autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
+      const ver = info?.version ?? "unknown";
+      console.log("[autoUpdater] update downloaded:", ver);
       mainWindow?.webContents.send("app:update-downloaded", info);
-      // no forzar instalación aquí; esperamos confirmación del usuario
+      // esperar confirmación del usuario para instalar
     });
 
-    autoUpdater.on("error", (err) => {
-      console.error("[autoUpdater] error:", err);
+    autoUpdater.on("error", (err: unknown) => {
+      // normalizamos el error para loggear algo útil sin asumir shape
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[autoUpdater] error:", message, err);
     });
 
     // IPC: si el renderer pide instalar la actualización

@@ -10,6 +10,7 @@ import { getAllClientItems } from "@/api/clientItem";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import LawyerEditModal from "@/components/admin/LawyerEditModal";
+import LawyerCreateModal from "@/components/admin/LawyerCreateModal";
 
 type Row = {
   id: string;
@@ -36,6 +37,9 @@ export default function AdminLawyersPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Modal creación
+  const [createOpen, setCreateOpen] = useState(false);
 
   // Modal edición
   const [editOpen, setEditOpen] = useState(false);
@@ -230,6 +234,15 @@ export default function AdminLawyersPage() {
         />
       </div>
 
+      <div className="flex gap-3 items-center">
+        <Input
+          placeholder="Buscar…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <Button onClick={() => setCreateOpen(true)}>Crear abogado</Button>
+      </div>
+
       <div className="overflow-auto border border-[#e5e7eb] rounded-md">
         <table className="w-full text-sm">
           <thead className="bg-[#f9fafb]">
@@ -341,6 +354,34 @@ export default function AdminLawyersPage() {
         </div>
       )}
 
+      <LawyerCreateModal
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(created) => {
+          // ejemplo: si el backend responde { lawyer: {...}, user: {...} }
+          const newLawyer = created?.lawyer ?? created;
+          if (!newLawyer?.id) return;
+          setLawyersMap((m) => ({ ...m, [newLawyer.id]: newLawyer }));
+          setRows((prev) => [
+            {
+              id: newLawyer.id,
+              fullName: [newLawyer.firstName, newLawyer.lastName]
+                .filter(Boolean)
+                .join(" "),
+              rut: newLawyer.rut,
+              email: created?.user?.email ?? "—",
+              phone: newLawyer.phone ?? "—",
+              type: newLawyer.type ?? "—",
+              workedHours: newLawyer.workedHours ?? 0,
+              updatedAt: newLawyer.updatedAt ?? newLawyer.createdAt,
+              clientsCount: 0,
+              itemsCount: 0,
+              userId: created?.user?.id,
+            },
+            ...prev,
+          ]);
+        }}
+      />
       {editTargetId && lawyersMap[editTargetId] && (
         <LawyerEditModal
           open={editOpen}

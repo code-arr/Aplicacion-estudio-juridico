@@ -3,6 +3,27 @@ import type { User } from "@/types/User";
 import axios from "./axios";
 import type { LoginEntry } from "@/types/LoginEntry";
 
+export type RegisterPayload = {
+  user: { email: string; password: string };
+  lawyer: {
+    firstName: string;
+    lastName: string;
+    address?: string;
+    phone?: string;
+    rut?: string;
+    type?: string;
+    seniorityLevel?: string;
+  };
+};
+
+export async function createLawyerWithUser(payload: RegisterPayload) {
+  const res = await axios.post("/auth/register", payload);
+  if (!res.status) {
+    throw new Error(`Error ${res.status}`);
+  }
+  return res.data; // asume backend devuelve lawyer + user u objeto útil
+}
+
 type LoginResponse = {
   user: User;
   token: string;
