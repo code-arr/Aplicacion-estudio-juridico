@@ -83,7 +83,8 @@ export class EntryDayRepository {
   }
 
   async deleteEntryDay(id: string): Promise<void> {
-    await this.repo.delete(id);
+    const entry = await this.repo.findOne({ where: { trackableId: id } });
+    this.repo.remove(entry!);
   }
 
   private async getDetailedTaskData(entry: EntryDay) {
