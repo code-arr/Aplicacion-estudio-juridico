@@ -69,21 +69,49 @@ export class AuthController {
 
   @Get('google/connect')
   async connectGoogleAccount(@Req() req: ExpressRequest, @Res() res: Response) {
-    const dbEmail = req.query.email;
-    const statePayload = { email: dbEmail, returnTo: '/#/dashboard/settings' }; // añade returnTo opcional
-    // usar base64url para compatibilidad con URL-safe
-    const state = Buffer.from(JSON.stringify(statePayload)).toString(
-      'base64url',
-    );
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent(callback)}&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`;
-    console.log('estamos en google conect');
-    const callback = process.env.GOOGLE_CALLBACK_URL;
-    if (!callback) {
-      throw new Error('Google callback URL no está definida');
-    }
-    console.log('callback' + callback);
+    // tipar correctamente lo que viene en query
+    const dbEmail = (req.query.email as string) || undefined;
 
-    res.json({ redirectUrl: googleAuthUrl });
+    // leer y validar env vars ANTES de usarlas
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const callback = process.env.GOOGLE_CALLBACK_URL;
+    if (!clientId) {
+      return res
+        .status(500)
+        .json({ error: 'GOOGLE_CLIENT_ID no está definida' });
+    }
+    if (!callback) {
+      return res
+        .status(500)
+        .json({ error: 'GOOGLE_CALLBACK_URL no está definida' });
+    }
+
+    // preparar state (URL-safe). Si tu Node soporta base64url, ok; si no, usamos fallback.
+    let state: string;
+    try {
+      state = Buffer.from(
+        JSON.stringify({ email: dbEmail, returnTo: '/#/dashboard/settings' }),
+      ).toString('base64url');
+    } catch (err) {
+      // fallback: hacer base64 estándar y convertir a base64url seguro
+      const b64 = Buffer.from(
+        JSON.stringify({ email: dbEmail, returnTo: '/#/dashboard/settings' }),
+      ).toString('base64');
+      state = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    const scope = encodeURIComponent(
+      'profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send',
+    );
+
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+      clientId,
+    )}&response_type=code&scope=${scope}&redirect_uri=${encodeURIComponent(
+      callback,
+    )}&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`;
+
+    console.log('estamos en google conect - redirect:', googleAuthUrl);
+    return res.json({ redirectUrl: googleAuthUrl });
   }
 
   @Public()
