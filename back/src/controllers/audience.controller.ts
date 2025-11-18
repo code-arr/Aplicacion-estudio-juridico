@@ -79,6 +79,8 @@ export class AudienceController {
     if (!newName || !newName.trim()) {
       throw new BadRequestException('New name is required');
     }
+    console.log("h");
+    
 
     return await this.audienceService.updateAudienceName(
       audienceId,
