@@ -105,45 +105,48 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Attach assets to run-release (robust)
+      - name: Attach important assets only (exe/dmg/blockmap)
         if: always()
         run: |
           set -euo pipefail
           RELEASE_TAG="${{ env.RUN_TAG }}"
           API="https://api.github.com"
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
-
-          echo "Uploading assets to release $RELEASE_TAG"
-          # fetch release id
+      
           RELEASE_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" | jq -r .id)
           if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
             echo "Release id not found for $RELEASE_TAG"
             exit 1
           fi
-
-          # Use null-separated list to safely handle filenames with spaces/newlines.
-          find ./collected -type f -print0 | while IFS= read -r -d '' f; do
-            FNAME=$(basename "$f")
-            echo "Uploading file: [$f] as asset name: [$FNAME]"
-            UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")"
-            # Upload file, quoting path and streaming binary
-            curl --fail -X POST \
-              -H "Authorization: $AUTH" \
-              -H "Content-Type: application/octet-stream" \
-              --data-binary @"$f" \
-              "$UPLOAD_URL"
-            echo " -> uploaded $FNAME"
-          done
+      
+          # find only files we want (case-insensitive)
+          find ./collected -type f \( -iname "*.exe" -o -iname "*.dmg" -o -iname "*.exe.blockmap" -o -iname "*.dmg.blockmap" \) -print0 \
+            | while IFS= read -r -d '' f; do
+              FNAME=$(basename "$f")
+              echo "Uploading asset: $FNAME from $f"
+              # delete existing asset with same name (if any)
+              EXISTING_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | jq -r --arg name "$FNAME" '.[] | select(.name==$name) | .id' | head -n1)
+              if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
+                echo "Deleting existing asset id $EXISTING_ID (name: $FNAME)"
+                curl -s -X DELETE -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/assets/$EXISTING_ID"
+              fi
+      
+              # safe upload (escape name for URL)
+              ENCODED_NAME=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")
+              UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$ENCODED_NAME"
+              curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
+              echo " -> uploaded $FNAME"
+            done
         shell: bash
 
-      - name: Create-or-update 'latest' release and attach assets
+      - name: Create-or-update 'latest' release and attach assets (robust)
         run: |
-          set -e
+          set -euo pipefail
           API="https://api.github.com"
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
           LATEST_TAG="latest"
 
-          # check if 'latest' release exists
+          # check or create latest release
           echo "Checking for existing 'latest' release..."
           LID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$LATEST_TAG" | jq -r .id)
           if [ -z "$LID" ] || [ "$LID" = "null" ]; then
@@ -157,21 +160,28 @@ jobs:
           fi
 
           # remove existing assets on 'latest' (optional, to replace)
-          EXISTING=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$LID/assets" | jq -r '.[].id')
-          for aid in $EXISTING; do
-            if [ -n "$aid" ]; then
+          echo "Listing existing assets on latest (id=$LID) and deleting them..."
+          EXISTING_IDS=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$LID/assets" | jq -r '.[].id' || true)
+          for aid in $EXISTING_IDS; do
+            if [ -n "$aid" ] && [ "$aid" != "null" ]; then
               echo "Deleting existing asset id $aid"
               curl -s -X DELETE -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/assets/$aid"
             fi
           done
 
-          # upload new assets
-          for f in $(find ./collected -type f -print); do
-            FNAME=$(basename "$f")
-            echo "Uploading $FNAME to 'latest'..."
-            UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$LID/assets?name=$FNAME"
-            curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
-          done
+          # upload only the installer files (exe, dmg and their blockmaps)
+          echo "Uploading installer files to 'latest'..."
+          find ./collected -type f \( -iname "*.exe" -o -iname "*.dmg" -o -iname "*.exe.blockmap" -o -iname "*.dmg.blockmap" \) -print0 \
+            | while IFS= read -r -d '' f; do
+                FNAME=$(basename "$f")
+                echo " -> Uploading $FNAME from $f"
+                ENCODED_NAME=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")
+                UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$LID/assets?name=$ENCODED_NAME"
+                curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
+                echo "    uploaded $FNAME"
+            done
+
+          echo "Latest release updated: https://github.com/${{ github.repository }}/releases/tag/latest"
         shell: bash
 
       - name: Final info
