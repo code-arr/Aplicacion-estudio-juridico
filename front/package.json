@@ -121,6 +121,15 @@
           "ibarrayasoc"
         ]
       }
+    ],
+    "extraResources": [
+      {
+        "from": "resources/",
+        "to": "resources",
+        "filter": [
+          "**/*"
+        ]
+      }
     ]
   }
 }
