@@ -1,5 +1,14 @@
 // src/components/admin/LawyerCreateModal.tsx
-import { useState } from "react";
+import * as React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { RegisterPayload } from "@/api/user";
@@ -8,7 +17,7 @@ import { createLawyerWithUser } from "@/api/user";
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onCreated?: (created: any) => void; // mantengo any para flexibilidad
+  onCreated?: (created: any) => void;
 };
 
 export default function LawyerCreateModal({
@@ -16,111 +25,138 @@ export default function LawyerCreateModal({
   onOpenChange,
   onCreated,
 }: Props) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [rut, setRut] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [firstName, setFirstName] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [rut, setRut] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
-  if (!open) return null; // modal muy simple (si usas librería modal, reemplaza)
+  // Reset fields cada vez que se abre el modal
+  React.useEffect(() => {
+    if (!open) return;
+    setEmail("");
+    setPassword("");
+    setFirstName("");
+    setLastName("");
+    setPhone("");
+    setRut("");
+    setError(null);
+  }, [open]);
 
   const submit = async () => {
-    setErr(null);
-    if (!email || !password || !firstName) {
-      setErr("Email, contraseña y nombre son requeridos");
+    setError(null);
+
+    // Validación mínima (igual que en edit modal: nombre requerido)
+    if (!firstName || !email || !password) {
+      setError("Nombre, email y contraseña son requeridos");
       return;
     }
+
     setLoading(true);
-    const payload: RegisterPayload = {
-      user: { email, password },
-      lawyer: {
-        firstName,
-        lastName,
-        phone,
-        rut,
-      },
-    };
     try {
+      const payload: RegisterPayload = {
+        user: { email: email.trim(), password: password },
+        lawyer: {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phone: phone.trim(),
+          rut: rut.trim(),
+        },
+      };
+
       const created = await createLawyerWithUser(payload);
       onCreated?.(created);
-      // limpiar y cerrar
-      setEmail("");
-      setPassword("");
-      setFirstName("");
-      setLastName("");
-      setPhone("");
-      setRut("");
       onOpenChange(false);
-      alert("Abogado creado correctamente");
     } catch (e: any) {
-      setErr(e?.message || "Error al crear abogado");
+      // Manejo simple — adapta si tu API devuelve otra estructura
+      setError(
+        e?.message ||
+          e?.response?.data?.message ||
+          "No se pudo crear el abogado"
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-white rounded-md shadow-lg p-6 w-full max-w-xl">
-        <h3 className="text-lg font-semibold mb-4">Crear abogado & usuario</h3>
-
-        {err && <div className="text-sm text-red-600 mb-2">{err}</div>}
-
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            placeholder="Nombre"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-          />
-          <Input
-            placeholder="Apellido"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-          />
-          <Input
-            placeholder="Email (usuario)"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Input
-            placeholder="Contraseña"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <Input
-            placeholder="Teléfono"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-          <Input
-            placeholder="RUT"
-            value={rut}
-            onChange={(e) => setRut(e.target.value)}
-          />
+    <Dialog open={open} onOpenChange={(v) => !loading && onOpenChange(v)}>
+      <DialogContent className="p-0 max-h-[90dvh] sm:max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="px-6 py-4 bg-white">
+          <DialogHeader>
+            <DialogTitle>Crear abogado</DialogTitle>
+            <DialogDescription>
+              Crea el usuario y el registro de abogado en una sola acción.
+            </DialogDescription>
+          </DialogHeader>
         </div>
 
-        <div className="flex gap-2 justify-end mt-4">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-          <Button onClick={submit} disabled={loading}>
-            {loading ? "Creando…" : "Crear abogado"}
-          </Button>
+        <div className="px-6 overflow-y-auto flex-1 pr-2 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+            <div className="grid gap-2">
+              <Label>Nombre</Label>
+              <Input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Apellido</Label>
+              <Input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid gap-2">
+              <Label>Email (usuario)</Label>
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Contraseña</Label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Teléfono</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid gap-2">
+              <Label>RUT</Label>
+              <Input value={rut} onChange={(e) => setRut(e.target.value)} />
+            </div>
+            <div className="col-span-2" /> {/* hueco por layout */}
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
-      </div>
-      {/* fondo semi-transparente */}
-      <div
-        className="fixed inset-0 bg-black opacity-30"
-        onClick={() => onOpenChange(false)}
-      />
-    </div>
+
+        <div className="px-6 py-3 bg-white">
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={loading}
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={submit} disabled={loading}>
+              {loading ? "Creando…" : "Crear abogado"}
+            </Button>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
