@@ -18,7 +18,7 @@ const config: TypeOrmModuleOptions = {
   migrationsTableName: 'migrations',
   logging: ['error'],
   migrationsRun: true,
-  synchronize: false,
+  synchronize: true,
   //dropSchema: true,
   ssl: {
     rejectUnauthorized: false, // ✅ Esto habilita SSL aunque no tengas certificado local
