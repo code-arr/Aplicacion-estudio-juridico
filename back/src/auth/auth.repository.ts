@@ -18,6 +18,7 @@ import { PasswordResetRepository } from '../repositories/passwordResetToken.repo
 import { SystemMailerService } from 'src/mailer/system-mailer.service';
 import { UserLoginsService } from 'src/userLogins/userLogins.service';
 import { Request } from 'express';
+import { AbogadoService } from 'src/services/abogado.service';
 
 @Injectable()
 export class AuthRepository {
@@ -26,12 +27,20 @@ export class AuthRepository {
     private readonly jwtService: JwtService,
     private readonly systemMailer: SystemMailerService, // ✅ neutral
     private readonly resetRepo: PasswordResetRepository,
-    private readonly userLogins: UserLoginsService, // 👈 NUEVO
+    private readonly userLogins: UserLoginsService,
+    private readonly lawyerService: AbogadoService, // 👈 NUEVO
   ) {}
 
-  async register(user): Promise<Partial<User> | void> {
+  async register(user, lawyerDto): Promise<Partial<User> | void> {
     try {
-      this.userService.createUser(user);
+      console.log(user);
+
+      console.log(lawyerDto);
+
+      const lawyer = await this.lawyerService.createLawyer(lawyerDto); // 👈 NUEVO
+      console.log(lawyer);
+
+      this.userService.createUser({ ...user, lawyer });
     } catch (error) {
       throw new Error(
         'Error al registrar el usuario en auth: ' + error.message,

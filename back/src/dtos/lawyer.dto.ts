@@ -46,5 +46,6 @@ export class AbogadoDto {
   @IsOptional()
   workedHours?: number; // Es opcional ya que tiene un valor por defecto en la entidad
 
+  @IsOptional()
   userEmail : string; // Asumiendo que este es el email del usuario asociado al abogado
 }
