@@ -31,6 +31,8 @@ export default function LawyerCreateModal({
   const [lastName, setLastName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [rut, setRut] = React.useState("");
+  const [type, setType] = React.useState("");
+  const [seniorityLevel, setSeniorityLevel] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -43,13 +45,15 @@ export default function LawyerCreateModal({
     setLastName("");
     setPhone("");
     setRut("");
+    setType("");
+    setSeniorityLevel("");
     setError(null);
   }, [open]);
 
   const submit = async () => {
     setError(null);
 
-    // Validación mínima (igual que en edit modal: nombre requerido)
+    // Validación mínima
     if (!firstName || !email || !password) {
       setError("Nombre, email y contraseña son requeridos");
       return;
@@ -64,6 +68,8 @@ export default function LawyerCreateModal({
           lastName: lastName.trim(),
           phone: phone.trim(),
           rut: rut.trim(),
+          type: type.trim(),
+          seniorityLevel: seniorityLevel.trim(),
         },
       };
 
@@ -71,7 +77,6 @@ export default function LawyerCreateModal({
       onCreated?.(created);
       onOpenChange(false);
     } catch (e: any) {
-      // Manejo simple — adapta si tu API devuelve otra estructura
       setError(
         e?.message ||
           e?.response?.data?.message ||
@@ -95,6 +100,7 @@ export default function LawyerCreateModal({
         </div>
 
         <div className="px-6 overflow-y-auto flex-1 pr-2 space-y-4">
+          {/* Nombre / Apellido */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
             <div className="grid gap-2">
               <Label>Nombre</Label>
@@ -112,6 +118,7 @@ export default function LawyerCreateModal({
             </div>
           </div>
 
+          {/* Email / Password / Teléfono */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="grid gap-2">
               <Label>Email (usuario)</Label>
@@ -131,12 +138,35 @@ export default function LawyerCreateModal({
             </div>
           </div>
 
+          {/* RUT / Type / Seniority */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="grid gap-2">
               <Label>RUT</Label>
               <Input value={rut} onChange={(e) => setRut(e.target.value)} />
             </div>
-            <div className="col-span-2" /> {/* hueco por layout */}
+
+            <div className="grid gap-2">
+              <Label>Tipo</Label>
+              <Input
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                placeholder="civil, criminal, familiar, etc."
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Seniority</Label>
+              <select
+                value={seniorityLevel}
+                onChange={(e) => setSeniorityLevel(e.target.value)}
+                className="h-10 rounded-md border border-[#e5e7eb] px-2"
+              >
+                <option value="">Elegir nivel</option>
+                <option value="junior">Junior</option>
+                <option value="mid">Mid</option>
+                <option value="senior">Senior</option>
+              </select>
+            </div>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
