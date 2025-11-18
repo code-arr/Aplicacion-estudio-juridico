@@ -80,17 +80,10 @@ jobs:
     env:
       RUN_TAG: release-${{ github.run_id }}
     steps:
-      - name: Download Windows artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: electron-installers-windows-latest
-          path: ./collected || true
-
-      - name: Download Mac artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: electron-installers-macos-latest
-          path: ./collected || true
+          path: ./collected
 
       - name: List collected files
         run: |
