@@ -55,7 +55,7 @@ export class AbogadoService {
     return this.abogadoRepository.findByEmails(emails);
   }
 
-  createLawyer(){
-    
+  createLawyer(lawyerDto: AbogadoDto): Promise<Lawyer> {
+    return this.abogadoRepository.createLawyer(lawyerDto);
   }
 }

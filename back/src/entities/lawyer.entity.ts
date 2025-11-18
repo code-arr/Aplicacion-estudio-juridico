@@ -45,7 +45,7 @@ export class Lawyer {
   @Column({ type: 'varchar', length: 100 })
   lastName: string;
 
-  @Column({ type: 'varchar', length: 100, unique: true })
+  @Column({ type: 'varchar', length: 100, unique: true , nullable: true })
   address: string;
 
   @Column({ type: 'varchar', length: 15, unique: true })

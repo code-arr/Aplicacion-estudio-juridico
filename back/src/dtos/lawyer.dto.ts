@@ -16,7 +16,7 @@ export class AbogadoDto {
   lastName: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(100)
   address: string;
 
@@ -38,7 +38,7 @@ export class AbogadoDto {
   type: lawyerType.CRIMINAL | lawyerType.CIVIL | lawyerType.FAMILIAR;
 
   @IsEnum(seniorityLevel, { message: 'El nivel de seniority no es válido.' })
-  @IsNotEmpty() // Asumo que el seniority es obligatorio al crear
+  @IsOptional() // Asumo que el seniority es obligatorio al crear
   seniorityLevel: seniorityLevel.JUNIOR | seniorityLevel.MID | seniorityLevel.SENIOR;
 
   @IsInt()
@@ -46,5 +46,6 @@ export class AbogadoDto {
   @IsOptional()
   workedHours?: number; // Es opcional ya que tiene un valor por defecto en la entidad
 
+  @IsOptional()
   userEmail : string; // Asumiendo que este es el email del usuario asociado al abogado
 }

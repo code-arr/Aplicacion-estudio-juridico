@@ -1,0 +1,16 @@
+export class RegisterDto {
+  user: {
+    email: string;
+    password: string;
+  };
+
+  lawyer: {
+    firstName: string;
+    lastName: string;
+    address: string;
+    phone: string;
+    rut: string;
+    type: string;
+    seniorityLevel: string;
+  };
+}

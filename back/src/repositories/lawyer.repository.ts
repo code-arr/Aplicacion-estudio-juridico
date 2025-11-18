@@ -27,7 +27,7 @@ export class AbogadoRepository {
     private readonly dataSource: DataSource,
     private readonly parentTouch: ParentTouchService, // Asegúrate de importar y usar el UserRepository correctamente
   ) {}
-  async createAbogado(abogado: AbogadoDto): Promise<Lawyer> {
+  async createLawyer(abogado: AbogadoDto): Promise<Lawyer> {
     const newAbogado = this.repository.create(abogado);
     return this.repository.save(newAbogado);
   }
@@ -86,7 +86,7 @@ export class AbogadoRepository {
     try {
       const abogados = abogadosSeedData;
       for (const abogado of abogados) {
-        const newAbogado = await this.createAbogado(abogado);
+        const newAbogado = await this.createLawyer(abogado);
         const usuario = await this.userService.findOneByEmail(
           abogado.userEmail,
         );

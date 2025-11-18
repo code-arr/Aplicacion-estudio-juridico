@@ -19,6 +19,8 @@ import { UserService } from 'src/services/user.service';
 import { buffer } from 'stream/consumers';
 import { Public } from './public.decorator';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
+import { AbogadoDto } from 'src/dtos/lawyer.dto';
+import { RegisterDto } from 'src/dtos/registerDto';
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -28,10 +30,11 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  @Post('register')
-  async register(@Body() user: registerUserDto): Promise<Partial<User> | void> {
-    return this.authRepository.register(user);
+  async register(@Body() body: RegisterDto): Promise<Partial<User> | void> {
+    console.log('BODY LLEGA ASÍ:', body);
+    return this.authRepository.register(body.user, body.lawyer);
   }
+
   @Public()
   @Post('login')
   async login(

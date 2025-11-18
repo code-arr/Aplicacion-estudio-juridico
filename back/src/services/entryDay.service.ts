@@ -19,6 +19,10 @@ export class EntryDayService {
     return this.repo.createEntryDay(entryDay);
   }
 
+  async deleteEntryDay(id: string): Promise<void> {
+    return this.repo.deleteEntryDay(id);
+  }
+
   async updateEntryDay(timeEntry: CreateTimeEntryDto[]): Promise<EntryDay[]> {
     return this.repo.updateEntryDay(timeEntry);
   }

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EntryDayController } from 'src/controllers/entryDay.controller';
 import { EntryDay } from 'src/entities/entryDay.entity';
@@ -22,8 +22,7 @@ import { AbogadoModule } from './abogado.module';
     TypeOrmModule.forFeature([EntryDay, Client, ClientItem , Document , Audience , Meeting , Process , Lawyer]),
     ClienteModule,
     clientItemModule,
-    ProcessModule,
-    ProcessModule,
+    forwardRef(() => ProcessModule),
     AbogadoModule
     
   ],
