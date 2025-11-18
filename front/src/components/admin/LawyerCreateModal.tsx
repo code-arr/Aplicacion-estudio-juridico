@@ -30,6 +30,7 @@ export default function LawyerCreateModal({
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
   const [phone, setPhone] = React.useState("");
+  const [address, setAddress] = React.useState("");
   const [rut, setRut] = React.useState("");
   const [type, setType] = React.useState("");
   const [seniorityLevel, setSeniorityLevel] = React.useState("");
@@ -44,6 +45,7 @@ export default function LawyerCreateModal({
     setFirstName("");
     setLastName("");
     setPhone("");
+    setAddress("");
     setRut("");
     setType("");
     setSeniorityLevel("");
@@ -67,6 +69,7 @@ export default function LawyerCreateModal({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           phone: phone.trim(),
+          address: address.trim(),
           rut: rut.trim(),
           type: type.trim(),
           seniorityLevel: seniorityLevel.trim(),
@@ -135,6 +138,13 @@ export default function LawyerCreateModal({
             <div className="grid gap-2">
               <Label>Teléfono</Label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Dirección</Label>
+              <Input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
             </div>
           </div>
 
