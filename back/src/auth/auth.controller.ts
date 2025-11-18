@@ -69,49 +69,102 @@ export class AuthController {
 
   @Get('google/connect')
   async connectGoogleAccount(@Req() req: ExpressRequest, @Res() res: Response) {
-    const dbEmail = req.query.email;
-    const statePayload = { email: dbEmail };
-    const state = Buffer.from(JSON.stringify(statePayload)).toString('base64');
-    console.log('estamos en google conect');
+    // tipar correctamente lo que viene en query
+    const dbEmail = (req.query.email as string) || undefined;
+
+    // leer y validar env vars ANTES de usarlas
+    const clientId = process.env.GOOGLE_CLIENT_ID;
     const callback = process.env.GOOGLE_CALLBACK_URL;
-    if (!callback) {
-      throw new Error('Google callback URL no está definida');
+    if (!clientId) {
+      return res
+        .status(500)
+        .json({ error: 'GOOGLE_CLIENT_ID no está definida' });
     }
-    console.log('callback' + callback);
+    if (!callback) {
+      return res
+        .status(500)
+        .json({ error: 'GOOGLE_CALLBACK_URL no está definida' });
+    }
 
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&response_type=code&scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send')}&redirect_uri=${encodeURIComponent(callback)}&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`;
+    // preparar state (URL-safe). Si tu Node soporta base64url, ok; si no, usamos fallback.
+    let state: string;
+    try {
+      state = Buffer.from(
+        JSON.stringify({ email: dbEmail, returnTo: '/#/dashboard/settings' }),
+      ).toString('base64url');
+    } catch (err) {
+      // fallback: hacer base64 estándar y convertir a base64url seguro
+      const b64 = Buffer.from(
+        JSON.stringify({ email: dbEmail, returnTo: '/#/dashboard/settings' }),
+      ).toString('base64');
+      state = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
 
-    res.json({ redirectUrl: googleAuthUrl });
+    const scope = encodeURIComponent(
+      'profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send',
+    );
+
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+      clientId,
+    )}&response_type=code&scope=${scope}&redirect_uri=${encodeURIComponent(
+      callback,
+    )}&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`;
+
+    console.log('estamos en google conect - redirect:', googleAuthUrl);
+    return res.json({ redirectUrl: googleAuthUrl });
   }
 
   @Public()
   @Get('google/callback')
   @UseGuards(PassportAuthGuard('google'))
   async googleAuthCallback(@Req() req: ExpressRequest, @Res() res: Response) {
+    console.log('googleAuthCallback - query:', req.query);
+    console.log('googleAuthCallback - req.user (passport):', req.user);
+    // Decodificar state (fallback a settings)
+    const rawState = (req.query.state as string) || '';
+    let returnTo = '/#/dashboard/settings';
+    try {
+      if (rawState) {
+        const state = JSON.parse(
+          Buffer.from(rawState, 'base64url').toString('utf-8'),
+        );
+        if (state?.returnTo) returnTo = state.returnTo;
+      }
+    } catch (err) {
+      console.warn('No se pudo parsear state, usaré fallback returnTo', err);
+    }
+
+    // req.user viene de Passport (GoogleStrategy.validate)
     const user = req.user as any;
-    console.log('User: ', user);
+    console.log('Google callback user:', user);
 
     if (!user || !user.user || !user.googleTokens) {
-      console.log('ERROR GOOGLE TOKEN');
-
-      return res.redirect('http://tu-frontend.com/error?reason=no_google_data');
+      console.log('ERROR: datos de Google incompletos');
+      // única redirección en caso de error
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/error?reason=no_google_data`,
+      );
     }
 
     try {
       const userId = user.user.id;
       const googleTokens = user.googleTokens;
-      const googleProfile = user.profile;
 
+      // linkear en BD
       await this.authRepository.linkGoogleAccount(userId, {
         googleRefreshToken: googleTokens.refreshToken,
       });
 
-      res.redirect(`${process.env.FRONTEND_URL}/#/dashboard/settings`);
-    } catch (error) {
-      console.log('error 1' + error);
-
+      const encodedReturn = encodeURIComponent(
+        returnTo || '/#/dashboard/settings',
+      );
       return res.redirect(
-        `${process.env.FRONTEND_URL}/error?reason=${encodeURIComponent(error.message)}`,
+        `${process.env.FRONTEND_URL}/oauth/done?status=success&returnTo=${encodedReturn}`,
+      );
+    } catch (error) {
+      console.error('Error al linkear cuenta Google:', error);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/error?reason=${encodeURIComponent(error?.message ?? 'unknown')}`,
       );
     }
   }

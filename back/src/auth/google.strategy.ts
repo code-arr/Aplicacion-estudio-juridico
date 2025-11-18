@@ -31,33 +31,74 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: any,
     done: VerifyCallback,
   ): Promise<any> {
-    const { email } = profile;
+    try {
+      console.log('GoogleStrategy.validate - profile:', {
+        id: profile?.id,
+        displayName: profile?.displayName,
+        emails: profile?.emails,
+      });
 
-    // Recupero el email "de BD" que venía en state
-    const rawState = req.query.state as string;
-    const state = JSON.parse(
-      Buffer.from(rawState, 'base64url').toString('utf-8'),
-    ) as { email: string };
+      // extraer email de forma segura
+      const emailFromProfile =
+        Array.isArray(profile?.emails) && profile.emails[0]?.value
+          ? profile.emails[0].value
+          : undefined;
 
-    const user = await this.userService.findOneByEmail(state.email);
-    if (!user) {
-      return done(
-        new UnauthorizedException('Usuario no autenticado con JWT.'),
-        false,
-      );
+      const rawState = (req.query?.state as string) || '';
+      let stateObj: { email?: string; returnTo?: string } | null = null;
+      if (rawState) {
+        try {
+          stateObj = JSON.parse(
+            Buffer.from(rawState, 'base64url').toString('utf-8'),
+          );
+        } catch (err) {
+          console.warn(
+            'GoogleStrategy.validate: state inválido',
+            rawState,
+            err,
+          );
+        }
+      }
+
+      if (!stateObj?.email) {
+        // si no viene email en state, intentamos fallback a emailFromProfile (solo si tu flujo lo permite)
+        if (!emailFromProfile) {
+          return done(
+            new UnauthorizedException('State sin email y profile sin emails'),
+            false,
+          );
+        }
+        stateObj = { email: emailFromProfile };
+      }
+
+      const user = await this.userService.findOneByEmail(stateObj.email!);
+      if (!user) {
+        return done(
+          new UnauthorizedException('Usuario no encontrado en BD'),
+          false,
+        );
+      }
+
+      // Guardar el refresh token y el googleEmail (puede fallar; loguear)
+      try {
+        await this.userService.updateUser(user.id, {
+          googleEmail: emailFromProfile ?? stateObj.email,
+          googleRefreshToken: refreshToken,
+        });
+      } catch (err) {
+        console.error('Error updateUser en GoogleStrategy:', err);
+        // no abortar el flow: devolver igualmente el objeto combinado (según tu criterio)
+      }
+
+      const combinedUser = {
+        user: { ...user, googleEmail: emailFromProfile ?? stateObj.email },
+        googleTokens: { accessToken, refreshToken },
+      };
+
+      return done(null, combinedUser);
+    } catch (err) {
+      console.error('Error en GoogleStrategy.validate:', err);
+      return done(err, false);
     }
-
-    // Persisto email de Google y refresh token directamente con UserService
-    await this.userService.updateUser(user.id, {
-      googleEmail: email,
-      googleRefreshToken: refreshToken,
-    });
-
-    const combinedUser = {
-      user: { ...user, googleEmail: email }, // opcional, para que el caller tenga el email linkeado
-      googleTokens: { accessToken, refreshToken },
-    };
-
-    return done(null, combinedUser);
   }
 }
