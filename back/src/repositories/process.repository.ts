@@ -3,6 +3,8 @@ import { ProcessDto } from '../dtos/process.dto';
 import { Process } from '../entities/process.entity';
 import { DataSource, Repository } from 'typeorm';
 import {
+  forwardRef,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -10,6 +12,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import * as moment from 'moment-timezone';
 import { ParentTouchService } from 'src/services/parent-touch.service';
+import { EntryDay } from 'src/entities/entryDay.entity';
+import { EntryDayService } from 'src/services/entryDay.service';
 
 @Injectable()
 export class ProcessRepository {
@@ -19,6 +23,8 @@ export class ProcessRepository {
     private readonly clientItemService: ClientItemService,
     private readonly dataSource: DataSource,
     private readonly parentTouch: ParentTouchService,
+    @Inject(forwardRef(() => EntryDayService))
+    private readonly entryDayService: EntryDayService,
   ) {}
 
   async createProcess(
@@ -97,6 +103,8 @@ export class ProcessRepository {
         const clientId = proc.clientId;
 
         await repo.remove(proc);
+
+        await this.entryDayService.deleteEntryDay(id);
 
         if (clientItemId)
           await this.parentTouch.touchClientItem(manager, clientItemId);
