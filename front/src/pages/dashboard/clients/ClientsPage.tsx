@@ -113,8 +113,8 @@ const ClientsPage = () => {
   if (clientsError)
     return <ErrorScreen message="Ocurrió un error al cargar los clientes" />;
 
-  if (isClientsHydratedByLawyer && clients.length === 0)
-    return <EmptyArray title="No hay clientes para mostrar" />;
+  /*   if (isClientsHydratedByLawyer && clients.length === 0)
+    return <EmptyArray title="No hay clientes para mostrar" />; */
 
   return (
     <div className="bg-gradient-to-t from-[#334155] via-[#3b4d66] to-[#60a5fa]/20 min-h-screen">
@@ -257,6 +257,44 @@ const ClientsPage = () => {
             />
           ))}
         </div>
+
+        {/* Mensaje cuando NO hay clientes en absoluto */}
+        {isClientsHydratedByLawyer && clients.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <Search className="h-12 w-12 mx-auto" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No hay clientes aún
+            </h3>
+            <p className="text-gray-400">Comenzá agregando tu primer cliente</p>
+            <Button
+              className="law-gradient hover:opacity-90 mt-5"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Agregar Primer Cliente
+            </Button>
+          </div>
+        )}
+
+        {/* Mensaje cuando NO hay clientes filtrados */}
+        {isClientsHydratedByLawyer &&
+          clients.length > 0 &&
+          filteredClients.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Search className="h-12 w-12 mx-auto" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No se encontraron clientes
+              </h3>
+              <p className="text-gray-600">
+                Intenta ajustar los filtros de búsqueda
+              </p>
+            </div>
+          )}
+
         <div className="flex items-center justify-center py-3 gap-2">
           {!showAll && visibleClients.length < total && (
             <Button
@@ -272,42 +310,6 @@ const ClientsPage = () => {
             </Button>
           )}
         </div>
-
-        {/* Client Array Empty */}
-        {filteredClients.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <Search className="h-12 w-12 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No se encontraron clientes
-            </h3>
-            <p className="text-gray-600">
-              Intenta ajustar los filtros de búsqueda
-            </p>
-          </div>
-        )}
-
-        {/* {filteredClients.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <Search className="h-12 w-12 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No hay clientes aún
-            </h3>
-            <p className="text-gray-600">
-              Comienza agregando tu primer cliente
-            </p>
-            <Button
-              className="law-gradient hover:opacity-90 mt-5"
-              onClick={() => setIsDialogOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar Primer Cliente
-            </Button>
-          </div>
-        )} */}
       </div>
     </div>
   );

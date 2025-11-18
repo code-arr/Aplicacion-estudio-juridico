@@ -5,6 +5,8 @@ import type { AuthState } from "@/types/AuthState";
 import { getMe } from "@/api/user";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import { useTimerUIStore } from "@/store/useTimerUIStore";
+import { useClientStore } from "./useClientStore";
+import { useClientItemStore } from "./useClientItemStore";
 
 export async function restoreSession() {
   console.log("Entra a restoreSession");
@@ -96,6 +98,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
     });
 
     // 5) Estado de auth en memoria
+    // 1️⃣ Limpiar auth
     set(() => ({
       user: null,
       token: null,
@@ -104,6 +107,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
       isAdmin: false,
       isLawyer: false,
     }));
+
+    // 2️⃣ Limpiar lawyer store
+    useLawyerStore.getState().resetLawyer();
+
+    // 3️⃣ Limpiar clientes
+    useClientStore.getState().reset();
+
+    // 4️⃣ Limpiar client items
+    useClientItemStore.getState().reset();
   },
   reset: async () => {
     await window.electronAPI?.invoke("auth:clear");

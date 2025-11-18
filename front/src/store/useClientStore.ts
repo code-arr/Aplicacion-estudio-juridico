@@ -55,6 +55,7 @@ interface ClientState {
     clientId: string,
     opts?: { force?: boolean }
   ) => Promise<void>;
+  reset: () => void;
 
   // Setters públicos
   setAllClients: (clients: Client[]) => void;
@@ -253,6 +254,24 @@ export const useClientStore = create<ClientState>()((set, get) => ({
       });
     }
   },
+  reset: () =>
+    set({
+      clientsAll: [],
+      clientsByLawyer: null,
+      clientDetail: null,
+      isHydratedAll: false,
+      isHydratedByLawyer: false,
+      isHydratedDetail: false,
+      isLoadingAll: false,
+      isLoadingByLawyer: false,
+      isLoadingDetail: false,
+      _lastAllAt: 0,
+      _lastByLawyerAt: 0,
+      _lastByDetailAt: 0,
+      errorAll: null,
+      errorByLawyer: null,
+      errorDetail: null,
+    }),
 
   // =========================== SETTERS ==========================
   // Útiles para sincronizar UI después de un CRUD sin re-fetch completo.

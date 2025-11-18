@@ -196,22 +196,40 @@ const ItemsPage = () => {
         {/* ClientItem Cards Grid */}
         {showSpinner ? (
           <LoadingSpinner />
-        ) : total > 0 ? (
-          <div className="grid grid-cols-1 pr-10 gap-4">
-            {visibleItems.map((item) => {
-              return (
-                <ItemCard
-                  key={item.id}
-                  item={item}
-                  onViewDetails={handleViewDetails}
-                />
-              );
-            })}
+        ) : clientItems.length === 0 ? (
+          // Caso "no hay ítems en absoluto"
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <Search className="h-12 w-12 mx-auto" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No hay ítems aún
+            </h3>
+            <p className="text-gray-400">Comenzá agregando tu primer ítem</p>
+            <Button
+              className="bg-[#0073e6] hover:opacity-90 mt-5"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Agregar Primer Ítem
+            </Button>
           </div>
-        ) : (
+        ) : filteredClientItems.length === 0 ? (
+          // Caso "hay ítems pero filtros no coinciden"
           <p className="text-sm text-gray-900">
             No hay ítems que coincidan con tu búsqueda.
           </p>
+        ) : (
+          // Caso normal: mostrar cards
+          <div className="grid grid-cols-1 pr-10 gap-4">
+            {visibleItems.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onViewDetails={handleViewDetails}
+              />
+            ))}
+          </div>
         )}
 
         <div className="flex items-center justify-center py-3 gap-2">

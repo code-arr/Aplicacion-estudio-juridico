@@ -24,6 +24,8 @@ import { formatDateChileShort } from "@/lib/formatDate";
 import { deleteClientItem } from "@/api/clientItem";
 import { useClientItemStore } from "@/store/useClientItemStore";
 import EditClientItemDialog from "./EditClientItemDialog";
+import { PermissionsModal } from "./PermissionsModal";
+
 import { useToast } from "@/hooks/useToast";
 
 type Tab = {
@@ -47,6 +49,8 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
     processForm: false,
   });
   const [isEditOpen, setEditOpen] = useState(false);
+  const [isShareOpen, setShareOpen] = useState(false);
+
   const { toast } = useToast?.() ?? { toast: () => {} };
 
   const openOnly = (
@@ -197,6 +201,11 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
         onOpenChange={setEditOpen}
         item={item}
       />
+      <PermissionsModal
+        item={item}
+        isOpen={isShareOpen}
+        onClose={() => setShareOpen(false)}
+      />
       <div className="flex flex-col">
         <div className="flex justify-between gap-x-4 px-8">
           <div className="flex flex-col pb-5 w-1/2 px-2">
@@ -239,6 +248,13 @@ const ItemHeader = ({ item, prevRoute }: ItemHeaderProps) => {
           </div>
 
           <div className="flex items-center gap-x-3 pb-6">
+            <Button
+              onClick={() => setShareOpen(true)}
+              className="bg-[hsl(195,85%,30%)] hover:bg-[hsl(195,85%,25%)] text-base"
+            >
+              🔗 Compartir
+            </Button>
+
             <Button
               onClick={() => setEditOpen(true)}
               className="bg-[hsl(225,85%,20%)] hover:bg-[hsl(225,85%,16%)] text-base"
