@@ -35,9 +35,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
     // Recupero el email "de BD" que venía en state
     const rawState = req.query.state as string;
+    // usar base64url también aqui
     const state = JSON.parse(
       Buffer.from(rawState, 'base64url').toString('utf-8'),
-    ) as { email: string };
+    ) as { email: string; returnTo?: string };
 
     const user = await this.userService.findOneByEmail(state.email);
     if (!user) {
