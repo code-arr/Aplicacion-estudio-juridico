@@ -7,6 +7,7 @@ import {
   nativeImage,
   shell,
 } from "electron";
+import { autoUpdater } from "electron-updater";
 import { config as loadEnv } from "dotenv";
 import * as path from "path";
 import fs from "fs";
@@ -354,6 +355,47 @@ app.whenReady().then(() => {
   syncService.scheduleAutoFlush(); // arrancá el loop
 
   const win = createWindow(); // guarda la ref principal
+
+  // auto-updates (solo en build empaquetada)
+  if (app.isPackaged) {
+    autoUpdater.checkForUpdatesAndNotify();
+
+    autoUpdater.on("checking-for-update", () => {
+      console.log("[autoUpdater] checking for update...");
+    });
+
+    autoUpdater.on("update-available", (info) => {
+      console.log("[autoUpdater] update available:", info.version);
+      mainWindow?.webContents.send("app:update-available", info);
+    });
+
+    autoUpdater.on("update-not-available", () => {
+      console.log("[autoUpdater] no update available");
+    });
+
+    autoUpdater.on("update-downloaded", (info) => {
+      console.log("[autoUpdater] update downloaded:", info.version);
+      mainWindow?.webContents.send("app:update-downloaded", info);
+      // no forzar instalación aquí; esperamos confirmación del usuario
+    });
+
+    autoUpdater.on("error", (err) => {
+      console.error("[autoUpdater] error:", err);
+    });
+
+    // IPC: si el renderer pide instalar la actualización
+    ipcMain.on("app:update-install", () => {
+      try {
+        autoUpdater.quitAndInstall(
+          /*isSilent*/ false,
+          /*isForceRunAfter*/ true
+        );
+      } catch (e) {
+        console.error("[autoUpdater] quitAndInstall error:", e);
+      }
+    });
+  }
+
   // En macOS, reabre una ventana si no hay ninguna activa
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

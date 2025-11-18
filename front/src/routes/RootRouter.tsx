@@ -7,6 +7,7 @@ import { restoreSession, useAuthStore } from "@/store/useAuthStore";
 import LoadingScreen from "@/components/shared/LoadingScreen";
 import { useEffect } from "react";
 import { useResetDeepLink } from "@/hooks/useResetDeepLink";
+import UpdateListener from "@/components/UpdateListener";
 
 const RootRouter = () => {
   const { isLoadingSession } = useAuthStore();
@@ -23,6 +24,7 @@ const RootRouter = () => {
       <Theme>
         <AppRoutes />
         <Toaster />
+        <UpdateListener />
       </Theme>
     </HashRouter>
   );

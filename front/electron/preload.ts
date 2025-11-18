@@ -55,10 +55,6 @@ contextBridge.exposeInMainWorld("timer", {
         : arg; // { reason, effectiveEndMs? }
     return ipcRenderer.invoke("timer:pause", payload);
   },
-  /* pause: (
-    reason: "idle" | "switch" | "close" | "logout" | "suspend",
-    effectiveEndMs?: number
-  ) => ipcRenderer.invoke("timer:pause", { reason, effectiveEndMs }), */
 
   switchTo: (t: { type: string; id: string } | null) =>
     ipcRenderer.invoke("timer:switchTo", t),
@@ -86,16 +82,6 @@ contextBridge.exposeInMainWorld("sync", {
   authSetToken: (t: string | null) => ipcRenderer.send("auth:setToken", t),
   onlineHint: () => ipcRenderer.send("net:online"),
 });
-
-/* contextBridge.exposeInMainWorld("timerGlobal", {
-  getSnapshot: () => ipcRenderer.invoke("globalTimer:getSnapshot"),
-  setSnapshot: (snap: {
-    dayKey: string;
-    accumSecToday: number;
-    runningSince?: number | null;
-  }) => ipcRenderer.invoke("globalTimer:setSnapshot", snap),
-  clearSnapshot: () => ipcRenderer.invoke("globalTimer:clearSnapshot"),
-}); */
 
 contextBridge.exposeInMainWorld("electronAPI", {
   // Enviar datos desde React al proceso principal (main)
@@ -130,6 +116,27 @@ contextBridge.exposeInMainWorld("electronAPI", {
     clear: (): Promise<number> => ipcRenderer.invoke("timeQueue:clear"),
 
     count: (): Promise<number> => ipcRenderer.invoke("timeQueue:count"),
+  },
+
+  // ===== Auto-update helpers =====
+  // Nota: main emite 'app:update-available' y 'app:update-downloaded'
+  onUpdateAvailable: (cb: (info: any) => void) => {
+    const channel = "app:update-available";
+    const handler = (_: any, info: any) => cb(info);
+    ipcRenderer.on(channel, handler);
+    return () => ipcRenderer.off(channel, handler);
+  },
+
+  onUpdateDownloaded: (cb: (info: any) => void) => {
+    const channel = "app:update-downloaded";
+    const handler = (_: any, info: any) => cb(info);
+    ipcRenderer.on(channel, handler);
+    return () => ipcRenderer.off(channel, handler);
+  },
+
+  // pedir al main que instale la actualización (quitAndInstall)
+  installUpdate: () => {
+    ipcRenderer.send("app:update-install");
   },
 });
 

@@ -65,6 +65,10 @@ declare global {
         clear: () => Promise<number>;
         count: () => Promise<number>;
       };
+      // --- tipos para auto-updates
+      onUpdateAvailable: (cb: (info: any) => void) => () => void;
+      onUpdateDownloaded: (cb: (info: any) => void) => () => void;
+      installUpdate: () => void;
     };
     api: {
       openExternal: (url: string) => Promise<boolean>;

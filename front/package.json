@@ -1,7 +1,7 @@
 {
   "name": "vite-project",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "dist-electron/electron/main.js",
   "scripts": {
@@ -11,6 +11,8 @@
     "dev:electron": "wait-on tcp:5173 && electron dist-electron/electron/main.js",
     "dev:desktop": "concurrently -k \"npm:dev:web\" \"npm:dev:tsc:main\" \"npm:dev:tsc:preload\" \"npm:dev:electron\"",
     "build": "tsc -p electron && tsc -p electron/tsconfig.preload.json && vite build",
+    "build:all": "npm run build && npm run build:electron",
+    "build:electron": "electron-builder --publish=never",
     "lint": "eslint .",
     "preview": "vite preview",
     "check:deps": "depcheck",
@@ -35,6 +37,7 @@
     "class-variance-authority": "^0.7.1",
     "dotenv": "^17.2.2",
     "electron-store": "^8.1.0",
+    "electron-updater": "^6.6.2",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.525.0",
     "nanoid": "^5.1.5",
@@ -72,5 +75,52 @@
     "typescript-eslint": "^8.35.1",
     "vite": "^7.0.4",
     "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.iya.gestion",
+    "productName": "GestionEstudio",
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "node_modules/**",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon.icns"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "benjadelcampo15",
+        "repo": "Aplicacion-estudio-juridico"
+      }
+    ],
+    "protocols": [
+      {
+        "name": "ibarrayasoc",
+        "schemes": [
+          "ibarrayasoc"
+        ]
+      }
+    ]
   }
 }
