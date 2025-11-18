@@ -29,7 +29,13 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./front
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+        shell: bash
 
       - name: Build frontend (Vite) and compile electron TS
         working-directory: ./front
@@ -43,13 +49,13 @@ jobs:
         run: npm run build:electron
 
       - name: Collect release artifacts
-        # empaqueta todo lo que generó electron-builder en front/release
         if: always()
         run: |
           ls -la front/release || true
           mkdir -p release-${{ matrix.os }}
           cp -r front/release/* release-${{ matrix.os }}/ || true
           echo "ARTIFACT_DIR=release-${{ matrix.os }}" >> $GITHUB_ENV
+        shell: bash
 
       - name: Upload artifacts for connector
         uses: actions/upload-artifact@v4
@@ -77,6 +83,7 @@ jobs:
         run: |
           echo "FILES:"
           find ./collected -maxdepth 3 -type f -print || true
+        shell: bash
 
       - name: Create Release (tag = commit short SHA)
         id: create_release
@@ -131,6 +138,10 @@ jobs:
               curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
             fi
           done
+
+      - name: Final info
+        run: |
+          echo "Release published. Check: https://github.com/${{ github.repository }}/releases/tag/${{ steps.create_release.outputs.tag_name }}"
 
       - name: Final info
         run: |
