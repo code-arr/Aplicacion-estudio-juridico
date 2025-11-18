@@ -16,6 +16,12 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest]
 
+    # <- INJECT: variables disponibles para TODOS los steps del job build
+    env:
+      VITE_DEV_SERVER_URL: "http://localhost:5173"
+      VITE_API_BASE_URL: "http://estudio-backend-dev.us-east-1.elasticbeanstalk.com"
+      VITE_APP_TZ: "America/Santiago"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,6 +46,19 @@ jobs:
       - name: Build frontend (Vite) and compile electron TS
         working-directory: ./front
         run: npm run build
+        shell: bash
+
+      - name: Create runtime config
+        working-directory: ./front
+        run: |
+          mkdir -p resources
+          cat > resources/config.json <<-JSON
+          {
+            "API_BASE": "${{ env.VITE_API_BASE_URL }}",
+            "APP_TZ": "${{ env.VITE_APP_TZ }}",
+            "DEV_SERVER_URL": "${{ env.VITE_DEV_SERVER_URL }}"
+          }
+          JSON
         shell: bash
 
       - name: Build electron installers
