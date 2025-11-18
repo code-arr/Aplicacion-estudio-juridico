@@ -118,6 +118,8 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(PassportAuthGuard('google'))
   async googleAuthCallback(@Req() req: ExpressRequest, @Res() res: Response) {
+    console.log('googleAuthCallback - query:', req.query);
+    console.log('googleAuthCallback - req.user (passport):', req.user);
     // Decodificar state (fallback a settings)
     const rawState = (req.query.state as string) || '';
     let returnTo = '/#/dashboard/settings';
