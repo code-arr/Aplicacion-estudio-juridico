@@ -2,11 +2,11 @@ name: Build & Publish Electron App (Releases)
 
 on:
   push:
-    branches: [main, front]
+    branches: [ main, front ]
   workflow_dispatch:
 
 permissions:
-  contents: write # necesario para crear releases
+  contents: write
   packages: write
 
 jobs:
@@ -15,8 +15,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-latest]
-    outputs:
-      artifact-name: ${{ steps.save-artifact.outputs.artifact-name }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '20.19.0'
           cache: 'npm'
           cache-dependency-path: front/package-lock.json
 
@@ -41,24 +40,35 @@ jobs:
       - name: Build frontend (Vite) and compile electron TS
         working-directory: ./front
         run: npm run build
+        shell: bash
 
       - name: Build electron installers
         working-directory: ./front
         env:
-          # GH_TOKEN no es estrictamente necesario para build local; lo dejamos por si usás electron-builder publish en el futuro
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build:electron
+        shell: bash
+
+      - name: Inspect generated release folder (debug)
+        working-directory: ./front
+        run: |
+          echo ">>> listing front/release"
+          ls -la release || true
+          echo ">>> listing front/release/*"
+          for f in release/*; do echo " - $f"; done || true
+        shell: bash
 
       - name: Collect release artifacts
         if: always()
         run: |
-          ls -la front/release || true
           mkdir -p release-${{ matrix.os }}
           cp -r front/release/* release-${{ matrix.os }}/ || true
           echo "ARTIFACT_DIR=release-${{ matrix.os }}" >> $GITHUB_ENV
+          echo "Contents of release-${{ matrix.os}}:"
+          ls -la release-${{ matrix.os}} || true
         shell: bash
 
-      - name: Upload artifacts for connector
+      - name: Upload artifact (platform-specific)
         uses: actions/upload-artifact@v4
         with:
           name: electron-installers-${{ matrix.os }}
@@ -68,75 +78,104 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
-      RELEASE_TAG: release-${{ github.run_id }}   # tag seguro y válido
+      RUN_TAG: release-${{ github.run_id }}
     steps:
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
           name: electron-installers-windows-latest
           path: ./collected || true
-  
+
       - name: Download Mac artifact
         uses: actions/download-artifact@v4
         with:
           name: electron-installers-macos-latest
           path: ./collected || true
-  
+
       - name: List collected files
         run: |
-          echo "FILES:"
+          echo "FILES in collected:"
           find ./collected -maxdepth 3 -type f -print || true
         shell: bash
-  
-      - name: Create Release (tag = run id)
+
+      - name: Create release for this run (tag = run id)
         id: create_release
         uses: actions/create-release@v1
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          release_name: Release ${{ env.RELEASE_TAG }} (from run ${{ github.run_id }})
+          tag_name: ${{ env.RUN_TAG }}
+          release_name: Release ${{ env.RUN_TAG }} (from run ${{ github.run_id }})
           body: |
             Auto-generated release from commit ${{ github.sha }} on branch ${{ github.ref_name }}.
-            **NOTA:** este repo es privado; solo colaboradores pueden descargar los instaladores.
+            **Private** repo: only collaborators can download.
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
-      - name: Upload installer assets to Release (softprops)
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
-      - name: Attach assets to release (loop - fallback)
-        if: always()
+
+      - name: Attach assets to run-release
         run: |
           set -e
-          RELEASE_TAG="${{ env.RELEASE_TAG }}"
+          RELEASE_TAG="${{ env.RUN_TAG }}"
           API="https://api.github.com"
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
-  
-          echo "Releasing with tag: $RELEASE_TAG"
+
+          echo "Uploading assets to release $RELEASE_TAG"
+          # fetch release id
+          RELEASE_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" | jq -r .id)
+          if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
+            echo "Release id not found for $RELEASE_TAG"
+            exit 1
+          fi
+
           for f in $(find ./collected -type f -print); do
-            echo "Uploading $f ..."
             FNAME=$(basename "$f")
-            if command -v gh >/dev/null 2>&1; then
-              gh release upload "$RELEASE_TAG" "$f" --clobber
-            else
-              echo "gh cli not available; attempting curl upload"
-              RELEASE_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" | jq -r .id)
-              if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
-                echo "Cannot find release id for $RELEASE_TAG"
-                continue
-              fi
-              UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$FNAME"
-              curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
-            fi
+            echo "Uploading $FNAME ..."
+            UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$FNAME"
+            curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
           done
         shell: bash
-  
+
+      - name: Create-or-update 'latest' release and attach assets
+        run: |
+          set -e
+          API="https://api.github.com"
+          AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
+          LATEST_TAG="latest"
+
+          # check if 'latest' release exists
+          echo "Checking for existing 'latest' release..."
+          LID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$LATEST_TAG" | jq -r .id)
+          if [ -z "$LID" ] || [ "$LID" = "null" ]; then
+            echo "Creating new 'latest' release..."
+            CREATE=$(curl -s -X POST -H "Authorization: $AUTH" -H "Content-Type: application/json" \
+              -d "{\"tag_name\":\"$LATEST_TAG\",\"name\":\"Latest\",\"body\":\"Latest build for testers (auto)\",\"draft\":false,\"prerelease\":false}" \
+              "$API/repos/${{ github.repository }}/releases")
+            LID=$(jq -r .id <<<"$CREATE")
+          else
+            echo "'latest' release exists (id=$LID)."
+          fi
+
+          # remove existing assets on 'latest' (optional, to replace)
+          EXISTING=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$LID/assets" | jq -r '.[].id')
+          for aid in $EXISTING; do
+            if [ -n "$aid" ]; then
+              echo "Deleting existing asset id $aid"
+              curl -s -X DELETE -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/assets/$aid"
+            fi
+          done
+
+          # upload new assets
+          for f in $(find ./collected -type f -print); do
+            FNAME=$(basename "$f")
+            echo "Uploading $FNAME to 'latest'..."
+            UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$LID/assets?name=$FNAME"
+            curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
+          done
+        shell: bash
+
       - name: Final info
         run: |
-          echo "Release published. Check: https://github.com/${{ github.repository }}/releases/tag/${{ env.RELEASE_TAG }}"
+          echo "Run release: https://github.com/${{ github.repository }}/releases/tag/${{ env.RUN_TAG }}"
+          echo "Latest release: https://github.com/${{ github.repository }}/releases/tag/latest"
         shell: bash
+
