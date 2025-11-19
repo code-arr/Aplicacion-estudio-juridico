@@ -79,117 +79,151 @@ jobs:
           for f in release/*; do echo " - $f"; done || true
         shell: bash
 
-      - name: Collect release artifacts (only installers)
-        if: always()
-        working-directory: .
+      # -------------------------
+      # NUEVO: crear release draft y subir assets DIRECTO desde este job
+      # Evita usar actions/upload-artifact (que consume el storage que está agotado)
+      - name: Create draft release and upload installers (avoid artifacts)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p release-${{ matrix.os }}
-          for ext in exe dmg exe.blockmap dmg.blockmap; do
-            for f in front/release/*.$ext; do
-              if [ -f "$f" ]; then
-                echo "Copying $f"
-                cp "$f" "release-${{ matrix.os }}/" || true
-              fi
-            done
+          TAG="release-${{ github.run_id }}"
+          API="https://api.github.com"
+          AUTH="Bearer $GITHUB_TOKEN"
+
+          echo "Creating draft release tag=$TAG ..."
+          CREATE=$(curl -s -X POST -H "Authorization: $AUTH" -H "Content-Type: application/json" \
+            -d "{\"tag_name\":\"$TAG\",\"name\":\"$TAG\",\"body\":\"CI build $TAG\",\"draft\":true}" \
+            "$API/repos/${{ github.repository }}/releases")
+
+          UPLOAD_URL=$(jq -r .upload_url <<<"$CREATE" | sed -e 's/{?name,label}//')
+          if [ -z "$UPLOAD_URL" ] || [ "$UPLOAD_URL" = "null" ]; then
+            echo "Failed to create release:"
+            echo "$CREATE"
+            exit 1
+          fi
+
+          echo "Uploading installer files to release..."
+          for f in front/release/*; do
+            if [ -f "$f" ]; then
+              FNAME=$(basename "$f")
+              echo " -> $FNAME"
+              # url-encode filename
+              ENCODED=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")
+              curl --fail -X POST -H "Authorization: $AUTH" \
+                -H "Content-Type: application/octet-stream" --data-binary @"$f" \
+                "$UPLOAD_URL?name=$ENCODED"
+            fi
           done
-          echo "ARTIFACT_DIR=release-${{ matrix.os }}" >> $GITHUB_ENV
-          echo "Contents of release-${{ matrix.os}}:"
-          ls -la release-${{ matrix.os}} || true
+
+          echo "Draft release created: https://github.com/${{ github.repository }}/releases/tag/$TAG"
         shell: bash
 
-      - name: Upload artifact (platform-specific, only installers)
-        uses: actions/upload-artifact@v4
-        with:
-          name: electron-installers-${{ matrix.os }}
-          path: release-${{ matrix.os }}
-          retention-days: 3
-
+      # Fin job build
   publish_release:
     needs: build
     runs-on: ubuntu-latest
     env:
       RUN_TAG: release-${{ github.run_id }}
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./collected
-
-      - name: List collected files
-        run: |
-          echo "FILES in collected:"
-          find ./collected -maxdepth 3 -type f -print || true
-        shell: bash
-
-      - name: Create release for this run (tag = run id)
-        id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ env.RUN_TAG }}
-          release_name: Release ${{ env.RUN_TAG }} (from run ${{ github.run_id }})
-          body: |
-            Auto-generated release from commit ${{ github.sha }} on branch ${{ github.ref_name }}.
-            **Private** repo: only collaborators can download.
-          draft: false
-          prerelease: false
+      # Nota: ya no descargamos artifacts (no los generamos). En cambio:
+      # 1) buscamos la release que creó el job 'build' (tag = release-<run_id>)
+      # 2) la convertimos a non-draft/public (si existe)
+      # 3) copiamos sus assets y los subimos a la release "latest" (reemplazando los existentes)
+      - name: Ensure release exists and make it public (non-draft)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Attach important assets only (exe/dmg/blockmap)
-        if: always()
         run: |
           set -euo pipefail
-          RELEASE_TAG="${{ env.RUN_TAG }}"
           API="https://api.github.com"
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
-          RELEASE_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" | jq -r .id)
+          RELEASE_TAG="${{ env.RUN_TAG }}"
+
+          echo "Looking for release with tag $RELEASE_TAG ..."
+          RELEASE=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" || true)
+          RELEASE_ID=$(jq -r .id <<<"$RELEASE" || true)
+
           if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
-            echo "Release id not found for $RELEASE_TAG"
-            exit 1
+            echo "Release $RELEASE_TAG not found. Creating it (fallback)..."
+            CREATE=$(curl -s -X POST -H "Authorization: $AUTH" -H "Content-Type: application/json" \
+              -d "{\"tag_name\":\"$RELEASE_TAG\",\"name\":\"$RELEASE_TAG\",\"body\":\"Auto-generated release $RELEASE_TAG\",\"draft\":false}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases")
+            RELEASE_ID=$(jq -r .id <<<"$CREATE")
+            echo "Created release id=$RELEASE_ID"
+          else
+            echo "Found release id=$RELEASE_ID. Updating to non-draft..."
+            # patch release to set draft=false (publish it)
+            curl -s -X PATCH -H "Authorization: $AUTH" -H "Content-Type: application/json" \
+              -d "{\"draft\":false,\"name\":\"Release $RELEASE_TAG\",\"body\":\"Release published from CI run $RELEASE_TAG\"}" \
+              "$API/repos/${{ github.repository }}/releases/$RELEASE_ID" > /dev/null
+            echo "Release $RELEASE_TAG set to non-draft."
           fi
-          find ./collected -type f \( -iname "*.exe" -o -iname "*.dmg" -o -iname "*.exe.blockmap" -o -iname "*.dmg.blockmap" \) -print0 \
-            | while IFS= read -r -d '' f; do
-              FNAME=$(basename "$f")
-              echo "Uploading asset: $FNAME from $f"
-              EXISTING_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | jq -r --arg name "$FNAME" '.[] | select(.name==$name) | .id' | head -n1)
-              if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
-                echo "Deleting existing asset id $EXISTING_ID (name: $FNAME)"
-                curl -s -X DELETE -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/assets/$EXISTING_ID"
-              fi
-              ENCODED_NAME=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")
-              UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$ENCODED_NAME"
-              curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
-              echo " -> uploaded $FNAME"
-            done
+
+          # list assets on the release (we will reuse them to populate 'latest')
+          echo "Listing assets for release id=$RELEASE_ID..."
+          curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" \
+            | jq -r '.[] | "\(.id) \(.name) \(.browser_download_url)"' > /tmp/assets.list || true
+          echo "Assets:"
+          cat /tmp/assets.list || true
         shell: bash
 
-      - name: Create-or-update 'latest' release and attach assets (robust)
+      - name: Create-or-update 'latest' release and copy assets from run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           API="https://api.github.com"
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
           LATEST_TAG="latest"
+          RUN_RELEASE_TAG="${{ env.RUN_TAG }}"
+
+          echo "Ensure 'latest' release exists..."
           LID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$LATEST_TAG" | jq -r .id)
           if [ -z "$LID" ] || [ "$LID" = "null" ]; then
+            echo "Creating 'latest' release..."
             CREATE=$(curl -s -X POST -H "Authorization: $AUTH" -H "Content-Type: application/json" \
               -d "{\"tag_name\":\"$LATEST_TAG\",\"name\":\"Latest\",\"body\":\"Latest build for testers (auto)\",\"draft\":false,\"prerelease\":false}" \
               "$API/repos/${{ github.repository }}/releases")
             LID=$(jq -r .id <<<"$CREATE")
+            echo "Created latest id=$LID"
+          else
+            echo "'latest' exists (id=$LID)."
           fi
+
+          # delete existing assets on 'latest'
+          echo "Deleting existing assets on 'latest' (id=$LID) ..."
           EXISTING_IDS=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$LID/assets" | jq -r '.[].id' || true)
           for aid in $EXISTING_IDS; do
             if [ -n "$aid" ] && [ "$aid" != "null" ]; then
+              echo "Deleting asset id $aid"
               curl -s -X DELETE -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/assets/$aid" || true
             fi
           done
-          find ./collected -type f \( -iname "*.exe" -o -iname "*.dmg" -o -iname "*.exe.blockmap" -o -iname "*.dmg.blockmap" \) -print0 \
-            | while IFS= read -r -d '' f; do
-                FNAME=$(basename "$f")
-                ENCODED_NAME=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")
-                UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$LID/assets?name=$ENCODED_NAME"
-                curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
+
+          # get assets from the run release (populated in previous step)
+          echo "Copying assets from run release ${RUN_RELEASE_TAG} to 'latest'..."
+          RUN_RELEASE_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/${RUN_RELEASE_TAG}" | jq -r .id)
+          if [ -z "$RUN_RELEASE_ID" ] || [ "$RUN_RELEASE_ID" = "null" ]; then
+            echo "Run release not found, nothing to copy."
+            exit 0
+          fi
+
+          curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$RUN_RELEASE_ID/assets" \
+            | jq -c '.[]' | while read -r asset; do
+              NAME=$(jq -r .name <<<"$asset")
+              BURL=$(jq -r .browser_download_url <<<"$asset")
+              echo " -> copying $NAME"
+              # download asset to tmp
+              TMPF="/tmp/$NAME"
+              curl -sL -H "Authorization: $AUTH" -o "$TMPF" "$BURL"
+              # URL-encode filename
+              ENCODED=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$NAME")
+              UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$LID/assets?name=$ENCODED"
+              curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$TMPF" "$UPLOAD_URL"
+              rm -f "$TMPF"
             done
+
+          echo "Latest release updated: https://github.com/${{ github.repository }}/releases/tag/latest"
         shell: bash
 
       - name: Final info
@@ -197,3 +231,4 @@ jobs:
           echo "Run release: https://github.com/${{ github.repository }}/releases/tag/${{ env.RUN_TAG }}"
           echo "Latest release: https://github.com/${{ github.repository }}/releases/tag/latest"
         shell: bash
+
