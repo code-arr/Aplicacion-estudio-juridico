@@ -8,13 +8,6 @@ import { UpdateLawyerDto } from 'src/dtos/updateLawyer.dto';
 export class AbogadoService {
   constructor(private readonly abogadoRepository: AbogadoRepository) {}
 
-  async seedData(): Promise<string> {
-    return this.abogadoRepository.seedData();
-  }
-
-  async seedClienteAbogados(): Promise<string> {
-    return this.abogadoRepository.seedClientesAbogados();
-  }
   async getAbogadoById(id: string): Promise<Lawyer | null> {
     return this.abogadoRepository.getAbogadoById(id);
   }
