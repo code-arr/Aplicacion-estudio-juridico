@@ -16,7 +16,6 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest]
 
-    # <- INJECT: variables disponibles para TODOS los steps del job build
     env:
       VITE_DEV_SERVER_URL: "http://localhost:5173"
       VITE_API_BASE_URL: "http://estudio-backend-dev.us-east-1.elasticbeanstalk.com"
@@ -61,11 +60,13 @@ jobs:
           JSON
         shell: bash
 
-      - name: Build electron installers
+      - name: Build electron installers (CI mode: no signing)
         working-directory: ./front
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run build:electron
+        run: |
+          # Usamos el script CI que evita intentar firmar (útil en CI sin certificados)
+          npm run build:electron:ci
         shell: bash
 
       - name: Inspect generated release folder (debug)
@@ -77,21 +78,31 @@ jobs:
           for f in release/*; do echo " - $f"; done || true
         shell: bash
 
-      - name: Collect release artifacts
+      - name: Collect release artifacts (only installers)
         if: always()
+        working-directory: .
         run: |
+          set -euo pipefail
           mkdir -p release-${{ matrix.os }}
-          cp -r front/release/* release-${{ matrix.os }}/ || true
+          # copiar solo los instaladores y blockmaps (evita subir 500 archivos)
+          shopt -s nullglob || true
+          for ext in exe dmg exe.blockmap dmg.blockmap; do
+            for f in front/release/*.$ext; do
+              echo "Copying $f"
+              cp "$f" "release-${{ matrix.os }}/" || true
+            done
+          done
           echo "ARTIFACT_DIR=release-${{ matrix.os }}" >> $GITHUB_ENV
           echo "Contents of release-${{ matrix.os}}:"
           ls -la release-${{ matrix.os}} || true
         shell: bash
 
-      - name: Upload artifact (platform-specific)
+      - name: Upload artifact (platform-specific, only installers)
         uses: actions/upload-artifact@v4
         with:
           name: electron-installers-${{ matrix.os }}
           path: release-${{ matrix.os }}
+          retention-days: 3
 
   publish_release:
     needs: build
@@ -131,26 +142,23 @@ jobs:
           RELEASE_TAG="${{ env.RUN_TAG }}"
           API="https://api.github.com"
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
-      
+
           RELEASE_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" | jq -r .id)
           if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
             echo "Release id not found for $RELEASE_TAG"
             exit 1
           fi
-      
-          # find only files we want (case-insensitive)
+
           find ./collected -type f \( -iname "*.exe" -o -iname "*.dmg" -o -iname "*.exe.blockmap" -o -iname "*.dmg.blockmap" \) -print0 \
             | while IFS= read -r -d '' f; do
               FNAME=$(basename "$f")
               echo "Uploading asset: $FNAME from $f"
-              # delete existing asset with same name (if any)
               EXISTING_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | jq -r --arg name "$FNAME" '.[] | select(.name==$name) | .id' | head -n1)
               if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
                 echo "Deleting existing asset id $EXISTING_ID (name: $FNAME)"
                 curl -s -X DELETE -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/assets/$EXISTING_ID"
               fi
-      
-              # safe upload (escape name for URL)
+
               ENCODED_NAME=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")
               UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$ENCODED_NAME"
               curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
@@ -165,7 +173,6 @@ jobs:
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
           LATEST_TAG="latest"
 
-          # check or create latest release
           echo "Checking for existing 'latest' release..."
           LID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$LATEST_TAG" | jq -r .id)
           if [ -z "$LID" ] || [ "$LID" = "null" ]; then
@@ -178,7 +185,6 @@ jobs:
             echo "'latest' release exists (id=$LID)."
           fi
 
-          # remove existing assets on 'latest' (optional, to replace)
           echo "Listing existing assets on latest (id=$LID) and deleting them..."
           EXISTING_IDS=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$LID/assets" | jq -r '.[].id' || true)
           for aid in $EXISTING_IDS; do
@@ -188,7 +194,6 @@ jobs:
             fi
           done
 
-          # upload only the installer files (exe, dmg and their blockmaps)
           echo "Uploading installer files to 'latest'..."
           find ./collected -type f \( -iname "*.exe" -o -iname "*.dmg" -o -iname "*.exe.blockmap" -o -iname "*.dmg.blockmap" \) -print0 \
             | while IFS= read -r -d '' f; do
@@ -208,4 +213,5 @@ jobs:
           echo "Run release: https://github.com/${{ github.repository }}/releases/tag/${{ env.RUN_TAG }}"
           echo "Latest release: https://github.com/${{ github.repository }}/releases/tag/latest"
         shell: bash
+
 
