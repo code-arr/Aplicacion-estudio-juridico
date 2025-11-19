@@ -15,7 +15,7 @@
     "build": "tsc -p electron && tsc -p electron/tsconfig.preload.json && vite build",
     "build:all": "npm run build && npm run build:electron",
     "build:electron": "electron-builder --publish=never",
-    "build:electron:ci": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish=never",
+    "build:electron:ci": "electron-builder --publish=never",
     "lint": "eslint .",
     "preview": "vite preview",
     "check:deps": "depcheck",
