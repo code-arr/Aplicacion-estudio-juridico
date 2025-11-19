@@ -8,13 +8,6 @@ import LoadingScreen from "@/components/shared/LoadingScreen";
 import { useEffect } from "react";
 import { useResetDeepLink } from "@/hooks/useResetDeepLink";
 import UpdateListener from "@/components/UpdateListener";
-import { useOAuthDeepLink } from "@/hooks/useOAuthDeepLink"; // importalo aquí
-
-// nuevo componente pequeño que ejecuta el hook DENTRO del Router
-const OAuthDeepLinkListener = () => {
-  useOAuthDeepLink();
-  return null;
-};
 
 const RootRouter = () => {
   const { isLoadingSession } = useAuthStore();
@@ -29,9 +22,6 @@ const RootRouter = () => {
   return (
     <HashRouter>
       <Theme>
-        {/* <-- escuchar deep-links desde dentro del Router */}
-        <OAuthDeepLinkListener />
-
         <AppRoutes />
         <Toaster />
         <UpdateListener />

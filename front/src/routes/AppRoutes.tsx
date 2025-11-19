@@ -36,8 +36,10 @@ import AdminStatsPage from "@/pages/dashboard/admin/AdminStatsPage";
 
 import LoadingScreen from "@/components/shared/LoadingScreen";
 import AdminItemsPage from "@/pages/dashboard/admin/AdminItemsPage";
+import { useOAuthDeepLink } from "@/hooks/useOAuthDeepLink";
 
 const AppRoutes = () => {
+  useOAuthDeepLink();
   const location = useLocation();
   const { isAdmin, isLawyer, isLoadingSession } = useAuthStore();
   if (isLoadingSession) return <LoadingScreen />;

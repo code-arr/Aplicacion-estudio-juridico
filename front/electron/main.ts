@@ -333,6 +333,7 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on("second-instance", (_event, argv) => {
+    console.log("[second-instance] argv:", argv);
     // En Windows, el deep link llega como argumento tipo: "ibarrayasoc://reset?token=..."
     const argWithUrl = argv.find(
       (a) => typeof a === "string" && a.startsWith("ibarrayasoc://")
@@ -483,6 +484,7 @@ app.whenReady().then(() => {
 // 🔵 ADD: macOS entrega el deep link por este evento
 app.on("open-url", (event, url) => {
   event.preventDefault();
+  console.log("[open-url] received url:", url);
   const token = extractTokenFromDeepLink(url);
   if (token) {
     if (mainWindow) {
