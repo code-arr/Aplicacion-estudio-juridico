@@ -37,32 +37,67 @@ export class AwsS3Service {
       // 1️⃣ Determinar la ruta (Key) en función de los parámetros
       let key: string | null = null;
 
+      // helper: intenta construir ruta desde itemType (si existe)
+      const buildFromItemType = (it: any, docId?: string) => {
+        if (!it) return null;
+        const section = it.section;
+        const category = section?.category;
+        if (!section || !category) return null;
+        if (docId) {
+          return `${category.name}/${section.name}/${it.name}/${docId}`;
+        }
+        return `${category.name}/${section.name}/${it.name}`;
+      };
+
+      // helper: intenta construir ruta desde section (si existe)
+      const buildFromSection = (section: any, docId?: string) => {
+        if (!section) return null;
+        const category = section.category;
+        if (!category) return null;
+        if (docId) {
+          return `${category.name}/${section.name}/${docId}`;
+        }
+        return `${category.name}/${section.name}`;
+      };
+
+      // helper: intenta construir ruta desde category (si existe)
+      const buildFromCategory = (category: any, docId?: string) => {
+        if (!category) return null;
+        if (docId) {
+          return `${category.name}/${docId}`;
+        }
+        return `${category.name}`;
+      };
+
       if (audienceId) {
-        // Caso audience
+        // Caso audience: preferimos la ruta basada en itemType -> section -> category
+        // Si falta alguno, intentamos section o category. Si no hay nada, usamos title.
         key =
-          `${clientItem.itemType.section.category.name}/` +
-          `${clientItem.itemType.section.name}/` +
-          `${clientItem.itemType.name}/` +
-          `${clientItem.title}/${documentId}`;
+          buildFromItemType(clientItem.itemType, documentId) ??
+          buildFromSection(clientItem.section, documentId) ??
+          buildFromCategory(clientItem.category, documentId) ??
+          // fallback: agrupar por título + audienceId para no chocar
+          `${clientItem.title}/${audienceId}`;
       } else if (documentId) {
-        // Caso con documentId
+        // Caso con documentId: chequeamos category -> section -> itemType (igual que tu lógica original,
+        // pero con comprobaciones explícitas)
         if (clientItem.category) {
           console.log(
             `Subiendo documento a S3 en la categoría: ${clientItem.category.name}`,
           );
-          key = `${clientItem.category.name}/${documentId}`;
+          key = buildFromCategory(clientItem.category, documentId);
         } else if (clientItem.section) {
           console.log(
             'Subiendo documento a S3 en la sección:',
             clientItem.section.name,
           );
-          key = `${clientItem.section.category.name}/${clientItem.section.name}/${documentId}`;
+          key = buildFromSection(clientItem.section, documentId);
         } else if (clientItem.itemType) {
           console.log(
             'Subiendo documento a S3 en el tipo de ítem:',
             clientItem.itemType.name,
           );
-          key = `${clientItem.itemType.section.category.name}/${clientItem.itemType.section.name}/${documentId}`;
+          key = buildFromItemType(clientItem.itemType, documentId);
         }
       }
 
