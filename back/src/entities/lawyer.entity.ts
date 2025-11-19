@@ -25,6 +25,8 @@ export enum lawyerType {
   CRIMINAL = 'criminal',
   CIVIL = 'civil',
   FAMILIAR = 'familiar',
+  COMERCIAL = 'comercial',
+  
 }
 
 export enum seniorityLevel {
