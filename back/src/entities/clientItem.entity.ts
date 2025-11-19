@@ -100,14 +100,20 @@ export class ClientItem {
   @OneToMany(() => Meeting, (meet) => meet.clientItem)
   meetings: Meeting[];
 
-  @ManyToOne(() => ItemType, (itemType) => itemType.clientItems)
-  itemType: ItemType;
+  @ManyToOne(() => ItemType, (itemType) => itemType.clientItems, {
+    nullable: true,
+  })
+  itemType?: ItemType | null;
 
-  @ManyToOne(() => Category, (category) => category.clientItems)
-  category: Category;
+  @ManyToOne(() => Category, (category) => category.clientItems, {
+    nullable: true,
+  })
+  category?: Category | null;
 
-  @ManyToOne(() => Section, (section) => section.clientItems)
-  section: Section;
+  @ManyToOne(() => Section, (section) => section.clientItems, {
+    nullable: true,
+  })
+  section?: Section | null;
 
   @OneToMany(() => EntryDay, (entry) => entry.clientItem) // 'entry.clientItem' debe coincidir con el nombre de la propiedad en EntryDay
   public entries: EntryDay[];

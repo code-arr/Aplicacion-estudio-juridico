@@ -16,6 +16,18 @@ export class ClientItemService {
     return this.clientItemRepository.createClientItem(clientItem, lawyerId);
   }
 
+  async createClientItemGeneric(
+    clientItem: ClientItemDto,
+    lawyerId: string,
+    clientId: string,
+  ): Promise<ClientItem> {
+    return this.clientItemRepository.createClientItemGeneric(
+      clientItem,
+      lawyerId,
+      clientId,
+    );
+  }
+
   async createClientItemCategory(
     clientItem: ClientItemDto,
     categoryId: string,

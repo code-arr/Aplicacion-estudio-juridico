@@ -7,6 +7,7 @@ import { ClientItemService } from '../services/clientItem.service';
 @Controller('clientItem')
 export class ClientItemController {
   constructor(private readonly ClientItemService: ClientItemService) {}
+
   @Post('create')
   async createClientItem(
     @Body() clientItem: ClientItemDto,
@@ -25,6 +26,13 @@ export class ClientItemController {
       return this.ClientItemService.createClientItemCategory(
         clientItem,
         clientItem.categoryId,
+        lawyerId,
+        clientItem.clientId,
+      );
+    } else {
+      // Caso: no itemType, no section, no category -> crear ítem genérico
+      return this.ClientItemService.createClientItemGeneric(
+        clientItem,
         lawyerId,
         clientItem.clientId,
       );

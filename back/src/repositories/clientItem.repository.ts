@@ -48,6 +48,7 @@ export class ClientItemRepository implements OnModuleInit {
   async onModuleInit() {
     await this.seedClientItems();
   }
+
   async createClientItem(
     clientItem: ClientItemDto,
     lawyerId: string,
@@ -78,6 +79,38 @@ export class ClientItemRepository implements OnModuleInit {
       itemType: itemType,
       client: client,
       lawyer: lawyer,
+    });
+
+    this.eventService.createEvent({
+      action: 'CREATE',
+      entityName: newClientItem.title,
+      entityId: newClientItem.id,
+      entityType: 'CLIENT_ITEM',
+      lawyerId: lawyer.id,
+    });
+
+    return await this.clientItemRepository.save(newClientItem);
+  }
+
+  async createClientItemGeneric(
+    clientItem: ClientItemDto,
+    lawyerId: string,
+    clientId: string,
+  ): Promise<ClientItem> {
+    const lawyer = await this.lawyerService.getAbogadoById(lawyerId);
+    const client = await this.clientService.getClienteById(clientId);
+
+    if (!lawyer) throw new NotFoundException('Abogado no encontrado');
+    if (!client) throw new NotFoundException('Cliente no encontrado');
+
+    const newClientItem = this.clientItemRepository.create({
+      ...clientItem,
+      lawyer,
+      client,
+      // explicitamente no incluyo itemType/section/category
+      itemType: null,
+      section: null,
+      category: null,
     });
 
     this.eventService.createEvent({
