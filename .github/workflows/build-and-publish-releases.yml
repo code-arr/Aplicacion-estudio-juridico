@@ -109,11 +109,7 @@ jobs:
               FNAME=$(basename "$f")
               echo " -> $FNAME"
               # url-encode filename
-              ENCODED=$(python3 - <<PY
-              import urllib.parse,sys
-              print(urllib.parse.quote(sys.argv[1]))
-              PY
-              "$FNAME")
+              ENCODED=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")
               curl --fail -X POST -H "Authorization: $AUTH" \
                 -H "Content-Type: application/octet-stream" --data-binary @"$f" \
                 "$UPLOAD_URL?name=$ENCODED"
@@ -221,11 +217,7 @@ jobs:
               TMPF="/tmp/$NAME"
               curl -sL -H "Authorization: $AUTH" -o "$TMPF" "$BURL"
               # URL-encode filename
-              ENCODED=$(python3 - <<PY
-              import urllib.parse,sys
-              print(urllib.parse.quote(sys.argv[1]))
-              PY
-              "$NAME")
+              ENCODED=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$NAME")
               UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$LID/assets?name=$ENCODED"
               curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$TMPF" "$UPLOAD_URL"
               rm -f "$TMPF"
