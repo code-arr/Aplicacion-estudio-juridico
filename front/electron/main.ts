@@ -139,6 +139,10 @@ function extractOAuthFromDeepLink(
 
 let mainWindow: BrowserWindow | null = null;
 
+// buffer temporal para logs que llegan antes de que el renderer esté listo
+let _pendingMainLogs: Array<{ level: string; payload: string[] }> = [];
+
+/** Reemplazar tu sendMainLog por esta versión */
 function sendMainLog(
   level: "info" | "warn" | "error" | "debug",
   ...args: any[]
@@ -149,22 +153,30 @@ function sendMainLog(
   else if (level === "warn") console.warn(prefix, ...args);
   else console.log(prefix, ...args);
 
-  // reenviar al renderer si existe la ventana principal
-  try {
-    if (mainWindow && mainWindow.webContents) {
-      // convertimos argumentos a strings JSON-safe para no romper la IPC
-      const payload = args.map((a) => {
-        try {
-          if (typeof a === "string") return a;
-          return JSON.stringify(a, Object.getOwnPropertyNames(a));
-        } catch {
-          return String(a);
-        }
-      });
-      mainWindow.webContents.send("main:log", { level, payload });
+  // convertir payload a strings JSON-safe
+  const payload = args.map((a) => {
+    try {
+      if (typeof a === "string") return a;
+      return JSON.stringify(a, Object.getOwnPropertyNames(a));
+    } catch {
+      return String(a);
     }
+  });
+
+  try {
+    // si no hay ventana todavía, o la webContents sigue cargando, pusheamos al buffer
+    if (
+      !mainWindow ||
+      !mainWindow.webContents ||
+      mainWindow.webContents.isLoading()
+    ) {
+      _pendingMainLogs.push({ level, payload });
+      return;
+    }
+
+    // enviamos inmediatamente si el renderer está listo
+    mainWindow.webContents.send("main:log", { level, payload });
   } catch (e) {
-    // no romper el main por un fallo de logging
     console.error("[main:log] failed to send to renderer", e);
   }
 }
@@ -338,10 +350,28 @@ function createWindow() {
     }
   };
 
+  // FLUSH adicional: enviamos los logs pendientes cuando terminó de cargar el renderer
+  const flushPendingMainLogs = () => {
+    try {
+      if (mainWindow && mainWindow.webContents && _pendingMainLogs.length) {
+        for (const l of _pendingMainLogs) {
+          mainWindow.webContents.send("main:log", l);
+        }
+        _pendingMainLogs = [];
+      }
+    } catch (e) {
+      console.error("[main:log] flush failed", e);
+    }
+  };
+
   if (mainWindow.webContents.isLoading()) {
-    mainWindow.webContents.once("did-finish-load", sendPendingToken);
+    mainWindow.webContents.once("did-finish-load", () => {
+      sendPendingToken();
+      flushPendingMainLogs();
+    });
   } else {
     sendPendingToken();
+    flushPendingMainLogs();
   }
 
   mainWindow.on("closed", () => {
