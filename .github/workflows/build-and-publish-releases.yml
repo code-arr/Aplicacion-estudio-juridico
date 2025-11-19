@@ -60,7 +60,7 @@ jobs:
           JSON
         shell: bash
 
-      - name: Build electron installers (CI mode no signing)
+      - name: Build electron installers (CI mode - no signing)
         working-directory: ./front
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -196,7 +196,3 @@ jobs:
           echo "Run release: https://github.com/${{ github.repository }}/releases/tag/${{ env.RUN_TAG }}"
           echo "Latest release: https://github.com/${{ github.repository }}/releases/tag/latest"
         shell: bash
-
-
-
-
