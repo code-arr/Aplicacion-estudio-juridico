@@ -155,12 +155,46 @@ export class AuthController {
         googleRefreshToken: googleTokens.refreshToken,
       });
 
-      const encodedReturn = encodeURIComponent(
+      // después de linkear en DB:
+      const scheme = process.env.APP_SCHEME || 'ibarrayasoc';
+      const returnToEncoded = encodeURIComponent(
         returnTo || '/#/dashboard/settings',
       );
-      return res.redirect(
-        `${process.env.FRONTEND_URL}/oauth/done?status=success&returnTo=${encodedReturn}`,
-      );
+
+      // construyo deep link que la app recibirá
+      const deepLink = `${scheme}://oauth-callback?status=success&returnTo=${returnToEncoded}`;
+
+      // HTML mínimo que intenta abrir el deep link y muestra fallback
+      const html = `<!doctype html>
+      <html>
+      <head><meta charset="utf-8"><title>Volviendo a la app…</title>
+      <meta name="viewport" content="width=device-width,initial-scale=1"/>
+      <style>body{font-family:system-ui,Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:20px} .card{max-width:640px;text-align:center}</style>
+      </head>
+      <body>
+        <div class="card">
+          <h2>Volviendo a la aplicación…</h2>
+          <p>La aplicación instalada debería abrirse automáticamente. Si no, hacé click en el botón o copiá el enlace.</p>
+          <p><a id="open" href="${deepLink}" style="display:inline-block;padding:10px 14px;border-radius:6px;border:1px solid #ccc;text-decoration:none">Abrir la app</a></p>
+          <pre id="link" style="background:#f6f6f6;padding:8px;border-radius:6px;word-break:break-all">${deepLink}</pre>
+        </div>
+      <script>
+      (function(){
+        var deep = ${JSON.stringify(deepLink)};
+        // intento abrirlo (varias tácticas para mayor compatibilidad)
+        try { window.location = deep; } catch(e) {}
+        // iframe fallback
+        setTimeout(function(){
+          var ifr = document.createElement('iframe');
+          ifr.style.display='none'; ifr.src = deep; document.body.appendChild(ifr);
+          setTimeout(function(){ try{ document.body.removeChild(ifr);}catch(e){} }, 1200);
+        }, 200);
+      })();
+      </script>
+      </body></html>`;
+
+      // envía la página al navegador (no redirect)
+      return res.status(200).send(html);
     } catch (error) {
       console.error('Error al linkear cuenta Google:', error);
       return res.redirect(
