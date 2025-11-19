@@ -60,12 +60,12 @@ jobs:
           JSON
         shell: bash
 
-      - name: Build electron installers (CI mode: no signing)
+      - name: Build electron installers (CI mode - no signing)
         working-directory: ./front
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Usamos el script CI que evita intentar firmar (útil en CI sin certificados)
+          # Usamos un script CI que evita intentar firmar en runners sin certificados.
           npm run build:electron:ci
         shell: bash
 
@@ -84,12 +84,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release-${{ matrix.os }}
-          # copiar solo los instaladores y blockmaps (evita subir 500 archivos)
-          shopt -s nullglob || true
           for ext in exe dmg exe.blockmap dmg.blockmap; do
             for f in front/release/*.$ext; do
-              echo "Copying $f"
-              cp "$f" "release-${{ matrix.os }}/" || true
+              if [ -f "$f" ]; then
+                echo "Copying $f"
+                cp "$f" "release-${{ matrix.os }}/" || true
+              fi
             done
           done
           echo "ARTIFACT_DIR=release-${{ matrix.os }}" >> $GITHUB_ENV
@@ -142,13 +142,11 @@ jobs:
           RELEASE_TAG="${{ env.RUN_TAG }}"
           API="https://api.github.com"
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
-
           RELEASE_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" | jq -r .id)
           if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
             echo "Release id not found for $RELEASE_TAG"
             exit 1
           fi
-
           find ./collected -type f \( -iname "*.exe" -o -iname "*.dmg" -o -iname "*.exe.blockmap" -o -iname "*.dmg.blockmap" \) -print0 \
             | while IFS= read -r -d '' f; do
               FNAME=$(basename "$f")
@@ -158,7 +156,6 @@ jobs:
                 echo "Deleting existing asset id $EXISTING_ID (name: $FNAME)"
                 curl -s -X DELETE -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/assets/$EXISTING_ID"
               fi
-
               ENCODED_NAME=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")
               UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$ENCODED_NAME"
               curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
@@ -172,40 +169,26 @@ jobs:
           API="https://api.github.com"
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
           LATEST_TAG="latest"
-
-          echo "Checking for existing 'latest' release..."
           LID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$LATEST_TAG" | jq -r .id)
           if [ -z "$LID" ] || [ "$LID" = "null" ]; then
-            echo "Creating new 'latest' release..."
             CREATE=$(curl -s -X POST -H "Authorization: $AUTH" -H "Content-Type: application/json" \
               -d "{\"tag_name\":\"$LATEST_TAG\",\"name\":\"Latest\",\"body\":\"Latest build for testers (auto)\",\"draft\":false,\"prerelease\":false}" \
               "$API/repos/${{ github.repository }}/releases")
             LID=$(jq -r .id <<<"$CREATE")
-          else
-            echo "'latest' release exists (id=$LID)."
           fi
-
-          echo "Listing existing assets on latest (id=$LID) and deleting them..."
           EXISTING_IDS=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$LID/assets" | jq -r '.[].id' || true)
           for aid in $EXISTING_IDS; do
             if [ -n "$aid" ] && [ "$aid" != "null" ]; then
-              echo "Deleting existing asset id $aid"
-              curl -s -X DELETE -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/assets/$aid"
+              curl -s -X DELETE -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/assets/$aid" || true
             fi
           done
-
-          echo "Uploading installer files to 'latest'..."
           find ./collected -type f \( -iname "*.exe" -o -iname "*.dmg" -o -iname "*.exe.blockmap" -o -iname "*.dmg.blockmap" \) -print0 \
             | while IFS= read -r -d '' f; do
                 FNAME=$(basename "$f")
-                echo " -> Uploading $FNAME from $f"
                 ENCODED_NAME=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$FNAME")
                 UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$LID/assets?name=$ENCODED_NAME"
                 curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$UPLOAD_URL"
-                echo "    uploaded $FNAME"
             done
-
-          echo "Latest release updated: https://github.com/${{ github.repository }}/releases/tag/latest"
         shell: bash
 
       - name: Final info
@@ -213,5 +196,3 @@ jobs:
           echo "Run release: https://github.com/${{ github.repository }}/releases/tag/${{ env.RUN_TAG }}"
           echo "Latest release: https://github.com/${{ github.repository }}/releases/tag/latest"
         shell: bash
-
-
