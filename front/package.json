@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "main": "dist-electron/electron/main.js",
+  "description": "Aplicación de escritorio para gestión de estudio jurídico",
+  "author": "Tu Nombre <tu.email@ejemplo.com>",
   "scripts": {
     "dev:web": "vite",
     "dev:tsc:main": "tsc -p electron -w",
@@ -13,6 +15,7 @@
     "build": "tsc -p electron && tsc -p electron/tsconfig.preload.json && vite build",
     "build:all": "npm run build && npm run build:electron",
     "build:electron": "electron-builder --publish=never",
+    "build:electron:ci": "electron-builder --publish=never --config.win.sign=false --config.mac.identity=null",
     "lint": "eslint .",
     "preview": "vite preview",
     "check:deps": "depcheck",
@@ -93,7 +96,8 @@
       "target": [
         "nsis"
       ],
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "sign": false
     },
     "nsis": {
       "oneClick": false,
@@ -111,7 +115,8 @@
           ]
         }
       ],
-      "icon": "build/icon.icns"
+      "icon": "build/icon.icns",
+      "identity": null
     },
     "publish": [
       {
