@@ -64,8 +64,9 @@ jobs:
         working-directory: ./front
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ""
+          CSC_KEY_PASSWORD: ""
         run: |
-          # Usamos un script CI que evita intentar firmar en runners sin certificados.
           npm run build:electron:ci
         shell: bash
 
