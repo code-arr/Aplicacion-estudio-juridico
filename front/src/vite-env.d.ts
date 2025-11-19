@@ -105,5 +105,10 @@ declare global {
     authDeepLink?: {
       onResetLink: (cb: (token: string) => void) => () => void;
     };
+    mainLog?: {
+      onLog?: (
+        cb: (entry: { level: string; payload: string[] }) => void
+      ) => () => void;
+    };
   }
 }

@@ -139,6 +139,36 @@ function extractOAuthFromDeepLink(
 
 let mainWindow: BrowserWindow | null = null;
 
+function sendMainLog(
+  level: "info" | "warn" | "error" | "debug",
+  ...args: any[]
+) {
+  // logear en main (stdout)
+  const prefix = `[main:${level}]`;
+  if (level === "error") console.error(prefix, ...args);
+  else if (level === "warn") console.warn(prefix, ...args);
+  else console.log(prefix, ...args);
+
+  // reenviar al renderer si existe la ventana principal
+  try {
+    if (mainWindow && mainWindow.webContents) {
+      // convertimos argumentos a strings JSON-safe para no romper la IPC
+      const payload = args.map((a) => {
+        try {
+          if (typeof a === "string") return a;
+          return JSON.stringify(a, Object.getOwnPropertyNames(a));
+        } catch {
+          return String(a);
+        }
+      });
+      mainWindow.webContents.send("main:log", { level, payload });
+    }
+  } catch (e) {
+    // no romper el main por un fallo de logging
+    console.error("[main:log] failed to send to renderer", e);
+  }
+}
+
 /** ==================== NUEVO: estado de la ventana del visor de documentos ==================== */
 let documentViewerWindow: BrowserWindow | null = null;
 
@@ -333,11 +363,11 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on("second-instance", (_event, argv) => {
-    console.log("[second-instance] argv:", argv);
-    // En Windows, el deep link llega como argumento tipo: "ibarrayasoc://reset?token=..."
+    sendMainLog("info", "second-instance argv", argv);
     const argWithUrl = argv.find(
       (a) => typeof a === "string" && a.startsWith("ibarrayasoc://")
     );
+    sendMainLog("debug", { argWithUrl });
     const token = extractTokenFromDeepLink(argWithUrl || null);
 
     if (token) {
@@ -484,8 +514,9 @@ app.whenReady().then(() => {
 // 🔵 ADD: macOS entrega el deep link por este evento
 app.on("open-url", (event, url) => {
   event.preventDefault();
-  console.log("[open-url] received url:", url);
+  sendMainLog("info", "open-url event", url);
   const token = extractTokenFromDeepLink(url);
+  sendMainLog("debug", { token });
   if (token) {
     if (mainWindow) {
       mainWindow.webContents.send("reset-password:open", token);
@@ -646,4 +677,11 @@ ipcMain.on("viewer:audience:closeById", (_event, id: string) => {
   if (win.webContents.isLoading())
     win.webContents.once("did-finish-load", send);
   else send();
+});
+
+process.on("uncaughtException", (err) => {
+  sendMainLog("error", "uncaughtException", err && err.stack ? err.stack : err);
+});
+process.on("unhandledRejection", (reason) => {
+  sendMainLog("error", "unhandledRejection", reason);
 });

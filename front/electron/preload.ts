@@ -271,6 +271,24 @@ contextBridge.exposeInMainWorld("authDeepLink", {
 
 /** =============================================================== */
 
+contextBridge.exposeInMainWorld("mainLog", {
+  onLog: (cb: (entry: { level: string; payload: string[] }) => void) => {
+    const channel = "main:log";
+    const handler = (_: any, data: { level: string; payload: string[] }) => {
+      try {
+        cb(data);
+      } catch (e) {
+        // no romper nada si el callback del renderer falla
+        // podemos opcionalmente console.error aquí
+      }
+    };
+    ipcRenderer.on(channel, handler);
+    return () => {
+      ipcRenderer.off(channel, handler);
+    };
+  },
+});
+
 // 🔵 API para abrir enlaces externos de forma segura
 
 async function openExternal(url: string): Promise<boolean> {
