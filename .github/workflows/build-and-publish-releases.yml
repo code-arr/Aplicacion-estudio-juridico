@@ -60,7 +60,7 @@ jobs:
           JSON
         shell: bash
 
-      - name: Build electron installers (CI mode: no signing)
+      - name: Build electron installers (CI mode no signing)
         working-directory: ./front
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
