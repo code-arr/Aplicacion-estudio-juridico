@@ -70,6 +70,10 @@ const ELECTRON_DIST = __dirname; // .../dist-electron/electron
 const RENDERER_DIST_SIBLING = path.join(ELECTRON_DIST, "..", "..", "dist");
 const RENDERER_DIST_RESOURCES = path.join(process.resourcesPath, "dist"); // por si tu empaquetador mueve a /resources/dist
 
+let _authToken: string | null = null;
+let pendingResetToken: string | null = null;
+let pendingOAuth: { status?: string; returnTo?: string } | null = null;
+
 function findIndexHtml(): string {
   const candidates = [
     path.join(RENDERER_DIST_SIBLING, "index.html"), // patrón más común en dev/build local
@@ -88,8 +92,6 @@ function findIndexHtml(): string {
 
 loadEnv({ path: path.resolve(__dirname, "../../.env") });
 
-let _authToken: string | null = null;
-
 // ⚙️ Config del back (no el Vite server)
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3000";
 
@@ -98,8 +100,6 @@ const syncApi = createSyncApi({
   getAuthToken: () => _authToken,
 });
 const syncService = createMainSyncService({ api: syncApi });
-
-let pendingResetToken: string | null = null;
 
 // 🔵 ADD: pequeña utilidad para extraer token desde una URL del protocolo
 function extractTokenFromDeepLink(
@@ -110,6 +110,26 @@ function extractTokenFromDeepLink(
     if (!urlOrArg.startsWith("ibarrayasoc://")) return null;
     const u = new URL(urlOrArg);
     return u.searchParams.get("token");
+  } catch {
+    return null;
+  }
+}
+
+function extractOAuthFromDeepLink(
+  urlOrArg: string | undefined | null
+): { status?: string; returnTo?: string } | null {
+  try {
+    if (!urlOrArg) return null;
+    if (!urlOrArg.startsWith("ibarrayasoc://")) return null;
+    const u = new URL(urlOrArg);
+    // detecta si la path/host contiene oauth-callback
+    const pathname = (u.pathname || u.host || "").toLowerCase();
+    if (!pathname.includes("oauth-callback")) return null;
+
+    if (!pathname.includes("oauth-callback")) return null;
+    const status = u.searchParams.get("status") || undefined;
+    const returnTo = u.searchParams.get("returnTo") || undefined;
+    return { status, returnTo };
   } catch {
     return null;
   }
@@ -282,6 +302,10 @@ function createWindow() {
       mainWindow.webContents.send("reset-password:open", pendingResetToken);
       pendingResetToken = null;
     }
+    if (pendingOAuth && mainWindow) {
+      mainWindow.webContents.send("oauth-deeplink", pendingOAuth);
+      pendingOAuth = null;
+    }
   };
 
   if (mainWindow.webContents.isLoading()) {
@@ -322,6 +346,19 @@ if (!gotLock) {
         mainWindow.focus();
       } else {
         pendingResetToken = token;
+      }
+    }
+
+    if (argWithUrl) {
+      const oauth = extractOAuthFromDeepLink(argWithUrl);
+      if (oauth) {
+        if (mainWindow && mainWindow.webContents) {
+          mainWindow.webContents.send("oauth-deeplink", oauth);
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          mainWindow.focus();
+        } else {
+          pendingOAuth = oauth;
+        }
       }
     }
   });
@@ -431,6 +468,15 @@ app.whenReady().then(() => {
         pendingResetToken = null;
       }
     }
+
+    const oauthFromArg = extractOAuthFromDeepLink(urlArg || null);
+    if (oauthFromArg) {
+      pendingOAuth = oauthFromArg;
+      if (mainWindow && !mainWindow.webContents.isLoading()) {
+        mainWindow.webContents.send("oauth-deeplink", oauthFromArg);
+        pendingOAuth = null;
+      }
+    }
   }
 });
 
@@ -438,13 +484,23 @@ app.whenReady().then(() => {
 app.on("open-url", (event, url) => {
   event.preventDefault();
   const token = extractTokenFromDeepLink(url);
-  if (!token) return;
+  if (token) {
+    if (mainWindow) {
+      mainWindow.webContents.send("reset-password:open", token);
+      mainWindow.focus();
+    } else {
+      pendingResetToken = token;
+    }
+  }
 
-  if (mainWindow) {
-    mainWindow.webContents.send("reset-password:open", token);
-    mainWindow.focus();
-  } else {
-    pendingResetToken = token;
+  const oauth = extractOAuthFromDeepLink(url);
+  if (oauth) {
+    if (mainWindow) {
+      mainWindow.webContents.send("oauth-deeplink", oauth);
+      mainWindow.focus();
+    } else {
+      pendingOAuth = oauth;
+    }
   }
 });
 

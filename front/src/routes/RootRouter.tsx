@@ -8,10 +8,12 @@ import LoadingScreen from "@/components/shared/LoadingScreen";
 import { useEffect } from "react";
 import { useResetDeepLink } from "@/hooks/useResetDeepLink";
 import UpdateListener from "@/components/UpdateListener";
+import { useOAuthDeepLink } from "@/hooks/useOAuthDeepLink";
 
 const RootRouter = () => {
   const { isLoadingSession } = useAuthStore();
   useResetDeepLink();
+  useOAuthDeepLink();
 
   useEffect(() => {
     restoreSession();
