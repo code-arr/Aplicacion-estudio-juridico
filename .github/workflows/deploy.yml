@@ -28,9 +28,9 @@ jobs:
         working-directory: back
         run: npm run build
 
-      - name: Package app (zip with Procfile and .ebextensions if present)
+      - name: Package app (zip with Procfile and .platform if present)
         working-directory: back
-        run: zip -r ../app.zip dist package.json package-lock.json Procfile
+        run: zip -r ../app.zip dist package.json package-lock.json Procfile .platform
 
       # Credenciales para usar AWS CLI en el paso de "wait until Ready"
       - name: Configure AWS credentials for AWS CLI
