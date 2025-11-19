@@ -34,11 +34,11 @@ type ItemFormProps = {
 };
 
 type NewItem = {
-  categoryId: string;
-  sectionId: string;
-  itemTypeId: string;
+  categoryId?: string;
+  sectionId?: string;
+  itemTypeId?: string;
   title: string;
-  description: string;
+  description?: string;
   clientId: string;
   private: boolean;
   hourlyRateOverride?: string; // string con formato "1234.50"
@@ -46,11 +46,11 @@ type NewItem = {
 };
 
 const initialItemState: NewItem = {
-  categoryId: "",
-  sectionId: "",
-  itemTypeId: "",
+  categoryId: undefined,
+  sectionId: undefined,
+  itemTypeId: undefined,
   title: "",
-  description: "",
+  description: undefined,
   clientId: "",
   private: true,
   hourlyRateOverride: undefined,
@@ -317,12 +317,18 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
   );
 
   function validate(): string | null {
-    if (!newItem.categoryId) return "La categoria es obligatoria.";
-    if (!newItem.sectionId) return "La seccion es obligatoria.";
-    if (!newItem.itemTypeId) return "El tipo de item es obligatorio.";
-    if (!newItem.title.trim()) return "El titulo es obligatorio.";
-    if (!newItem.description.trim()) return "La descripcion es obligatoria.";
+    if (!newItem.title?.trim()) return "El titulo es obligatorio.";
+    if (!newItem.description?.trim()) return "La descripcion es obligatoria.";
     if (!newItem.clientId) return "El cliente es obligatorio.";
+
+    // Si la categoría tiene secciones disponibles, la sección es obligatoria
+    if (categorySections.length > 0 && !newItem.sectionId)
+      return "La seccion es obligatoria.";
+
+    // Si la sección tiene tipos de item disponibles, el tipo es obligatorio
+    if (sectionItemTypes.length > 0 && !newItem.itemTypeId)
+      return "El tipo de item es obligatorio.";
+
     return null;
   }
 
@@ -345,12 +351,21 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
     setErrorMsg(null);
 
     try {
-      await createClientItem({
-        ...newItem,
+      const payload: any = {
+        title: newItem.title,
+        description: newItem.description ?? undefined,
+        clientId: newItem.clientId,
         isPrivate: !!newItem.private,
         hourlyRateOverride: normalizeHourly(newItem.hourlyRateOverride),
         currencyOverride: newItem.currencyOverride ?? undefined,
-      });
+        // enviamos las FK solo si existen
+        ...(newItem.categoryId ? { categoryId: newItem.categoryId } : {}),
+        ...(newItem.sectionId ? { sectionId: newItem.sectionId } : {}),
+        ...(newItem.itemTypeId ? { itemTypeId: newItem.itemTypeId } : {}),
+      };
+
+      // añadí lawyerId como query param (el backend lo espera con @Query('lawyerId'))
+      await createClientItem(payload);
 
       if (hasActualClient) {
         await fetchClientItemsByClientId(actualClient.id!);
@@ -385,7 +400,7 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
         </DialogHeader>
         <form className="grid gap-4 pt-4 pb-2" onSubmit={handleAddItem}>
           <ClientSelectRow
-            value={newItem.clientId}
+            value={newItem.clientId ?? ""}
             hasActualClient={hasActualClient}
             clients={clients}
             actualClient={actualClient}
@@ -394,41 +409,41 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
               setNewItem((prev) => ({
                 ...prev,
                 clientId: value,
-                categoryId: "",
-                sectionId: "",
-                itemTypeId: "",
+                categoryId: undefined,
+                sectionId: undefined,
+                itemTypeId: undefined,
               }));
             }, [])}
           />
 
           <CategorySelectRow
-            value={newItem.categoryId}
+            value={newItem.categoryId ?? ""}
             categories={categories}
             onChange={useCallback((value: string) => {
               setNewItem((prev) => ({
                 ...prev,
                 categoryId: value,
-                sectionId: "",
-                itemTypeId: "",
+                sectionId: undefined,
+                itemTypeId: undefined,
               }));
             }, [])}
           />
 
           <SectionSelectRow
-            value={newItem.sectionId}
+            value={newItem.sectionId ?? ""}
             disabled={!newItem.categoryId || categorySections.length === 0}
             sections={categorySections}
             onChange={useCallback((value: string) => {
               setNewItem((prev) => ({
                 ...prev,
                 sectionId: value,
-                itemTypeId: "",
+                itemTypeId: undefined, // <-- usar undefined, no ""
               }));
             }, [])}
           />
 
           <ItemTypeSelectRow
-            value={newItem.itemTypeId}
+            value={newItem.itemTypeId ?? ""}
             disabled={!newItem.sectionId || sectionItemTypes.length === 0}
             itemTypes={sectionItemTypes}
             onChange={useCallback((value: string) => {
@@ -441,12 +456,9 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
             <Input
               required
               id="title"
-              value={newItem.title}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewItem({
-                  ...newItem,
-                  title: e.target.value,
-                })
+              value={newItem.title ?? ""}
+              onChange={(e) =>
+                setNewItem((prev) => ({ ...prev, title: e.target.value }))
               }
               placeholder="Juicio Tribunal Civil 187"
               spellCheck={false}
@@ -461,12 +473,9 @@ const ItemForm = ({ isDialogOpen, setIsDialogOpen }: ItemFormProps) => {
             <Input
               required
               id="description"
-              value={newItem.description}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewItem({
-                  ...newItem,
-                  description: e.target.value,
-                })
+              value={newItem.description ?? ""}
+              onChange={(e) =>
+                setNewItem((prev) => ({ ...prev, description: e.target.value }))
               }
               placeholder="Escriba una breve descripcion"
               spellCheck={false}
