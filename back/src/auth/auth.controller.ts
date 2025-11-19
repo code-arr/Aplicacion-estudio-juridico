@@ -21,6 +21,28 @@ import { Public } from './public.decorator';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { AbogadoDto } from 'src/dtos/lawyer.dto';
 import { RegisterDto } from 'src/dtos/registerDto';
+
+function sanitizeReturnTo(raw?: string | null): string {
+  if (!raw) return '/#/dashboard/settings';
+  // decoded safe
+  let dec = raw;
+  try {
+    dec = decodeURIComponent(raw);
+  } catch {}
+  // permitir solo rutas internas (hash SPA o path absoluto)
+  if (dec.startsWith('/#/') || dec.startsWith('/')) {
+    // limite de longitud razonable
+    if (dec.length > 500) return '/#/dashboard/settings';
+    return dec;
+  }
+  // fallback
+  return '/#/dashboard/settings';
+}
+function escapeHtml(s?: string) {
+  if (!s) return '';
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -119,7 +141,13 @@ export class AuthController {
   @UseGuards(PassportAuthGuard('google'))
   async googleAuthCallback(@Req() req: ExpressRequest, @Res() res: Response) {
     console.log('googleAuthCallback - query:', req.query);
-    console.log('googleAuthCallback - req.user (passport):', req.user);
+    const maybeUser = req.user as any;
+    console.log(
+      'googleAuthCallback - passport user id/email:',
+      maybeUser?.user?.id,
+      maybeUser?.user?.email,
+    );
+
     // Decodificar state (fallback a settings)
     const rawState = (req.query.state as string) || '';
     let returnTo = '/#/dashboard/settings';
@@ -141,9 +169,11 @@ export class AuthController {
     if (!user || !user.user || !user.googleTokens) {
       console.log('ERROR: datos de Google incompletos');
       // única redirección en caso de error
-      return res.redirect(
-        `${process.env.FRONTEND_URL}/error?reason=no_google_data`,
-      );
+      const errorHtml = `<!doctype html><html><head><meta charset="utf-8"><title>Error</title></head><body>
+      <h2>Error al conectar Google</h2>
+      <p>No se recibieron datos de Google. Si el problema persiste, contactá al soporte.</p>
+      </body></html>`;
+      return res.status(400).send(errorHtml);
     }
 
     try {
@@ -155,51 +185,55 @@ export class AuthController {
         googleRefreshToken: googleTokens.refreshToken,
       });
 
-      // después de linkear en DB:
-      const scheme = process.env.APP_SCHEME || 'ibarrayasoc';
-      const returnToEncoded = encodeURIComponent(
-        returnTo || '/#/dashboard/settings',
-      );
+      console.log(`[auth] google linked for user ${userId}`);
 
-      // construyo deep link que la app recibirá
+      // sanitizar returnTo para evitar open-redirect
+      const safeReturnTo = sanitizeReturnTo(returnTo);
+      const scheme = process.env.APP_SCHEME || 'ibarrayasoc';
+      const returnToEncoded = encodeURIComponent(safeReturnTo);
+
       const deepLink = `${scheme}://oauth-callback?status=success&returnTo=${returnToEncoded}`;
 
       // HTML mínimo que intenta abrir el deep link y muestra fallback
       const html = `<!doctype html>
-      <html>
-      <head><meta charset="utf-8"><title>Volviendo a la app…</title>
-      <meta name="viewport" content="width=device-width,initial-scale=1"/>
-      <style>body{font-family:system-ui,Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:20px} .card{max-width:640px;text-align:center}</style>
-      </head>
-      <body>
-        <div class="card">
-          <h2>Volviendo a la aplicación…</h2>
-          <p>La aplicación instalada debería abrirse automáticamente. Si no, hacé click en el botón o copiá el enlace.</p>
-          <p><a id="open" href="${deepLink}" style="display:inline-block;padding:10px 14px;border-radius:6px;border:1px solid #ccc;text-decoration:none">Abrir la app</a></p>
-          <pre id="link" style="background:#f6f6f6;padding:8px;border-radius:6px;word-break:break-all">${deepLink}</pre>
-        </div>
-      <script>
-      (function(){
-        var deep = ${JSON.stringify(deepLink)};
-        // intento abrirlo (varias tácticas para mayor compatibilidad)
-        try { window.location = deep; } catch(e) {}
-        // iframe fallback
-        setTimeout(function(){
-          var ifr = document.createElement('iframe');
-          ifr.style.display='none'; ifr.src = deep; document.body.appendChild(ifr);
-          setTimeout(function(){ try{ document.body.removeChild(ifr);}catch(e){} }, 1200);
-        }, 200);
-      })();
-      </script>
-      </body></html>`;
+        <html>
+        <head><meta charset="utf-8"><title>Volviendo a la app…</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1"/>
+        <style>body{font-family:system-ui,Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:20px} .card{max-width:640px;text-align:center}</style>
+        </head>
+        <body>
+          <div class="card">
+            <h2>Volviendo a la aplicación…</h2>
+            <p>La aplicación instalada debería abrirse automáticamente. Si no, hacé click en el botón o copiá el enlace.</p>
+            <p><a id="open" href="${deepLink}" style="display:inline-block;padding:10px 14px;border-radius:6px;border:1px solid #ccc;text-decoration:none">Abrir la app</a></p>
+            <pre id="link" style="background:#f6f6f6;padding:8px;border-radius:6px;word-break:break-all">${deepLink}</pre>
+          </div>
+        <script>
+        (function(){
+          var deep = ${JSON.stringify(deepLink)};
+          // intento abrirlo (varias tácticas para mayor compatibilidad)
+          try { window.location = deep; } catch(e) {}
+          // iframe fallback
+          setTimeout(function(){
+            var ifr = document.createElement('iframe');
+            ifr.style.display='none'; ifr.src = deep; document.body.appendChild(ifr);
+            setTimeout(function(){ try{ document.body.removeChild(ifr);}catch(e){} }, 1200);
+          }, 200);
+        })();
+        </script>
+        </body></html>`;
 
       // envía la página al navegador (no redirect)
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return res.status(200).send(html);
     } catch (error) {
-      console.error('Error al linkear cuenta Google:', error);
-      return res.redirect(
-        `${process.env.FRONTEND_URL}/error?reason=${encodeURIComponent(error?.message ?? 'unknown')}`,
-      );
+      console.error('Error al linkear cuenta Google:', error?.message ?? error);
+      const errorHtml = `<!doctype html><html><head><meta charset="utf-8"><title>Error</title></head><body>
+        <h2>Error al conectar Google</h2>
+        <p>${escapeHtml(error?.message ?? 'Error desconocido')}</p>
+        </body></html>`;
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(500).send(errorHtml);
     }
   }
 
