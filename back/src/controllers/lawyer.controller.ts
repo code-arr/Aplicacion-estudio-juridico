@@ -15,14 +15,7 @@ import { UpdateLawyerDto } from 'src/dtos/updateLawyer.dto';
 @Controller('lawyer')
 export class AbogadoController {
   constructor(private readonly abogadoService: AbogadoService) {}
-  @Post('seeder')
-  async seedData() {
-    return this.abogadoService.seedData();
-  }
-  @Post('seederClientes')
-  async seedAbogadosClientes() {
-    return this.abogadoService.seedClienteAbogados();
-  }
+
   @Put('deleteClient/:clientId')
   async deleteClientFromLawyer(
     @Query('lawyerId') lawyerId: string,

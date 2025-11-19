@@ -82,56 +82,6 @@ export class AbogadoRepository {
     }
   }
 
-  async seedData(): Promise<string> {
-    try {
-      const abogados = abogadosSeedData;
-      for (const abogado of abogados) {
-        const newAbogado = await this.createLawyer(abogado);
-        const usuario = await this.userService.findOneByEmail(
-          abogado.userEmail,
-        );
-        if (usuario) {
-          newAbogado.user = usuario; // Asocia el usuario al abogado
-        }
-        await this.repository.save(newAbogado);
-      }
-      return 'abogados agregados correctamente';
-    } catch (error) {
-      console.error('Error seeding abogados:', error);
-      throw new Error('Error seeding abogados');
-    }
-  }
-
-  async seedClientesAbogados(): Promise<string> {
-    try {
-      const abogados = await this.getAllLawyers();
-      const clientes = clientesSeedData;
-
-      for (const abogado of abogados) {
-        for (const cliente of clientes) {
-          if (
-            abogado.user?.email === cliente.abogadoAsociadoEmail &&
-            cliente.email
-          ) {
-            const clienteReal = await this.clienteService.findByEmail(
-              cliente.email,
-            );
-
-            if (clienteReal) {
-              abogado.clients.push(clienteReal);
-            }
-          }
-        }
-      }
-
-      await this.repository.save(abogados);
-      return 'clientes agregados correctamente a los abogados';
-    } catch (error) {
-      console.error('Error asociando clientes a abogados:', error);
-      throw new Error('Error asociando clientes a abogados');
-    }
-  }
-
   async getAbogadoById(id: string): Promise<Lawyer | null> {
     if (!id) {
       return null;
