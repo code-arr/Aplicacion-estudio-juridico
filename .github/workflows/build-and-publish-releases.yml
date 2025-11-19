@@ -85,7 +85,6 @@ jobs:
           set -euo pipefail
           mkdir -p release-${{ matrix.os }}
           # copiar solo los instaladores y blockmaps
-          # (en bash disponible en runners esto funciona; lo dejamos sencillo)
           for ext in exe dmg exe.blockmap dmg.blockmap; do
             for f in front/release/*.$ext; do
               if [ -f "$f" ]; then
@@ -215,6 +214,7 @@ jobs:
           echo "Run release: https://github.com/${{ github.repository }}/releases/tag/${{ env.RUN_TAG }}"
           echo "Latest release: https://github.com/${{ github.repository }}/releases/tag/latest"
         shell: bash
+
 
 
 
