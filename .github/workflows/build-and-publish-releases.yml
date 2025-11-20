@@ -2,7 +2,7 @@ name: Build & Publish Electron App (Releases)
 
 on:
   push:
-    branches: [ main, front ]
+    branches: [main, front]
   workflow_dispatch:
 
 permissions:
@@ -28,8 +28,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.19.0'
-          cache: 'npm'
+          node-version: "20.19.0"
+          cache: "npm"
           cache-dependency-path: front/package-lock.json
 
       - name: Install dependencies
@@ -124,13 +124,21 @@ jobs:
   publish_release:
     needs: build
     runs-on: ubuntu-latest
-    env:
-      RUN_TAG: release-${{ github.run_id }}
     steps:
-      # Nota: ya no descargamos artifacts (no los generamos). En cambio:
-      # 1) buscamos la release que creó el job 'build' (tag = release-<run_id>)
-      # 2) la convertimos a non-draft/public (si existe)
-      # 3) copiamos sus assets y los subimos a la release "latest" (reemplazando los existentes)
+      # 1. 🟢 NUEVO: Bajamos el código para poder leer el package.json
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. 🟢 NUEVO: Leemos la versión y seteamos la variable RUN_TAG correctamente
+      - name: Set Release Tag from Package.json
+        working-directory: ./front
+        run: |
+          VER=$(jq -r .version package.json)
+          echo "RUN_TAG=v$VER" >> $GITHUB_ENV
+          echo "Detectada versión para publicar: v$VER"
+        shell: bash
+
+      # A partir de acá, usamos la variable RUN_TAG que ahora sí coincide (ej: v1.1.1)
       - name: Ensure release exists and make it public (non-draft)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -138,14 +146,15 @@ jobs:
           set -euo pipefail
           API="https://api.github.com"
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
-          RELEASE_TAG="${{ env.RUN_TAG }}"
+          RELEASE_TAG="${{ env.RUN_TAG }}" # 👈 Ahora esto vale v1.1.1
 
           echo "Looking for release with tag $RELEASE_TAG ..."
           RELEASE=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" || true)
           RELEASE_ID=$(jq -r .id <<<"$RELEASE" || true)
 
           if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
-            echo "Release $RELEASE_TAG not found. Creating it (fallback)..."
+            echo "Release $RELEASE_TAG not found (Esto no debería pasar si el build anduvo). Creating it (fallback)..."
+            # Nota: Si llegamos acá es raro, pero lo creamos igual
             CREATE=$(curl -s -X POST -H "Authorization: $AUTH" -H "Content-Type: application/json" \
               -d "{\"tag_name\":\"$RELEASE_TAG\",\"name\":\"$RELEASE_TAG\",\"body\":\"Auto-generated release $RELEASE_TAG\",\"draft\":false}" \
               "https://api.github.com/repos/${{ github.repository }}/releases")
@@ -153,14 +162,14 @@ jobs:
             echo "Created release id=$RELEASE_ID"
           else
             echo "Found release id=$RELEASE_ID. Updating to non-draft..."
-            # patch release to set draft=false (publish it)
+            # Lo pasamos a público (draft: false)
             curl -s -X PATCH -H "Authorization: $AUTH" -H "Content-Type: application/json" \
               -d "{\"draft\":false,\"name\":\"Release $RELEASE_TAG\",\"body\":\"Release published from CI run $RELEASE_TAG\"}" \
               "$API/repos/${{ github.repository }}/releases/$RELEASE_ID" > /dev/null
             echo "Release $RELEASE_TAG set to non-draft."
           fi
 
-          # list assets on the release (we will reuse them to populate 'latest')
+          # list assets on the release
           echo "Listing assets for release id=$RELEASE_ID..."
           curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" \
             | jq -r '.[] | "\(.id) \(.name) \(.browser_download_url)"' > /tmp/assets.list || true
@@ -176,10 +185,11 @@ jobs:
           API="https://api.github.com"
           AUTH="Bearer ${{ secrets.GITHUB_TOKEN }}"
           LATEST_TAG="latest"
-          RUN_RELEASE_TAG="${{ env.RUN_TAG }}"
+          RUN_RELEASE_TAG="${{ env.RUN_TAG }}" # 👈 Usa v1.1.1
 
           echo "Ensure 'latest' release exists..."
           LID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/$LATEST_TAG" | jq -r .id)
+
           if [ -z "$LID" ] || [ "$LID" = "null" ]; then
             echo "Creating 'latest' release..."
             CREATE=$(curl -s -X POST -H "Authorization: $AUTH" -H "Content-Type: application/json" \
@@ -201,12 +211,13 @@ jobs:
             fi
           done
 
-          # get assets from the run release (populated in previous step)
+          # get assets from the run release
           echo "Copying assets from run release ${RUN_RELEASE_TAG} to 'latest'..."
           RUN_RELEASE_ID=$(curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/tags/${RUN_RELEASE_TAG}" | jq -r .id)
+
           if [ -z "$RUN_RELEASE_ID" ] || [ "$RUN_RELEASE_ID" = "null" ]; then
             echo "Run release not found, nothing to copy."
-            exit 0
+            exit 1 # Fallar si no encontramos la release original
           fi
 
           curl -s -H "Authorization: $AUTH" "$API/repos/${{ github.repository }}/releases/$RUN_RELEASE_ID/assets" \
@@ -214,10 +225,10 @@ jobs:
               NAME=$(jq -r .name <<<"$asset")
               BURL=$(jq -r .browser_download_url <<<"$asset")
               echo " -> copying $NAME"
-              # download asset to tmp
+              
               TMPF="/tmp/$NAME"
               curl -sL -H "Authorization: $AUTH" -o "$TMPF" "$BURL"
-              # URL-encode filename
+              
               ENCODED=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$NAME")
               UPLOAD_URL="https://uploads.github.com/repos/${{ github.repository }}/releases/$LID/assets?name=$ENCODED"
               curl --fail -X POST -H "Authorization: $AUTH" -H "Content-Type: application/octet-stream" --data-binary @"$TMPF" "$UPLOAD_URL"
@@ -232,4 +243,3 @@ jobs:
           echo "Run release: https://github.com/${{ github.repository }}/releases/tag/${{ env.RUN_TAG }}"
           echo "Latest release: https://github.com/${{ github.repository }}/releases/tag/latest"
         shell: bash
-
