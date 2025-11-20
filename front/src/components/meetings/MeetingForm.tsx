@@ -150,17 +150,27 @@ const MeetingForm = ({
     setPEmail("");
   };
 
-  // 🛠️ Validación con fieldErrors + formError (patrón consistente)
+  // 🛠️ Validación con fieldErrors + formError
   const validate = (): boolean => {
     const fe: FieldErrors = {};
+
+    // --- Tus validaciones actuales ---
     if (!formData.name.trim()) fe.name = "El título es obligatorio.";
     if (!formData.startAt) fe.startAt = "La fecha y hora son obligatorias.";
     if (!formData.type) fe.type = "Seleccioná el tipo.";
     if (!formData.lawyerEmail) fe.lawyerEmail = "Falta el email del abogado.";
-    // Al menos 1 participante (cliente) si es Google (para in-person lo podrías relajar)
+
     if (isGoogle && !formData.participants?.length) {
       fe.participants = "Agregá al menos un participante.";
     }
+
+    // --- 👇 AGREGÁ ESTO ACÁ PARA VER EL ERROR EN CONSOLA 👇 ---
+    if (Object.keys(fe).length > 0) {
+      console.log("🚨 Errores encontrados en el form:", fe);
+      // También podés ver qué datos estabas mandando si querés:
+      console.log("📦 Datos del form:", formData);
+    }
+    // ----------------------------------------------------------
 
     setFieldErrors(fe);
 

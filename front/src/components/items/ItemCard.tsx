@@ -1,10 +1,6 @@
 import { useState, memo } from "react";
 import type { ClientItem } from "@/types/ClientItem";
 import { CLIENTITEM_STATUS_MAP } from "@/types/ClientItem";
-/* import {
-  selectClientFromCacheById,
-  useClientStore,
-} from "@/store/useClientStore"; */
 import {
   selectCategory,
   selectItemType,
@@ -29,11 +25,13 @@ import {
   Library,
   EllipsisVertical,
   UserPlus,
+  Share2,
 } from "lucide-react";
 import { formatDateChileShort } from "@/lib/formatDate";
 import { useLocation, useNavigate } from "react-router-dom";
 import { deleteClientItem } from "@/api/clientItem";
 import { useClientItemStore } from "@/store/useClientItemStore";
+import { useLawyerStore } from "@/store/useLawyerStore";
 import { useToast } from "@/hooks/useToast";
 import { PermissionsModal } from "./PermissionsModal";
 
@@ -46,10 +44,12 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const currentLawyerId = useLawyerStore((s) => s.lawyer?.id);
+
+  const isShared =
+    currentLawyerId && item.lawyerId && item.lawyerId !== currentLawyerId;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  /*   const clientById = useClientStore((s) =>
-    selectClientFromCacheById(s, item.clientId)
-  ); */
 
   // ✅ USÁ ESTO (Dato directo del prop):
   // Usamos el objeto 'client' que ahora viene dentro del 'item'
@@ -163,7 +163,9 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
 
   return (
     <>
-      <Card className="shadow-none hover:shadow-sm transition-shadow duration-200 border border-gray-200 bg-white">
+      <Card
+        className={`shadow-none hover:shadow-sm transition-shadow duration-200 border border-gray-200 bg-white `}
+      >
         <CardContent className="flex pb-2 pt-4 justify-between cursor-default">
           <div
             className="flex w-[80%] gap-6"
@@ -173,12 +175,31 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
               {getCardIcon(category?.name)}
             </div>
             <div className="flex flex-col capitalize pt-0.5">
-              <h1 className="text-lg font-semibold mb-1.5">{item.title}</h1>
+              {/* 👇 ESTE DIV "flex items-center" ES LA CLAVE PARA QUE ESTÉN AL LADO */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <h1 className="text-lg font-semibold leading-none">
+                  {item.title}
+                </h1>
+
+                {/* Opción 1: Badge sutil circular al lado del título */}
+                {isShared && (
+                  <div title="Compartido">
+                    <Badge
+                      variant="secondary"
+                      className="h-5 w-5 p-0 flex items-center justify-center rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100"
+                    >
+                      <Share2 className="w-3 h-3" />
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              {/* 👆 FIN DEL BLOQUE TÍTULO + BADGE */}
+
               <p className="mb-0.5 text-gray-800">
                 {"Cliente: " + (clientName ? clientName : "-")}
               </p>
               <p className="text-gray-800">
-                {`Cateogría: ${category?.name}`}{" "}
+                {`Categoría: ${category?.name}`}{" "}
                 {section ? ` → ${section?.name}` : null}
               </p>
             </div>
