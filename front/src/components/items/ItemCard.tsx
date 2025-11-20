@@ -1,10 +1,10 @@
 import { useState, memo } from "react";
 import type { ClientItem } from "@/types/ClientItem";
 import { CLIENTITEM_STATUS_MAP } from "@/types/ClientItem";
-import {
+/* import {
   selectClientFromCacheById,
   useClientStore,
-} from "@/store/useClientStore";
+} from "@/store/useClientStore"; */
 import {
   selectCategory,
   selectItemType,
@@ -47,13 +47,19 @@ const ItemCard = ({ item, onViewDetails }: ItemCardProps) => {
   const location = useLocation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const clientById = useClientStore((s) =>
+  /*   const clientById = useClientStore((s) =>
     selectClientFromCacheById(s, item.clientId)
-  );
-  const clientName =
-    clientById?.type === "Fisica"
-      ? `${clientById.firstName}  ${clientById.lastName}`
-      : clientById?.companyName;
+  ); */
+
+  // ✅ USÁ ESTO (Dato directo del prop):
+  // Usamos el objeto 'client' que ahora viene dentro del 'item'
+  const clientObj = item.client;
+
+  const clientName = clientObj
+    ? clientObj.type === "Juridica"
+      ? clientObj.companyName
+      : `${clientObj.firstName} ${clientObj.lastName}`
+    : "-"; // Si el backend no mandó nada o es huérfano, mostramos guion
 
   const itemType = useCatalogStore(selectItemType(item.itemTypeId ?? ""));
   const section = useCatalogStore(

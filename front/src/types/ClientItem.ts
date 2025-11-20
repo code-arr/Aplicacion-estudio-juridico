@@ -1,3 +1,5 @@
+import type { Client } from "./Client";
+
 // src/types/ClientItem.ts
 export type ClientItemStatus = "open" | "on_hold" | "closed";
 export type Currency = "CLP" | "USD" | "UF";
@@ -33,9 +35,10 @@ export interface ClientItem {
   status?: ClientItemStatus;
   hourlyRateOverride?: string;
   currencyOverride?: Currency;
-
   isPrivate?: boolean; // <-- Renombrado de 'private' para consistencia con el backend
   lawyerId?: string; // ID del abogado propietario (dueño)
+
+  client?: Client;
 
   // Lista de abogados con acceso (si es privado)
   // (El backend necesita ser configurado para devolver esto,
