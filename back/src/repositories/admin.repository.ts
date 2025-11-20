@@ -86,7 +86,7 @@ export class AdminRepository {
         }
         if (clientItem.processes) {
           for (const process of clientItem.processes) {
-            await this.processService.deleteProcess(process.id);
+            await this.processService.deleteProcessFromAdmin(process.id);
           }
         }
       }

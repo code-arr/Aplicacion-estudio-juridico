@@ -57,4 +57,7 @@ export class ProcessService {
   getAllProcesses() {
     return this.processRepository.getAllProcesses();
   }
+  deleteProcessFromAdmin(id: string) {
+    return this.processRepository.deleteProcessFromAdmin(id);
+  }
 }

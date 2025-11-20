@@ -118,6 +118,22 @@ export class ProcessRepository {
     });
   }
 
+  async deleteProcessFromAdmin(id: string): Promise<void> {
+    try {
+      const proc = await this.processRepository.findOne({
+        where: { id },
+        relations: ['clientItem'],
+      });
+      if (!proc) throw new NotFoundException('Process not found');
+      await this.processRepository.remove(proc);
+    } catch (e) {
+      console.error('Error deleting process from admin:', e);
+      throw new InternalServerErrorException(
+        'Error deleting process from admin',
+      );
+    }
+  }
+
   async getProcessById(id: string): Promise<Process> {
     try {
       const process = await this.processRepository.findOne({
