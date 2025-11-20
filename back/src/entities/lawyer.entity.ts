@@ -47,10 +47,10 @@ export class Lawyer {
   @Column({ type: 'varchar', length: 100 })
   lastName: string;
 
-  @Column({ type: 'varchar', length: 100, unique: true , nullable: true })
+  @Column({ type: 'varchar', length: 100 , nullable: true })
   address: string;
 
-  @Column({ type: 'varchar', length: 15, unique: true })
+  @Column({ type: 'varchar', length: 15 })
   phone: string;
 
   @Column({ type: 'varchar', length: 100, unique: true })

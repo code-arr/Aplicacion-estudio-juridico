@@ -28,9 +28,19 @@ jobs:
         working-directory: back
         run: npm run build
 
-      - name: Package app (zip with Procfile and .ebextensions if present)
+      - name: Prepare .platform for packaging (ensure config is inside back/)
+        working-directory: .
+        run: |
+          # Si .platform ya está en back/.platform esto no rompe (sobreescribe)
+          cp -r .platform back/.platform || true
+          ls -la back/.platform || true
+
+      - name: Package app (zip with Procfile and .platform if present)
         working-directory: back
-        run: zip -r ../app.zip dist package.json package-lock.json Procfile
+        run: |
+          zip -r ../app.zip dist package.json package-lock.json Procfile .platform
+          echo "Contents of app.zip:"
+          unzip -l ../app.zip
 
       # Credenciales para usar AWS CLI en el paso de "wait until Ready"
       - name: Configure AWS credentials for AWS CLI
