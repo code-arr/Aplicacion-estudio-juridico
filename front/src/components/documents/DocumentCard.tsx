@@ -29,6 +29,7 @@ const DocumentCard = ({
   deleting,
 }: DocumentCardProps) => {
   const currentLawyerId = useLawyerStore((s) => s.lawyer?.id);
+  console.log(doc);
 
   // Helper: size robusto (usa doc.size o la primera version)
   function getSize(): number {
@@ -94,21 +95,30 @@ const DocumentCard = ({
   const lastLawyerObj = lastVersion?.lawyer ?? null;
   const uploadedById = lastVersion?.uploadedBy ?? null;
 
-  const uploaderLabel = lastLawyerObj
-    ? // si vino objeto con nombres
-      lastLawyerObj.id === currentLawyerId
-      ? "Tu"
-      : `${lastLawyerObj.firstName ?? ""} ${
-          lastLawyerObj.lastName ?? ""
-        }`.trim() || uploadedById
-      ? `${String(uploadedById).slice(0, 8)}`
-      : "Desconocido"
-    : uploadedById
-    ? // si vino solo id
-      uploadedById === currentLawyerId
-      ? "Tu"
-      : `ID ${String(uploadedById).slice(0, 8)}`
-    : "—";
+  // Lógica corregida y legible:
+  let uploaderLabel = "—";
+
+  if (lastLawyerObj) {
+    // CASO 1: Tenemos el objeto abogado completo
+    if (lastLawyerObj.id === currentLawyerId) {
+      uploaderLabel = "Tu";
+    } else {
+      const fullName = `${lastLawyerObj.firstName ?? ""} ${
+        lastLawyerObj.lastName ?? ""
+      }`.trim();
+      // Si tiene nombre, usalo. Si no, usá el ID cortado.
+      uploaderLabel =
+        fullName ||
+        (uploadedById ? String(uploadedById).slice(0, 8) : "Desconocido");
+    }
+  } else if (uploadedById) {
+    // CASO 2: Solo tenemos el ID (fallback raro, pero posible)
+    if (uploadedById === currentLawyerId) {
+      uploaderLabel = "Tu";
+    } else {
+      uploaderLabel = `ID ${String(uploadedById).slice(0, 8)}`;
+    }
+  }
 
   return (
     <li key={doc.id} className="p-4">

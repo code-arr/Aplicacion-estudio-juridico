@@ -41,7 +41,10 @@ export const PermissionsModal = ({ item, isOpen, onClose }: Props) => {
   // Sincronizar estado con el item actual
   useEffect(() => {
     setIsPrivate(Boolean(item.isPrivate));
+
+    // Ahora item.sharedWithLawyers va a venir lleno desde el back gracias al cambio
     const sharedIds = (item.sharedWithLawyers ?? []).map((l) => l.id);
+
     setSelectedLawyerIds(sharedIds);
   }, [item]);
 
