@@ -491,9 +491,26 @@ export class EntryDayRepository {
 
     for (const entry of timeEntries) {
       // 1) Normalizar el día a DATE (YYYY-MM-DD) en UTC
-      const dayKey = entry.dayKey
+      /* const dayKey = entry.dayKey
         ? new Date(entry.dayKey).toISOString().slice(0, 10)
-        : new Date().toISOString().slice(0, 10);
+        : new Date().toISOString().slice(0, 10); */
+
+      // ✅ AHORA (BUENO): Usamos el string directo si existe.
+      // Si no existe, usamos un truquito para forzar la zona horaria -3 (Arg) o simplemente UTC.
+      // Pero lo ideal es que el FRONT siempre mande dayKey.
+
+      let dayKey: string;
+
+      if (entry.dayKey) {
+        // Asumimos que el front manda "2025-11-20" o un ISO.
+        // Lo convertimos a string y cortamos.
+        dayKey = String(entry.dayKey).slice(0, 10);
+      } else {
+        // Fallback: Calcular fecha restando 3 horas para simular ARG si el server es UTC
+        const now = new Date();
+        now.setHours(now.getHours() - 3);
+        dayKey = now.toISOString().slice(0, 10);
+      }
 
       // 2) Buscar por (trackableId, day, lawyerId) <--- 🛑 ¡CAMBIO CLAVE!
       // Solo buscamos la entrada existente de ESTE abogado para ESTA tarea/día.
