@@ -316,7 +316,10 @@ const ItemMeetingsPage = () => {
       <MeetingForm
         isDialogOpen={isDialogOpen}
         setIsDialogOpen={setIsDialogOpen}
-        lawyerEmail={user?.googleEmail || ""}
+        // 🛠️ CAMBIO 1: Si no hay googleEmail, usá el email normal del usuario
+        lawyerEmail={user?.googleEmail || user?.email || ""}
+        // 🛠️ CAMBIO 2: Pasamos esta bandera para saber si REALMENTE tiene Google
+        hasGoogleAuth={!!user?.googleEmail}
         defaultParticipants={[
           {
             name:

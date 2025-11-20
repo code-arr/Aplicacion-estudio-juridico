@@ -241,14 +241,23 @@ function wireSegments() {
   const e = ensure();
   e.onEmitSegment((seg) => {
     const meta = e.getMeta();
+
+    // Lógica inteligente: Si viene clientId usalo, SINO si es tipo Client, usá el ID del trackable
+    const finalClientId =
+      seg.trackable.clientId ??
+      (seg.trackable.type === "Client" ? seg.trackable.id : undefined);
+
     const entry: TimeEntry = {
       id: randomUUID(),
       trackableType: seg.trackable.type,
       trackableId: seg.trackable.id,
-      clientId: seg.trackable.clientId,
+
+      // Usamos la variable calculada
+      clientId: finalClientId,
+
       clientItemId: seg.trackable.clientItemId,
       lawyerId: meta.lawyerId,
-      dayKey: seg.dayKey, // 👈 lo emite el motor, ya alineado a “día de trabajo”
+      dayKey: seg.dayKey,
       startedAtUTC: new Date(seg.startMs).toISOString(),
       endedAtUTC: new Date(seg.endMs).toISOString(),
       durationSec: seg.seconds,

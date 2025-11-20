@@ -13,7 +13,9 @@ const ClientLayout = () => {
   const { clientId } = useParams();
   const location = useLocation();
 
-  useFocusContext(clientId ? { type: "Client", id: clientId } : null);
+  useFocusContext(
+    clientId ? { type: "Client", id: clientId, clientId: clientId } : null
+  );
 
   // ⚙️ Store: leemos el detalle y sus flags
   const clientDetail = useClientStore(selectClientDetail);

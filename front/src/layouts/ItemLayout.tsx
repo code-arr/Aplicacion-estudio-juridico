@@ -32,7 +32,9 @@ const ItemLayout = () => {
   const [loading, setLoading] = useState(true);
 
   useFocusContext(
-    clientDetail ? { type: "Client", id: clientDetail.id ?? "" } : null
+    clientDetail
+      ? { type: "Client", id: clientDetail.id ?? "", clientId: clientDetail.id }
+      : null
   );
 
   // 1) Cuando la lista de items ya está hidratada y cambia el itemId => seteo el item detail

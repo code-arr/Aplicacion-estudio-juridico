@@ -32,6 +32,7 @@ type MeetingFormProps = {
   isDialogOpen: boolean;
   setIsDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   lawyerEmail: string; // email del abogado (para participante por defecto)
+  hasGoogleAuth: boolean; // 👈 Agregamos esto
   defaultParticipants: Participant[]; // [abogadoActual, clienteDelItem]
 };
 
@@ -59,6 +60,7 @@ const MeetingForm = ({
   isDialogOpen,
   setIsDialogOpen,
   lawyerEmail,
+  hasGoogleAuth,
   defaultParticipants,
 }: MeetingFormProps) => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
@@ -150,31 +152,34 @@ const MeetingForm = ({
     setPEmail("");
   };
 
-  // 🛠️ Validación con fieldErrors + formError
+  // 🛠️ VALIDACIÓN MEJORADA
   const validate = (): boolean => {
     const fe: FieldErrors = {};
 
-    // --- Tus validaciones actuales ---
     if (!formData.name.trim()) fe.name = "El título es obligatorio.";
     if (!formData.startAt) fe.startAt = "La fecha y hora son obligatorias.";
     if (!formData.type) fe.type = "Seleccioná el tipo.";
-    if (!formData.lawyerEmail) fe.lawyerEmail = "Falta el email del abogado.";
+
+    // Validación condicional del email
+    if (!formData.lawyerEmail) {
+      fe.lawyerEmail = "Falta el email del abogado.";
+    }
+
+    // 🚨 ACÁ ESTÁ LA MAGIA PARA TU PROBLEMA
+    // Si eligió Google Meet pero NO tiene cuenta conectada:
+    if (isGoogle && !hasGoogleAuth) {
+      fe.type = "Necesitás vincular tu cuenta de Google para usar Meet.";
+      // Opcional: podrías deshabilitar la opción en el Select también
+    }
 
     if (isGoogle && !formData.participants?.length) {
       fe.participants = "Agregá al menos un participante.";
     }
 
-    // --- 👇 AGREGÁ ESTO ACÁ PARA VER EL ERROR EN CONSOLA 👇 ---
-    if (Object.keys(fe).length > 0) {
-      console.log("🚨 Errores encontrados en el form:", fe);
-      // También podés ver qué datos estabas mandando si querés:
-      console.log("📦 Datos del form:", formData);
-    }
-    // ----------------------------------------------------------
-
     setFieldErrors(fe);
-
-    setFormError(Object.keys(fe).length ? "Revisá los campos marcados." : null);
+    setFormError(
+      Object.keys(fe).length ? "Revisá los errores marcados." : null
+    );
     return Object.keys(fe).length === 0;
   };
 
