@@ -24,6 +24,17 @@ export const CLIENTITEM_STATUS_MAP: Record<
   },
 };
 
+export interface LawyerRef {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string; // A veces viene directo
+  user?: {
+    // A veces viene anidado en la relación con User
+    email: string;
+  };
+}
+
 export interface ClientItem {
   id?: string;
   categoryId?: string;
@@ -38,6 +49,7 @@ export interface ClientItem {
   isPrivate?: boolean; // <-- Renombrado de 'private' para consistencia con el backend
   lawyerId?: string; // ID del abogado propietario (dueño)
 
+  lawyer?: LawyerRef;
   client?: Client;
 
   // Lista de abogados con acceso (si es privado)

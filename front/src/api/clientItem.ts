@@ -20,6 +20,13 @@ export const getClientItemsByClientId = async (
   return data;
 };
 
+export const getClientItemById = async (id: string): Promise<ClientItem> => {
+  // Asumo que tu backend responde directo el objeto.
+  // Si viene dentro de { data: ... }, ajustalo como los demás.
+  const { data } = await axios.get(`/clientItem/getById/${id}`);
+  return data;
+};
+
 export const getRecentClientItems = async (
   limit?: number
 ): Promise<ClientItem[]> => {

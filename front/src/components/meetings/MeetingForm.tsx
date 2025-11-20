@@ -25,6 +25,7 @@ import { useParams } from "react-router-dom";
 import { useMeetingStore } from "@/store/useMeetingStore";
 import { localDateTimeToIsoUtc } from "@/utils/dateTime";
 import { useClientStore } from "@/store/useClientStore";
+import { getClientItemById } from "@/api/clientItem";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 
@@ -65,6 +66,9 @@ const MeetingForm = ({
 }: MeetingFormProps) => {
   const { clientItemId } = useParams<{ clientItemId: string }>();
   const [formData, setFormData] = useState<NewMeeting>(initialMeeting);
+  const [colleagues, setColleagues] = useState<
+    { name: string; email: string }[]
+  >([]);
 
   // 🛠️ Separado el manejo de errores y estado de envío (no mezclar con formData)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -104,6 +108,37 @@ const MeetingForm = ({
       setPEmail("");
     }
   }, [isDialogOpen, defaultParticipants, lawyerEmail]);
+
+  useEffect(() => {
+    if (isDialogOpen && clientItemId) {
+      getClientItemById(clientItemId)
+        .then((item) => {
+          // 1. Identificamos al dueño
+          const owner = item.lawyer;
+          // 2. Identificamos a los compartidos
+          const shared = item.sharedWithLawyers || [];
+
+          // 3. Juntamos todo en una sola lista
+          // (Usamos 'any' momentáneo en map si TS se queja de la estructura profunda del user)
+          const allLawyers = [owner, ...shared]
+            .filter(Boolean)
+            .map((l: any) => ({
+              name: l.firstName ? `${l.firstName} ${l.lastName}` : "Abogado",
+              // Ojo acá: tu backend a veces devuelve el email en l.user.email o directo en l.email
+              email: l.user?.email || l.email || "",
+            }));
+
+          // 4. Filtramos para no mostrarte a VOS mismo en la lista
+          const others = allLawyers.filter(
+            (l) =>
+              l.email && l.email.toLowerCase() !== lawyerEmail.toLowerCase()
+          );
+
+          setColleagues(others);
+        })
+        .catch((err) => console.error("Error cargando colaboradores:", err));
+    }
+  }, [isDialogOpen, clientItemId, lawyerEmail]);
 
   const set = <K extends keyof NewMeeting>(key: K, value: NewMeeting[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -329,6 +364,47 @@ const MeetingForm = ({
                   ))}
                 </div>
               )}
+
+              {/* --- SELECTOR DE EQUIPO --- */}
+              {colleagues.length > 0 && (
+                <div className="mb-2">
+                  {" "}
+                  {/* Le bajé el margin-bottom a 2 para que quede pegadito */}
+                  <Label className="text-[11px] text-muted-foreground mb-1 block">
+                    Sugerencias del equipo ({colleagues.length})
+                  </Label>
+                  <Select
+                    onValueChange={(email) => {
+                      const selected = colleagues.find(
+                        (c) => c.email === email
+                      );
+                      if (selected)
+                        upsertParticipant(selected.name, selected.email);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs bg-slate-50">
+                      {" "}
+                      {/* Un toque más chico y gris */}
+                      <SelectValue placeholder="Seleccionar colega..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colleagues.map((c) => (
+                        <SelectItem
+                          key={c.email}
+                          value={c.email}
+                          disabled={formData.participants.some(
+                            (p) => p.email === c.email
+                          )}
+                          className="text-xs"
+                        >
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {/* ---------------------------------- */}
 
               {/* inputs para agregar */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
