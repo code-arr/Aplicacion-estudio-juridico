@@ -24,12 +24,9 @@ const IDLE_SEC = Math.floor(IDLE_LIMIT_MS / 1000);
 const ensure = (): TimerEngine => {
   if (!engine) {
     engine = new TimerEngine();
-    // Sembrar con lo último guardado (si es del mismo día)
-    try {
-      engine.seedDailyBase(globalTimerStore.read());
-    } catch (e) {
-      console.error("[globalTimerStore.read] failed:", e);
-    }
+    // ❌ ANTES: engine.seedDailyBase(globalTimerStore.read());
+    // ✅ AHORA: No hacemos seed aquí porque no tenemos lawyerId todavía.
+    // El seed se hará en el 'timer:enable'.
   }
   return engine!;
 };
@@ -66,19 +63,23 @@ const ensure = (): TimerEngine => {
 const wireState = () => {
   ensure().removeAllListeners("state");
   ensure().on("state", () => {
-    // Guardar snapshot en disco en cada cambio (1/s típico)
-    try {
-      globalTimerStore.write(ensure().getDailySnapshot());
-    } catch (e) {
-      console.error("[globalTimerStore.write] failed:", e);
+    // 💡 Obtenemos el ID actual del motor para guardar en SU casillero
+    const currentLawyerId = ensure().getMeta().lawyerId;
+
+    if (currentLawyerId) {
+      try {
+        globalTimerStore.write(currentLawyerId, ensure().getDailySnapshot());
+      } catch (e) {
+        console.error("[globalTimerStore.write] failed:", e);
+      }
     }
+
+    // Broadcast a las ventanas (igual que antes)
     const mirror = ensure().toMirror();
     BrowserWindow.getAllWindows().forEach((win) => {
       try {
         win.webContents.send("timer:state", mirror);
-      } catch {
-        // no importa si falla en alguna ventana
-      }
+      } catch {}
     });
   });
 };
@@ -119,7 +120,10 @@ function alignedStop(reason: PauseReason | "suspend" | "close" | "idle") {
 
   // 5) Snapshot
   try {
-    globalTimerStore.write(ensure().getDailySnapshot());
+    const currentId = ensure().getMeta().lawyerId; // 💡 Buscamos el ID
+    if (currentId) {
+      globalTimerStore.write(currentId, ensure().getDailySnapshot());
+    }
   } catch (e) {
     console.error("[globalTimerStore.write] failed:", e);
   }
@@ -322,8 +326,29 @@ export function registerTimerIpc() {
   handleOnce(
     "timer:enable",
     (_e, p: { lawyerId: string; appVersion?: string }) => {
-      ensure().enable(p.lawyerId, p.appVersion);
-      // wireState ya está conectado y persistirá cambios
+      const engineInstance = ensure();
+      const oldId = engineInstance.getMeta().lawyerId;
+
+      // Si ya había alguien logueado y es distinto al nuevo...
+      if (oldId && oldId !== p.lawyerId) {
+        // Guardamos el estado del anterior por las dudas (safety save)
+        globalTimerStore.write(oldId, engineInstance.getDailySnapshot());
+      }
+
+      // 1. Habilitamos al nuevo (esto setea el lawyerId interno en el engine)
+      engineInstance.enable(p.lawyerId, p.appVersion);
+
+      // 2. Leemos el snapshot guardado de ESTE abogado
+      const savedSnap = globalTimerStore.read(p.lawyerId);
+
+      // 3. Reseteamos/Restauramos el engine con esos datos
+      // (seedDailyBase ya se encarga de poner en 0 si es otro día o restaurar si es hoy)
+      engineInstance.seedDailyBase(savedSnap);
+
+      // Forzamos un emit del estado nuevo para que el front se entere rápido
+      // (Aunque seedDailyBase no emite, el engine suele emitir en el proximo tick,
+      // pero podés forzarlo si tenés un método pushState público o tocando algo).
+
       return { ok: true };
     }
   );
