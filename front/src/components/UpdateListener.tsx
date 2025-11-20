@@ -33,12 +33,12 @@ export default function UpdateListener() {
         >
           Instalar y reiniciar
         </button>
-        <button
+        {/* <button
           className="px-3 py-1 border rounded text-sm"
           onClick={() => setInfo(null)}
         >
           Más tarde
-        </button>
+        </button> */}
       </div>
     </div>
   );
