@@ -86,7 +86,8 @@
       "dist/**",
       "dist-electron/**",
       "node_modules/**",
-      "package.json"
+      "package.json",
+      "build/icon.ico"
     ],
     "directories": {
       "output": "release",
@@ -103,7 +104,10 @@
       "oneClick": false,
       "perMachine": false,
       "allowElevation": true,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "deleteAppDataOnUninstall": true
     },
     "mac": {
       "target": [
