@@ -59,6 +59,13 @@ const LawyerSidebar = ({ lawyer, onLogout }: LawyerSidebarProps) => {
     },
   ];
 
+  // Toma el 1er nombre y las primeras 2 palabras del apellido
+  const getDisplayName = (first: string = "", last: string = "") => {
+    const name = first.split(" ")[0]; // "Sergio" (de Sergio Antonio)
+    const surname = last.split(" ").slice(0, 2).join(" "); // "Ibarra Gomez" (de Ibarra Gomez ...)
+    return `${name} ${surname}`;
+  };
+
   return (
     <StaticSidebar
       className={`sticky top-0 h-screen transition-[max-width] duration-300 ease-in-out border-r border-[hsl(216,12%,15%)] overflow-hidden ${
@@ -167,7 +174,7 @@ const LawyerSidebar = ({ lawyer, onLogout }: LawyerSidebarProps) => {
       <SidebarFooter
         className={`p-4 border-t border-[hsl(216,12%,15%)] overflow-hidden ${
           collapsed
-            ? "flex flex-col items-center justify-between  h-[120px]"
+            ? "flex flex-col items-center justify-between h-[120px]"
             : ""
         }`}
       >
@@ -175,7 +182,7 @@ const LawyerSidebar = ({ lawyer, onLogout }: LawyerSidebarProps) => {
           <>
             <Avatar className="h-8 w-8 mb-0 cursor-pointer">
               <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] text-sm">
-                {lawyer?.firstName.charAt(0).toUpperCase()}
+                {lawyer?.firstName?.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <Button
@@ -188,27 +195,40 @@ const LawyerSidebar = ({ lawyer, onLogout }: LawyerSidebarProps) => {
             </Button>
           </>
         ) : (
-          <div className="flex items-center justify-between gap-x-1">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8 cursor-pointer">
+          /* Versión Expandida */
+          <div className="flex items-center w-full gap-2">
+            {" "}
+            {/* gap-2 para separar grupos */}
+            {/* GRUPO IZQUIERDO: Avatar + Texto (flex-1 para ocupar espacio disponible y min-w-0 para permitir truncate) */}
+            <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+              <Avatar className="h-8 w-8 shrink-0 cursor-pointer">
+                {" "}
+                {/* shrink-0 para que no se aplaste el avatar */}
                 <AvatarFallback className="bg-[hsl(210,100%,45%)] text-[hsl(210,40%,98%)] text-sm">
-                  {lawyer?.firstName.charAt(0).toUpperCase()}
+                  {lawyer?.firstName?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-[hsl(210,40%,98%)] truncate">
-                  {lawyer?.firstName + " " + lawyer?.lastName}
+
+              <div className="flex flex-col min-w-0">
+                {" "}
+                {/* min-w-0 ES CLAVE AQUÍ */}
+                <p
+                  className="text-sm font-medium text-[hsl(210,40%,98%)] truncate"
+                  title={lawyer?.firstName + " " + lawyer?.lastName} // Tooltip nativo para ver nombre completo
+                >
+                  {getDisplayName(lawyer?.firstName, lawyer?.lastName)}
                 </p>
                 <p className="text-xs text-[hsl(210,40%,98%)]/70 truncate">
                   Abogado
                 </p>
               </div>
             </div>
+            {/* GRUPO DERECHO: Botón Salir (shrink-0 para que NUNCA se achique) */}
             <Button
               variant="ghost"
               size="sm"
               onClick={onLogout}
-              className="text-[hsl(210,40%,98%)]/70 hover:text-[hsl(210,40%,98%)] hover:bg-[hsl(216,12%,15%)] cursor-pointer"
+              className="shrink-0 text-[hsl(210,40%,98%)]/70 hover:text-[hsl(210,40%,98%)] hover:bg-[hsl(216,12%,15%)] cursor-pointer px-2"
             >
               Salir
             </Button>

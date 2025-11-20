@@ -23,16 +23,20 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
+  // Base: esquinas redondeadas, fondo sólido, buena sombra y animación suave
+  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-lg border border-gray-100 bg-white p-4 shadow-xl transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full dark:border-slate-800 dark:bg-slate-950",
   {
     variants: {
       variant: {
-        default: "border bg-background text-foreground",
+        default:
+          "border-l-4 border-l-blue-500 text-slate-950 dark:text-slate-50",
         destructive:
-          "border-destructive bg-destructive text-destructive-foreground",
-        success: "border-green-600 bg-green-500/10 text-green-900",
-        warning: "border-yellow-600 bg-yellow-500/10 text-yellow-900",
-        info: "border-blue-600 bg-blue-500/10 text-blue-900",
+          "border-l-4 border-l-red-500 text-slate-950 dark:text-red-50",
+        success:
+          "border-l-4 border-l-green-500 text-slate-950 dark:text-green-50",
+        warning:
+          "border-l-4 border-l-yellow-500 text-slate-950 dark:text-yellow-50",
+        info: "border-l-4 border-l-blue-500 text-slate-950 dark:text-blue-50",
       },
     },
     defaultVariants: {
