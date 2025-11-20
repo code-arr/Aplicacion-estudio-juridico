@@ -217,15 +217,14 @@ export class ClientItemRepository implements OnModuleInit {
       .where('client.id = :clientId', { clientId })
       .getMany();
 
-    // filtramos permisos en JS (más claro y menos propenso a errores SQL)
+    // filtramos permisos en JS (esto estaba bien, pero ojo al mapeo final)
     const visible = items.filter((ci) => {
-      if (!ci.isPrivate) return true; // público
-      if (!lawyerId) return false; // privado y no hay lawyer identificable
-      if (ci.lawyer?.id === lawyerId) return true; // propietario
-      return !!ci.sharedWithLawyers?.some((s) => s.id === lawyerId); // está en shared list
+      if (!ci.isPrivate) return true;
+      if (!lawyerId) return false;
+      if (ci.lawyer?.id === lawyerId) return true;
+      return !!ci.sharedWithLawyers?.some((s) => s.id === lawyerId);
     });
 
-    // mapeamos al formato que espera el front (igual que antes: documents: [{id}], camelCase, etc.)
     const result = visible.map((ci) => ({
       id: ci.id,
       title: ci.title,
@@ -241,7 +240,14 @@ export class ClientItemRepository implements OnModuleInit {
       categoryId: ci.category?.id ?? null,
       sectionId: ci.section?.id ?? null,
       documents: (ci.documents ?? []).map((d) => ({ id: d.id })),
-      sharedLawyers: (ci.sharedWithLawyers ?? []).map((s) => s.id),
+      // 🔥 CAMBIO CLAVE AQUI TAMBIÉN
+      sharedWithLawyers: (ci.sharedWithLawyers ?? []).map((s) => ({
+        id: s.id,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        email: s.user.email,
+      })),
+      // Borrá la propiedad 'sharedLawyers' vieja que devolvía solo IDs
     }));
 
     return result;
@@ -331,27 +337,30 @@ export class ClientItemRepository implements OnModuleInit {
   }
 
   async getByLawyerId(lawyerId: string): Promise<any[]> {
-    // Trae entidades completas con relaciones necesarias
     const items = await this.clientItemRepository
       .createQueryBuilder('clientItem')
       .leftJoinAndSelect('clientItem.itemType', 'itemType')
       .leftJoinAndSelect('clientItem.client', 'client')
-      .leftJoinAndSelect('clientItem.lawyer', 'lawyer') // propietario
+      .leftJoinAndSelect('clientItem.lawyer', 'lawyer')
       .leftJoinAndSelect('clientItem.category', 'category')
       .leftJoinAndSelect('clientItem.section', 'section')
       .leftJoinAndSelect('clientItem.documents', 'documents')
-      .leftJoinAndSelect('clientItem.sharedWithLawyers', 'sharedLawyers') // abogados compartidos
+      // IMPORTANTE: Traer los abogados compartidos para el mapeo
+      .leftJoinAndSelect('clientItem.sharedWithLawyers', 'sharedLawyers')
       .where(
         new Brackets((qb) => {
-          qb.where('lawyer.id = :lawyerId').orWhere(
-            'sharedLawyers.id = :lawyerId',
-          );
+          // Lógica corregida:
+          // 1. Es público (lo veo siempre)
+          // 2. Soy el dueño
+          // 3. Estoy en la lista de compartidos
+          qb.where('clientItem.isPrivate = :isPublic', { isPublic: false })
+            .orWhere('lawyer.id = :lawyerId', { lawyerId })
+            .orWhere('sharedLawyers.id = :lawyerId', { lawyerId });
         }),
-        { lawyerId },
       )
       .getMany();
 
-    // Mapear al formato que espera el front (compacto y sin duplicados)
+    // Mapear al formato que espera el Front
     const result = items.map((item) => ({
       id: item.id,
       title: item.title,
@@ -367,9 +376,14 @@ export class ClientItemRepository implements OnModuleInit {
       categoryId: item.category?.id ?? null,
       sectionId: item.section?.id ?? null,
       documents: (item.documents || []).map((d: any) => ({ id: d.id })),
-      sharedLawyers: Array.from(
-        new Set((item.sharedWithLawyers || []).map((l: any) => l.id)),
-      ),
+
+      // 🔥 CAMBIO CLAVE: Devolvemos 'sharedWithLawyers' como objetos, igual que en la entidad
+      sharedWithLawyers: (item.sharedWithLawyers || []).map((l) => ({
+        id: l.id,
+        firstName: l.firstName,
+        lastName: l.lastName,
+        email: l.user.email,
+      })),
     }));
 
     return result;
