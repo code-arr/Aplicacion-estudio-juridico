@@ -118,7 +118,7 @@ export class DocumentRepository {
           fileUrl: s3Url,
           mimeType: mimetype,
           size: fileBuffer.length,
-          uploadedBy: lawyerId || null, // <- evita undefined en DB
+          lawyer: lawyerId ? ({ id: lawyerId } as any) : null,
         });
         const savedVersion = await versionRepo.save(version);
 
@@ -158,15 +158,26 @@ export class DocumentRepository {
   // obtener todos (con versiones)
   async getAllDocuments(): Promise<Document[]> {
     return this.documentRepository.find({
-      relations: ['clientItem', 'versions'],
+      // Agregamos 'versions.lawyer'
+      relations: ['clientItem', 'versions', 'versions.lawyer'],
     });
   }
 
   async getDocumentsByClientItemId(clientItemId: string): Promise<Document[]> {
-    return this.documentRepository.find({
-      where: { clientItem: { id: clientItemId } },
-      relations: ['clientItem', 'versions'],
-    });
+    const documents = await this.documentRepository
+      .createQueryBuilder('document')
+      .leftJoinAndSelect('document.clientItem', 'clientItem')
+      .leftJoinAndSelect('document.versions', 'versions')
+      // 🔥 ESTA LÍNEA ES LA MAGIA: Trae el objeto Lawyer completo dentro de la versión
+      .leftJoinAndSelect('versions.lawyer', 'lawyer')
+      .where('document.clientItemId = :clientItemId', { clientItemId })
+      // Ordenamos: primero el documento más nuevo
+      .orderBy('document.createdAt', 'DESC')
+      // Y dentro del doc, la versión más alta primero
+      .addOrderBy('versions.versionNumber', 'DESC')
+      .getMany();
+
+    return documents;
   }
 
   async getDocumentByUrl(fileUrl: string): Promise<Document> {

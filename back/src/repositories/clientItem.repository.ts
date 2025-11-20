@@ -213,19 +213,19 @@ export class ClientItemRepository implements OnModuleInit {
       .leftJoinAndSelect('clientItem.category', 'category')
       .leftJoinAndSelect('clientItem.section', 'section')
       .leftJoinAndSelect('clientItem.documents', 'documents')
-      .leftJoinAndSelect('clientItem.sharedWithLawyers', 'sharedLawyer') // relación ManyToMany
+      // Traemos la relación profunda
+      .leftJoinAndSelect('clientItem.sharedWithLawyers', 'sharedLawyer')
+      .leftJoinAndSelect('sharedLawyer.user', 'sharedUser')
       .where('client.id = :clientId', { clientId })
       .getMany();
 
-    // filtramos permisos en JS (más claro y menos propenso a errores SQL)
     const visible = items.filter((ci) => {
-      if (!ci.isPrivate) return true; // público
-      if (!lawyerId) return false; // privado y no hay lawyer identificable
-      if (ci.lawyer?.id === lawyerId) return true; // propietario
-      return !!ci.sharedWithLawyers?.some((s) => s.id === lawyerId); // está en shared list
+      if (!ci.isPrivate) return true;
+      if (!lawyerId) return false;
+      if (ci.lawyer?.id === lawyerId) return true;
+      return !!ci.sharedWithLawyers?.some((s) => s.id === lawyerId);
     });
 
-    // mapeamos al formato que espera el front (igual que antes: documents: [{id}], camelCase, etc.)
     const result = visible.map((ci) => ({
       id: ci.id,
       title: ci.title,
@@ -236,12 +236,31 @@ export class ClientItemRepository implements OnModuleInit {
       isPrivate: ci.isPrivate,
       itemTypeId: ci.itemType?.id ?? null,
       clientId: ci.client?.id ?? null,
+      // 👇 AGREGÁ ESTO PARA QUE EL FRONT NO MUESTRE GUIONES
+      client: ci.client
+        ? {
+            id: ci.client.id,
+            firstName: ci.client.firstName,
+            lastName: ci.client.lastName,
+            companyName: ci.client.companyName,
+            type: ci.client.type,
+          }
+        : null,
       lawyerId: ci.lawyer?.id ?? null,
       status: ci.status,
       categoryId: ci.category?.id ?? null,
       sectionId: ci.section?.id ?? null,
       documents: (ci.documents ?? []).map((d) => ({ id: d.id })),
-      sharedLawyers: (ci.sharedWithLawyers ?? []).map((s) => s.id),
+
+      // 🔥 MISMO BLINDAJE AQUI:
+      sharedWithLawyers: (ci.sharedWithLawyers ?? [])
+        .filter((l) => l && l.id)
+        .map((l: any) => ({
+          id: l.id,
+          firstName: l.firstName,
+          lastName: l.lastName,
+          email: l.user?.email || l.email || '',
+        })),
     }));
 
     return result;
@@ -331,27 +350,26 @@ export class ClientItemRepository implements OnModuleInit {
   }
 
   async getByLawyerId(lawyerId: string): Promise<any[]> {
-    // Trae entidades completas con relaciones necesarias
     const items = await this.clientItemRepository
       .createQueryBuilder('clientItem')
       .leftJoinAndSelect('clientItem.itemType', 'itemType')
       .leftJoinAndSelect('clientItem.client', 'client')
-      .leftJoinAndSelect('clientItem.lawyer', 'lawyer') // propietario
+      .leftJoinAndSelect('clientItem.lawyer', 'lawyer')
       .leftJoinAndSelect('clientItem.category', 'category')
       .leftJoinAndSelect('clientItem.section', 'section')
       .leftJoinAndSelect('clientItem.documents', 'documents')
-      .leftJoinAndSelect('clientItem.sharedWithLawyers', 'sharedLawyers') // abogados compartidos
+      // 1. Traemos los abogados compartidos Y sus usuarios para sacar el email
+      .leftJoinAndSelect('clientItem.sharedWithLawyers', 'sharedLawyers')
+      .leftJoinAndSelect('sharedLawyers.user', 'sharedUser')
       .where(
         new Brackets((qb) => {
-          qb.where('lawyer.id = :lawyerId').orWhere(
-            'sharedLawyers.id = :lawyerId',
-          );
+          qb.where('clientItem.isPrivate = :isPublic', { isPublic: false })
+            .orWhere('lawyer.id = :lawyerId', { lawyerId })
+            .orWhere('sharedLawyers.id = :lawyerId', { lawyerId });
         }),
-        { lawyerId },
       )
       .getMany();
 
-    // Mapear al formato que espera el front (compacto y sin duplicados)
     const result = items.map((item) => ({
       id: item.id,
       title: item.title,
@@ -362,14 +380,33 @@ export class ClientItemRepository implements OnModuleInit {
       isPrivate: item.isPrivate,
       itemTypeId: item.itemType?.id ?? null,
       clientId: item.client?.id ?? null,
+      // 👇 AGREGÁ ESTO PARA QUE EL FRONT NO MUESTRE GUIONES
+      client: item.client
+        ? {
+            id: item.client.id,
+            firstName: item.client.firstName,
+            lastName: item.client.lastName,
+            companyName: item.client.companyName,
+            type: item.client.type,
+          }
+        : null,
       lawyerId: item.lawyer?.id ?? null,
       status: item.status,
       categoryId: item.category?.id ?? null,
       sectionId: item.section?.id ?? null,
       documents: (item.documents || []).map((d: any) => ({ id: d.id })),
-      sharedLawyers: Array.from(
-        new Set((item.sharedWithLawyers || []).map((l: any) => l.id)),
-      ),
+
+      // 🔥 BLINDAJE ANTIBOMBAS AQUI:
+      sharedWithLawyers: (item.sharedWithLawyers || [])
+        .filter((l) => l && l.id) // Filtramos nulos o undefined
+        .map((l: any) => ({
+          // Usamos 'any' temporalmente para evitar líos de tipos si Lawyer entity no tiene email declarado
+          id: l.id,
+          firstName: l.firstName,
+          lastName: l.lastName,
+          // Intentamos sacar el email del usuario, si no existe, string vacío.
+          email: l.user?.email || l.email || '',
+        })),
     }));
 
     return result;

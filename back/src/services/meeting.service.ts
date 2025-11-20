@@ -26,7 +26,7 @@ export class MeetingService {
     clientItemId: string,
     lawyerEmail: string,
     clientId: string,
-    lawyerId : string
+    lawyerId: string,
   ): Promise<Meeting | null | void> {
     const { startAt, endAt, name, type, participants } = meetingData;
 
@@ -36,13 +36,22 @@ export class MeetingService {
       : new Date(startDate.getTime() + 60 * 60 * 1000); // +1h por defecto
 
     if (type === 'google-meet') {
+      // 🛠️ PROTECCIÓN DE BACKEND
+      // Validamos que venga un email y que parezca de Google (o que sepamos que está auth)
+      // Como mínimo, que no esté vacío.
+      if (!lawyerEmail) {
+        throw new BadRequestException(
+          'Para crear una reunión de Google Meet, el abogado debe tener su cuenta de Google vinculada.',
+        );
+      }
+
       try {
         // 1️⃣ Crear registro inicial en la base de datos
         const newMeeting = await this.meetingRepository.createMeeting(
           { ...meetingData, startAt: startDate, endAt: endDate },
           clientItemId,
           clientId,
-          lawyerId
+          lawyerId,
         );
 
         // 2️⃣ Crear el evento en Google Calendar
@@ -123,7 +132,7 @@ export class MeetingService {
           { ...meetingData, startAt: startDate, endAt: endDate },
           clientItemId,
           clientId,
-          lawyerId
+          lawyerId,
         );
 
         // 6️⃣ Asociar la reunión a otros abogados que figuren como participantes

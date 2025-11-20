@@ -8,6 +8,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Document } from './document.entity';
+import { Lawyer } from './lawyer.entity';
 
 @Entity('documentVersions')
 export class DocumentVersion {
@@ -30,8 +31,13 @@ export class DocumentVersion {
   @Column({ name: 'size', type: 'int', nullable: true })
   size: number | null;
 
-  @Column({ name: 'uploadedBy', type: 'uuid', nullable: true })
-  uploadedBy: string | null;
+  @ManyToOne(() => Lawyer)
+  @JoinColumn({ name: 'uploadedBy' }) // Mapea a la columna existente en BD
+  lawyer: Lawyer;
+
+  // Truquito: Para mantener compatibilidad si algo busca el ID suelto
+  @Column({ name: 'uploadedBy', nullable: true, insert: false, update: false })
+  uploadedBy: string;
 
   @CreateDateColumn({ name: 'createdAt', type: 'timestamptz' })
   createdAt: Date;
