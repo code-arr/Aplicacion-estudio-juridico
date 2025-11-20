@@ -164,11 +164,20 @@ export class DocumentRepository {
   }
 
   async getDocumentsByClientItemId(clientItemId: string): Promise<Document[]> {
-    return this.documentRepository.find({
-      where: { clientItem: { id: clientItemId } },
-      // Agregamos 'versions.lawyer'
-      relations: ['clientItem', 'versions', 'versions.lawyer'],
-    });
+    const documents = await this.documentRepository
+      .createQueryBuilder('document')
+      .leftJoinAndSelect('document.clientItem', 'clientItem')
+      .leftJoinAndSelect('document.versions', 'versions')
+      // 🔥 ESTA LÍNEA ES LA MAGIA: Trae el objeto Lawyer completo dentro de la versión
+      .leftJoinAndSelect('versions.lawyer', 'lawyer')
+      .where('document.clientItemId = :clientItemId', { clientItemId })
+      // Ordenamos: primero el documento más nuevo
+      .orderBy('document.createdAt', 'DESC')
+      // Y dentro del doc, la versión más alta primero
+      .addOrderBy('versions.versionNumber', 'DESC')
+      .getMany();
+
+    return documents;
   }
 
   async getDocumentByUrl(fileUrl: string): Promise<Document> {
