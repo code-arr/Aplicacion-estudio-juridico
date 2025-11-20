@@ -86,9 +86,15 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
   return (
     <Card className="hover:shadow-lg transition-shadow duration-200 border border-gray-200 bg-white">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-12 w-12">
+        {/* Agregamos gap-3 para asegurar aire entre el nombre y el badge */}
+        <div className="flex items-start justify-between gap-3">
+          {/* GRUPO IZQUIERDO (Avatar + Texto) */}
+          {/* flex-1: Ocupa todo el ancho disponible */}
+          {/* min-w-0: Habilita que el texto adentro se pueda cortar (MAGIA) */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <Avatar className="h-12 w-12 shrink-0">
+              {" "}
+              {/* shrink-0 para que el avatar no se aplaste */}
               {client.profileImage ? (
                 <AvatarImage
                   src={client.profileImage}
@@ -100,20 +106,26 @@ const ClientCard = ({ client, onViewDetails }: ClientCardProps) => {
                 </AvatarFallback>
               )}
             </Avatar>
-            <div className="flex-1">
+
+            <div className="flex flex-col min-w-0">
+              {" "}
+              {/* min-w-0 otra vez para el contenedor de texto directo */}
               <h3
                 className="font-semibold text-gray-900 text-lg leading-tight truncate"
                 title={getDisplayName(client)}
               >
                 {getDisplayName(client)}
               </h3>
-
-              {/* Mostrás el RUT igual para ambos tipos */}
-              <p className="text-sm text-gray-600 mt-1">{client.rut}</p>
+              {/* Agregamos truncate al RUT también por si acaso */}
+              <p className="text-sm text-gray-600 mt-1 truncate">
+                {client.rut}
+              </p>
             </div>
           </div>
 
-          {getStatusBadge(client.status)}
+          {/* GRUPO DERECHO (Badge) */}
+          {/* shrink-0: "Ni se te ocurra achicarte o moverte" */}
+          <div className="shrink-0">{getStatusBadge(client.status)}</div>
         </div>
       </CardHeader>
 
