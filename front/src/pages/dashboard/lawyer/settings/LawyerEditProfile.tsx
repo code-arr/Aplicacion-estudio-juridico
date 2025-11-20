@@ -5,6 +5,9 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFocusContext } from "@/hooks/useFocusContext";
+import { updateLawyer } from "@/api/lawyer";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/useToast";
 
 // === Utilidades cortas (sin libs) ===
 const formatPhone = (v: string) =>
@@ -18,19 +21,15 @@ const isValidRut = (rut: string) => {
   return /^\d{7,8}-[\dkK]$/.test(rut);
 };
 
-export type LawyerEditProfileProps = {
-  /** Se dispara con el payload listo para enviar */
-  onSubmit?: (payload: Partial<Lawyer>) => Promise<void> | void;
-  /** Campos que NO puede editar el abogado (además de role/email por defecto) */
-  readOnlyFields?: Array<keyof Lawyer | "user.email" | "user.role" | "id">;
-};
-
-export default function LawyerEditProfile({
-  onSubmit,
-}: LawyerEditProfileProps) {
+export default function LawyerEditProfile() {
   useFocusContext({ type: "LawyerApp", id: "main" });
 
+  const navigate = useNavigate();
+  const { toast } = useToast(); // Hook de notificaciones
+
   const lawyer = useLawyerStore((s) => s.lawyer);
+  const updateLocalLawyer = useLawyerStore((s) => s.updateLocalLawyer);
+
   const lawyerUser = useAuthStore((s) => s.user);
   const [form, setForm] = useState({
     firstName: lawyer?.firstName ?? "",
@@ -67,12 +66,38 @@ export default function LawyerEditProfile({
     return Object.keys(e).length === 0;
   };
 
-  const submit = async (ev: React.FormEvent) => {
+  const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
+
+    // Si no hubo cambios, volvemos sin hacer nada
+    if (Object.keys(changes).length === 0) {
+      navigate(-1);
+      return;
+    }
+
     try {
       setSaving(true);
-      await onSubmit?.(changes);
+      if (lawyer?.id) {
+        // 1. API: Guardamos en base de datos
+        await updateLawyer(changes);
+
+        // 2. Store: Actualizamos lo que ve el usuario al instante
+        updateLocalLawyer(changes);
+
+        toast({
+          title: "Perfil actualizado",
+          description: "Cambios guardados.",
+        });
+        navigate(-1);
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo actualizar el perfil. Intentá de nuevo.",
+      });
     } finally {
       setSaving(false);
     }
@@ -81,7 +106,7 @@ export default function LawyerEditProfile({
   return (
     <div className="min-h-screen w-full bg-gradient-to-t from-[#334155] via-[#3b4d66] to-[#60a5fa]/20 flex items-center justify-center p-6">
       <form
-        onSubmit={submit}
+        onSubmit={handleSubmit}
         className="w-full max-w-3xl rounded-2xl bg-white/95 shadow-xl ring-1 ring-black/5 backdrop-blur px-6 py-7"
       >
         {/* Header */}
@@ -178,12 +203,12 @@ export default function LawyerEditProfile({
             <Input
               id="Tipo de abogado"
               className="inp capitalize"
-              value={lawyer?.lawyerType ?? "—"}
+              value={lawyer?.type ?? "—"}
               disabled
               readOnly
             />
           </div>
-          <div className="flex flex-col gap-1">
+          {/* <div className="flex flex-col gap-1">
             <Label htmlFor="Seniority">Seniority</Label>
             <Input
               id="Seniority"
@@ -195,7 +220,7 @@ export default function LawyerEditProfile({
             <p className="text-xs text-slate-400">
               Definido por el administrador
             </p>
-          </div>
+          </div> */}
           <div className="flex flex-col gap-1">
             <Label htmlFor="email">Email</Label>
             <Input

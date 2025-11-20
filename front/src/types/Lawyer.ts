@@ -7,7 +7,7 @@ export interface Lawyer {
   id: string;
   firstName: string;
   lastName: string;
-  adress: string;
+  address: string;
   phone: string;
   rut: string;
   type: string; //Despues se podria cambiar por un enum

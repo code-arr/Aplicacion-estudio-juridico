@@ -8,6 +8,7 @@ interface LawyerState {
   setLawyer: (email: string) => void;
   fetchAllLawyers: () => Promise<void>;
   resetLawyer: () => void;
+  updateLocalLawyer: (data: Partial<Lawyer>) => void;
 }
 
 export const useLawyerStore = create<LawyerState>()((set) => ({
@@ -27,4 +28,8 @@ export const useLawyerStore = create<LawyerState>()((set) => ({
     }
   },
   resetLawyer: () => set({ lawyer: null }),
+  updateLocalLawyer: (updatedData) =>
+    set((state) => ({
+      lawyer: state.lawyer ? { ...state.lawyer, ...updatedData } : null,
+    })),
 }));
