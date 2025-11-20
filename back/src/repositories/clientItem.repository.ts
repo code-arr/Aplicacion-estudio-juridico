@@ -331,6 +331,10 @@ export class ClientItemRepository implements OnModuleInit {
     const clientItem = await this.clientItemRepository.findOne({
       where: { id },
       relations: [
+        'lawyer', // 👈 El dueño
+        'lawyer.user', // 👈 Para sacar el email del dueño
+        'sharedWithLawyers', // 👈 Los colaboradores
+        'sharedWithLawyers.user', // 👈 Para sacar el email de los colaboradores
         'itemType.section',
         'documents',
         'processes',

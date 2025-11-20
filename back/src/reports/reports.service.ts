@@ -229,7 +229,7 @@ export class ReportsService {
 
     // === Datos del cliente ===
     doc.moveDown(1);
-    this.drawSectionTitle(doc, 'Datos del cliente', pageWidth);
+    this.drawSectionTitle(doc, 'Datos del Cliente', pageWidth);
     this.kv(
       doc,
       'Nombre / Razón social',
@@ -256,7 +256,7 @@ export class ReportsService {
 
     // === Resumen ejecutivo ===
     doc.moveDown(1);
-    this.drawSectionTitle(doc, 'Resumen ejecutivo', pageWidth);
+    this.drawSectionTitle(doc, 'Resumen Ejecutivo', pageWidth);
 
     // Mostrar tarifa horaria del cliente como referencia (si existe)
     if (clientHourlyRate) {
@@ -319,7 +319,7 @@ export class ReportsService {
       clientItems.forEach((item) => {
         const isExtras = !item.clientItemId;
         const itemName = isExtras
-          ? 'Extras (ordenar documentos, tareas varias)'
+          ? 'Gestión Administrativa y Varios'
           : item.clientName;
         const itemTotal = item.totalByMonth; // horas
 
@@ -829,7 +829,7 @@ export class ReportsService {
     const notas = [
       'Este documento expresa una estimación basada en horas registradas y tarifa vigente.',
       'Los valores podrían ajustarse por gastos administrativos o tributos aplicables.',
-      'El detalle granular de tareas se resguarda por razones de confidencialidad.',
+      'El detalle granular de las tareas realizadas se adjunta a continuación.', // <--- CORRECCIÓN: Antes decía que se resguardaba
     ];
     const bulletX = doc.page.margins.left + 4;
     doc.font(this.fontRegular()).fontSize(10).fillColor('#334155');
@@ -1009,24 +1009,24 @@ export class ReportsService {
 
   private periodoLabel(year: number, month?: number) {
     return month
-      ? `Periodo: ${this.monthNameES(month)} ${year}`
-      : `Periodo: ${year} (enero a diciembre)`;
+      ? `Período: ${this.monthNameES(month)} ${year}` // <--- Agregué tilde en Período
+      : `Período: ${year} (Enero a Diciembre)`; // <--- Agregué tilde y mayúsculas
   }
 
   private monthNameES(m: number) {
     const months = [
-      'enero',
-      'febrero',
-      'marzo',
-      'abril',
-      'mayo',
-      'junio',
-      'julio',
-      'agosto',
-      'septiembre',
-      'octubre',
-      'noviembre',
-      'diciembre',
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
     ];
     return months[m - 1] ?? String(m);
   }
