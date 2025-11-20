@@ -19,4 +19,7 @@ export class AdminService {
   async getAdmin(): Promise<Admin | null> {
     return this.adminRepository.getAdmin();
   }
+  async deleteClient(clientId: string): Promise<void> {
+    return this.adminRepository.deleteClient(clientId);
+  }
 }

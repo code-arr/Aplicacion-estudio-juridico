@@ -32,16 +32,8 @@ export class AudienceService {
     );
   }
 
-  deleteAudienceByUrl(
-    fileUrl: string,
-    audienceId: string,
-    lawyerId: string,
-  ): Promise<Audience> {
-    return this.audiencieRepository.deleteAudienceByUrl(
-      fileUrl,
-      audienceId,
-      lawyerId,
-    );
+  deleteAudienceByUrl(fileUrl: string, audienceId: string): Promise<Audience> {
+    return this.audiencieRepository.deleteAudienceByUrl(fileUrl, audienceId);
   }
 
   async getAllAudiences(): Promise<Audience[]> {

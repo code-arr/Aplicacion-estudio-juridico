@@ -102,6 +102,9 @@ export class ClienteRepository {
         'clientItems',
         'clientItems.audiences',
         'clientItems.documents',
+        'clientItems.processes',
+        'clientItems.meetings',
+        'clientItems.documents.versions',
       ],
     });
   }
@@ -171,4 +174,9 @@ export class ClienteRepository {
       }
     });
   }
+  async deleteClient(clientId: string): Promise<string> {
+    this.clienteRepository.remove({ id: clientId } as Client);
+    return 'Client deleted successfully';
+  }
+  
 }

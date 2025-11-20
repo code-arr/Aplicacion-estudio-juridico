@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 
 import { Roles } from 'src/decorator/roles.decorator';
 import { UserRole } from 'src/entities/user.entity';
@@ -20,5 +20,9 @@ export class AdminController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getAdmin() {
     return this.adminService.getAdmin();
+  }
+  @Delete('DeleteClient/:clientId')
+  async deleteClient(@Param('clientId') clientId: string) {
+    return this.adminService.deleteClient(clientId);
   }
 }

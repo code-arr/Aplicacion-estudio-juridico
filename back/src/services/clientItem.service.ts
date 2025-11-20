@@ -16,6 +16,12 @@ export class ClientItemService {
     return this.clientItemRepository.createClientItem(clientItem, lawyerId);
   }
 
+  async deleteClientItem(id: string): Promise<void> {
+  await this.clientItemRepository.deleteClientItem(id);
+  // TypeORM intentará borrar el registro con ese ID.
+  // No se lanza un error si el ID no existe, simplemente 'affected' será 0.
+}
+
   async createClientItemGeneric(
     clientItem: ClientItemDto,
     lawyerId: string,

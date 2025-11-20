@@ -97,7 +97,6 @@ export class AudiencieRepository {
   async deleteAudienceByUrl(
     fileUrl: string,
     audienceId: string,
-    lawyerId: string,
   ): Promise<Audience> {
     return this.dataSource.transaction(async (manager) => {
       try {
@@ -119,14 +118,6 @@ export class AudiencieRepository {
         await audienceRepo.remove(audience);
 
         // 3) Evento (opcional; si usás eventos de delete)
-        const eventData: EventDto = {
-          action: 'delete',
-          entityName: audience.name,
-          entityId: audience.id,
-          entityType: 'Audience',
-          lawyerId,
-        };
-        await this.eventService.createEvent(eventData);
 
         // 4) TOCAR padres
         if (clientItemId)

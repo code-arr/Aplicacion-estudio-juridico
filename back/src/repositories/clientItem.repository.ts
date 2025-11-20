@@ -554,4 +554,9 @@ export class ClientItemRepository implements OnModuleInit {
       return updated;
     });
   }
+  async deleteClientItem(id: string): Promise<void> {
+    await this.clientItemRepository.delete(id);
+    // TypeORM intentará borrar el registro con ese ID.
+    // No se lanza un error si el ID no existe, simplemente 'affected' será 0.
+  }
 }

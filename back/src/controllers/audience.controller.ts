@@ -52,11 +52,7 @@ export class AudienceController {
     @Param('audienceId') audienceId: string,
     @Query('lawyerId') lawyerId: string,
   ): Promise<Audience> {
-    return this.audienceService.deleteAudienceByUrl(
-      fileUrl,
-      audienceId,
-      lawyerId,
-    );
+    return this.audienceService.deleteAudienceByUrl(fileUrl, audienceId);
   }
 
   @Get()
@@ -79,8 +75,7 @@ export class AudienceController {
     if (!newName || !newName.trim()) {
       throw new BadRequestException('New name is required');
     }
-    console.log("h");
-    
+    console.log('h');
 
     return await this.audienceService.updateAudienceName(
       audienceId,

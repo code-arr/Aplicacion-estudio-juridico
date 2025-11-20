@@ -39,4 +39,8 @@ export class ClienteService {
   ): Promise<Client> {
     return this.clienteRepository.updateClient(clientId, updateData);
   }
+
+  async deleteClient(clientId: string): Promise<string> {
+    return this.clienteRepository.deleteClient(clientId);
+  }
 }

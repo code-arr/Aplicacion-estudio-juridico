@@ -115,6 +115,6 @@ export class ClientItem {
   })
   section?: Section | null;
 
-  @OneToMany(() => EntryDay, (entry) => entry.clientItem) // 'entry.clientItem' debe coincidir con el nombre de la propiedad en EntryDay
+  @OneToMany(() => EntryDay, (entry) => entry.clientItem, {onDelete: 'CASCADE'}) // 'entry.clientItem' debe coincidir con el nombre de la propiedad en EntryDay
   public entries: EntryDay[];
 }
