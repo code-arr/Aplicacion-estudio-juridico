@@ -86,7 +86,6 @@
   "build": {
     "appId": "com.iya.gestion",
     "productName": "GestionEstudio",
-    "artifactName": "${productName}-Setup-${version}.${ext}",
     "files": [
       "dist/**",
       "dist-electron/**",
@@ -103,7 +102,8 @@
         "nsis"
       ],
       "icon": "build/icon.ico",
-      "forceCodeSigning": false
+      "forceCodeSigning": false,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
