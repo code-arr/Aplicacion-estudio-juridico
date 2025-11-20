@@ -266,7 +266,7 @@ export default function LawyerEditProfile() {
         <div className="mt-6 flex items-center gap-3 justify-end">
           <button
             type="button"
-            className="btn ghost"
+            className="btn ghost cursor-pointer"
             onClick={() =>
               setForm({
                 firstName: lawyer?.firstName ?? "",
@@ -282,7 +282,7 @@ export default function LawyerEditProfile() {
           <button
             type="submit"
             disabled={saving}
-            className="btn primary disabled:opacity-60"
+            className="btn primary disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
           >
             {saving ? "Guardando…" : "Guardar cambios"}
           </button>
