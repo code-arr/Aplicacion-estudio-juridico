@@ -236,6 +236,16 @@ export class ClientItemRepository implements OnModuleInit {
       isPrivate: ci.isPrivate,
       itemTypeId: ci.itemType?.id ?? null,
       clientId: ci.client?.id ?? null,
+      // 👇 AGREGÁ ESTO PARA QUE EL FRONT NO MUESTRE GUIONES
+      client: ci.client
+        ? {
+            id: ci.client.id,
+            firstName: ci.client.firstName,
+            lastName: ci.client.lastName,
+            companyName: ci.client.companyName,
+            type: ci.client.type,
+          }
+        : null,
       lawyerId: ci.lawyer?.id ?? null,
       status: ci.status,
       categoryId: ci.category?.id ?? null,
@@ -370,6 +380,16 @@ export class ClientItemRepository implements OnModuleInit {
       isPrivate: item.isPrivate,
       itemTypeId: item.itemType?.id ?? null,
       clientId: item.client?.id ?? null,
+      // 👇 AGREGÁ ESTO PARA QUE EL FRONT NO MUESTRE GUIONES
+      client: item.client
+        ? {
+            id: item.client.id,
+            firstName: item.client.firstName,
+            lastName: item.client.lastName,
+            companyName: item.client.companyName,
+            type: item.client.type,
+          }
+        : null,
       lawyerId: item.lawyer?.id ?? null,
       status: item.status,
       categoryId: item.category?.id ?? null,
