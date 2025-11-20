@@ -87,7 +87,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          TAG="release-${{ github.run_id }}"
+          VER=$(jq -r .version front/package.json)
+          TAG="v$VER"
           API="https://api.github.com"
           AUTH="Bearer $GITHUB_TOKEN"
 
