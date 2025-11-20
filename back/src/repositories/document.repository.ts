@@ -118,7 +118,7 @@ export class DocumentRepository {
           fileUrl: s3Url,
           mimeType: mimetype,
           size: fileBuffer.length,
-          uploadedBy: lawyerId || null, // <- evita undefined en DB
+          lawyer: lawyerId ? ({ id: lawyerId } as any) : null,
         });
         const savedVersion = await versionRepo.save(version);
 
@@ -158,14 +158,16 @@ export class DocumentRepository {
   // obtener todos (con versiones)
   async getAllDocuments(): Promise<Document[]> {
     return this.documentRepository.find({
-      relations: ['clientItem', 'versions'],
+      // Agregamos 'versions.lawyer'
+      relations: ['clientItem', 'versions', 'versions.lawyer'],
     });
   }
 
   async getDocumentsByClientItemId(clientItemId: string): Promise<Document[]> {
     return this.documentRepository.find({
       where: { clientItem: { id: clientItemId } },
-      relations: ['clientItem', 'versions'],
+      // Agregamos 'versions.lawyer'
+      relations: ['clientItem', 'versions', 'versions.lawyer'],
     });
   }
 
