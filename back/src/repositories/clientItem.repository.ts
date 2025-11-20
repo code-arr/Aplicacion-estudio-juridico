@@ -213,11 +213,12 @@ export class ClientItemRepository implements OnModuleInit {
       .leftJoinAndSelect('clientItem.category', 'category')
       .leftJoinAndSelect('clientItem.section', 'section')
       .leftJoinAndSelect('clientItem.documents', 'documents')
-      .leftJoinAndSelect('clientItem.sharedWithLawyers', 'sharedLawyer') // relación ManyToMany
+      // Traemos la relación profunda
+      .leftJoinAndSelect('clientItem.sharedWithLawyers', 'sharedLawyer')
+      .leftJoinAndSelect('sharedLawyer.user', 'sharedUser')
       .where('client.id = :clientId', { clientId })
       .getMany();
 
-    // filtramos permisos en JS (esto estaba bien, pero ojo al mapeo final)
     const visible = items.filter((ci) => {
       if (!ci.isPrivate) return true;
       if (!lawyerId) return false;
@@ -240,14 +241,16 @@ export class ClientItemRepository implements OnModuleInit {
       categoryId: ci.category?.id ?? null,
       sectionId: ci.section?.id ?? null,
       documents: (ci.documents ?? []).map((d) => ({ id: d.id })),
-      // 🔥 CAMBIO CLAVE AQUI TAMBIÉN
-      sharedWithLawyers: (ci.sharedWithLawyers ?? []).map((s) => ({
-        id: s.id,
-        firstName: s.firstName,
-        lastName: s.lastName,
-        email: s.user.email,
-      })),
-      // Borrá la propiedad 'sharedLawyers' vieja que devolvía solo IDs
+
+      // 🔥 MISMO BLINDAJE AQUI:
+      sharedWithLawyers: (ci.sharedWithLawyers ?? [])
+        .filter((l) => l && l.id)
+        .map((l: any) => ({
+          id: l.id,
+          firstName: l.firstName,
+          lastName: l.lastName,
+          email: l.user?.email || l.email || '',
+        })),
     }));
 
     return result;
@@ -345,14 +348,11 @@ export class ClientItemRepository implements OnModuleInit {
       .leftJoinAndSelect('clientItem.category', 'category')
       .leftJoinAndSelect('clientItem.section', 'section')
       .leftJoinAndSelect('clientItem.documents', 'documents')
-      // IMPORTANTE: Traer los abogados compartidos para el mapeo
+      // 1. Traemos los abogados compartidos Y sus usuarios para sacar el email
       .leftJoinAndSelect('clientItem.sharedWithLawyers', 'sharedLawyers')
+      .leftJoinAndSelect('sharedLawyers.user', 'sharedUser')
       .where(
         new Brackets((qb) => {
-          // Lógica corregida:
-          // 1. Es público (lo veo siempre)
-          // 2. Soy el dueño
-          // 3. Estoy en la lista de compartidos
           qb.where('clientItem.isPrivate = :isPublic', { isPublic: false })
             .orWhere('lawyer.id = :lawyerId', { lawyerId })
             .orWhere('sharedLawyers.id = :lawyerId', { lawyerId });
@@ -360,7 +360,6 @@ export class ClientItemRepository implements OnModuleInit {
       )
       .getMany();
 
-    // Mapear al formato que espera el Front
     const result = items.map((item) => ({
       id: item.id,
       title: item.title,
@@ -377,13 +376,17 @@ export class ClientItemRepository implements OnModuleInit {
       sectionId: item.section?.id ?? null,
       documents: (item.documents || []).map((d: any) => ({ id: d.id })),
 
-      // 🔥 CAMBIO CLAVE: Devolvemos 'sharedWithLawyers' como objetos, igual que en la entidad
-      sharedWithLawyers: (item.sharedWithLawyers || []).map((l) => ({
-        id: l.id,
-        firstName: l.firstName,
-        lastName: l.lastName,
-        email: l.user.email,
-      })),
+      // 🔥 BLINDAJE ANTIBOMBAS AQUI:
+      sharedWithLawyers: (item.sharedWithLawyers || [])
+        .filter((l) => l && l.id) // Filtramos nulos o undefined
+        .map((l: any) => ({
+          // Usamos 'any' temporalmente para evitar líos de tipos si Lawyer entity no tiene email declarado
+          id: l.id,
+          firstName: l.firstName,
+          lastName: l.lastName,
+          // Intentamos sacar el email del usuario, si no existe, string vacío.
+          email: l.user?.email || l.email || '',
+        })),
     }));
 
     return result;
