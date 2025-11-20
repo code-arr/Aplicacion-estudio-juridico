@@ -92,6 +92,7 @@ export class AdminRepository {
       }
       await this.clientItemService.deleteClientItem(clientItem.id);
     }
-    // await this.clientService.deleteClient(clientId);
+
+    await this.clientService.deleteClient(clientId);
   }
 }
