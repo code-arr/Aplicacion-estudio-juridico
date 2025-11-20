@@ -504,8 +504,8 @@ app.whenReady().then(() => {
     ipcMain.on("app:update-install", () => {
       try {
         autoUpdater.quitAndInstall(
-          /*isSilent*/ false,
-          /*isForceRunAfter*/ true
+          true, // ✅ PONELO EN TRUE (Modo Silencioso)
+          true // Reiniciar después
         );
       } catch (e) {
         console.error("[autoUpdater] quitAndInstall error:", e);
