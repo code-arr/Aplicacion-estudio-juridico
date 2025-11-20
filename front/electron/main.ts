@@ -27,6 +27,9 @@ const { machineIdSync } = require("node-machine-id"); // ✅ CJS en ESM
 const updaterPkg = require("electron-updater");
 const autoUpdater = updaterPkg.autoUpdater ?? updaterPkg.default?.autoUpdater;
 
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
 const _rawMachineId = machineIdSync(); // estable por equipo
 const _deviceId = createHash("sha256")
   .update(_rawMachineId)
@@ -284,6 +287,7 @@ function createAudienceViewerWindow() {
 /** ==================== Crea la ventana principal de la aplicación. ==================== */
 function getIconPath() {
   if (app.isPackaged) {
+    autoUpdater.checkForUpdatesAndNotify();
     // en build, electron busca en resources
     return path.join(process.resourcesPath, "assets", "logo-iya.ico");
   }
