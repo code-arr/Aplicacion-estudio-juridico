@@ -35,7 +35,8 @@ export default function AdminSidebar() {
     if (!ok) return;
     try {
       await logout();
-      navigate("/login", { replace: true });
+      // 🟢 AHORA: navigate("/", { replace: true }); -> Correcto (Raíz)
+      navigate("/", { replace: true });
     } catch (e) {
       console.error(e);
     }

@@ -4,35 +4,24 @@ import LoginForm from "@/components/auth/LoginForm";
 import { useAuthStore } from "@/store/useAuthStore";
 import { loginUser } from "@/api/user";
 import type { LoginError } from "@/types/LoginError";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useLawyerStore } from "@/store/useLawyerStore";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { isLoggedIn, login, isLoadingSession, user, isAdmin, isLawyer } =
-    useAuthStore();
+
+  // Sacamos isLoadingSession porque AppRoutes ya lo maneja
+  const { isLoggedIn, login, user, isAdmin, isLawyer } = useAuthStore();
   const setLawyer = useLawyerStore((s) => s.setLawyer);
+
   const [error, setError] = useState<LoginError>({
     status: false,
     message: "",
   });
 
-  /* const location = useLocation();
-  const from = (location.state as any)?.from?.pathname ?? "/dashboard"; 
-
-  useEffect(() => {
-    if (isLoggedIn && user) {
-      if (isLawyer) {
-        navigate(from, { replace: true });
-      } else if (isAdmin) {
-        // ⬇️ ir directo a clientes admin
-        navigate("/dashboard/admin/clients", { replace: true });
-      }
-    }
-  }, [isLoggedIn, user, navigate, isAdmin, isLawyer, from]); */
-
+  // Redirección si ya está logueado (por si entra manual a la URL)
   useEffect(() => {
     if (isLoggedIn && user) {
       if (isAdmin) {
@@ -43,28 +32,17 @@ const LoginPage = () => {
     }
   }, [isLoggedIn, user, isAdmin, isLawyer, navigate]);
 
-  /*   const handleLogin = async (email: string, password: string) => {
-    try {
-      const { user, token } = await loginUser(email, password);
-      setLawyer(user.email);
-      await login(user, token);
-    } catch (error) {
-      console.log(error);
-      setError({
-        status: true,
-        message: "Las credenciales ingresadas son incorrectas",
-      });
-      setPassword("");
-    }
-  }; */
-
   const handleLogin = async (email: string, password: string) => {
     try {
       const { user, token } = await loginUser(email, password);
+
+      // Importante: Setear el lawyer store antes del login global
+      // para evitar parpadeos en componentes que dependen de lawyer
       setLawyer(user.email);
+
       await login(user, token);
 
-      // ➜ destino fijo por rol
+      // Navegación explícita post-login
       if (user.role === "admin") {
         navigate("/dashboard/admin/clients", { replace: true });
       } else {
@@ -73,32 +51,26 @@ const LoginPage = () => {
     } catch (error) {
       setError({
         status: true,
-        message: "Las credenciales ingresadas son incorrectas",
+        message: "Las credenciales ingresadas son incorrectas", // O el mensaje que venga del back
       });
       setPassword("");
     }
   };
 
-  //Creo que es redundante ya que en AppRoutes y DashboardRouter ya lo renderiza mientras verifica si se puede restaurar la sesion
-  /* if (isLoadingSession) {
-    return <Spinner size={"3"} />; //Despues puedo cambiarlo por algo mas pro
-  } */
+  // Si está logueado, retornamos null para evitar flash de contenido mientras el useEffect redirige
+  if (isLoggedIn) return null;
 
-  if (!isLoggedIn) {
-    return (
-      <LoginForm
-        onLogin={handleLogin}
-        error={error}
-        setError={setError}
-        email={email}
-        setEmail={setEmail}
-        password={password}
-        setPassword={setPassword}
-      />
-    );
-  }
-
-  return null;
+  return (
+    <LoginForm
+      onLogin={handleLogin}
+      error={error}
+      setError={setError}
+      email={email}
+      setEmail={setEmail}
+      password={password}
+      setPassword={setPassword}
+    />
+  );
 };
 
 export default LoginPage;

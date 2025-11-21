@@ -2,19 +2,24 @@
 import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import PrivateRoute from "@/routes/PrivateRoute";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useOAuthDeepLink } from "@/hooks/useOAuthDeepLink";
 
-// Layouts y páginas
-import DashboardLayout from "@/layouts/DashboardLayout";
+// Layouts
+import AdminLayout from "@/layouts/AdminLayout";
+import LawyerLayout from "@/layouts/LawyerLayout";
+
+// Pages Auth / Public
 import LoginPage from "@/pages/auth/LoginPage";
 import UnauthorizedAccess from "@/pages/auth/UnauthorizedAccess";
 import NotFoundPage from "@/pages/not-found/NotFoundPage";
 import ResetPassword from "@/pages/auth/ResetPassword";
+import LoadingScreen from "@/components/shared/LoadingScreen";
 
-// Viewers
+// Viewers (Protected standalone)
 import DocumentViewerPage from "@/pages/dashboard/documents/DocumentViewerPage";
 import AudienceViewerPage from "@/pages/dashboard/audiences/AudienceViewerPage";
 
-// Lawyer (las tuyas existentes)
+// Lawyer Pages
 import ClientsPage from "@/pages/dashboard/clients/ClientsPage";
 import ClientLayout from "@/layouts/ClientLayout";
 import ClientOverviewPage from "@/pages/dashboard/clients/ClientOverviewPage";
@@ -29,29 +34,27 @@ import LawyerStatistics from "@/pages/dashboard/lawyer/statistics/LawyerStatisti
 import LawyerSettings from "@/pages/dashboard/lawyer/settings/LawyerSettings";
 import LawyerEditProfile from "@/pages/dashboard/lawyer/settings/LawyerEditProfile";
 
-// Admin (nuevas)
+// Admin Pages
 import AdminClientsPage from "@/pages/dashboard/admin/AdminClientsPage";
 import AdminLawyersPage from "@/pages/dashboard/admin/AdminLawyersPage";
 import AdminStatsPage from "@/pages/dashboard/admin/AdminStatsPage";
-
-import LoadingScreen from "@/components/shared/LoadingScreen";
 import AdminItemsPage from "@/pages/dashboard/admin/AdminItemsPage";
-import { useOAuthDeepLink } from "@/hooks/useOAuthDeepLink";
 
 const AppRoutes = () => {
   useOAuthDeepLink();
-  const location = useLocation();
   const { isAdmin, isLawyer, isLoadingSession } = useAuthStore();
+  const location = useLocation();
+
   if (isLoadingSession) return <LoadingScreen />;
 
   return (
     <Routes>
-      {/* Rutas públicas */}
+      {/* === RUTAS PÚBLICAS === */}
       <Route path="/" element={<LoginPage />} />
       <Route path="/reset" element={<ResetPassword />} />
       <Route path="/unauthorized" element={<UnauthorizedAccess />} />
 
-      {/* Visor PDF top-level, protegido */}
+      {/* === VIEWERS (Pantalla completa protegida) === */}
       <Route
         path="/viewer/documents"
         element={
@@ -69,178 +72,88 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Rutas privadas */}
-      <Route
-        path="/dashboard/*"
-        element={
-          <PrivateRoute>
-            <DashboardLayout />
-          </PrivateRoute>
-        }
-      >
-        {isLawyer && (
-          <>
-            <Route path="clients" element={<ClientsPage />} />
-            <Route path="clients/:clientId" element={<ClientLayout />}>
-              <Route index element={<ClientOverviewPage />} />
-              <Route
-                path="category/:categoryId"
-                element={<ClientCatalogPage />}
-              />
-            </Route>
+      {/* === RUTAS DE ADMIN (Usa AdminLayout) === */}
+      {isAdmin && (
+        <Route
+          path="/dashboard/admin"
+          element={
+            <PrivateRoute requiredRole="admin">
+              <AdminLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<Navigate to="clients" replace />} />
+          <Route path="clients" element={<AdminClientsPage />} />
+          <Route path="lawyers" element={<AdminLawyersPage />} />
+          <Route path="clientItems" element={<AdminItemsPage />} />
+          <Route path="stats" element={<AdminStatsPage />} />
+        </Route>
+      )}
 
-            <Route path="clientItems" element={<ItemsPage />} />
-            <Route path="item/:clientItemId" element={<ItemLayout />}>
-              {/* <Route index element={<ItemOverviewPage />} /> */}
-              <Route
-                index
-                element={
-                  <Navigate to="documents" replace state={location.state} />
-                }
-              />
-              <Route path="documents" element={<ItemDocumentsPage />} />
-              <Route path="audiences" element={<ItemAudiencesPage />} />
-              <Route path="meetings" element={<ItemMeetingsPage />} />
-              <Route path="process" element={<ItemProcessPage />} />
-            </Route>
+      {/* === RUTAS DE ABOGADO (Usa LawyerLayout) === */}
+      {isLawyer && (
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute requiredRole="lawyer">
+              <LawyerLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<Navigate to="clients" replace />} />
 
-            <Route path="statistics" element={<LawyerStatistics />} />
-            <Route path="settings" element={<LawyerSettings />} />
+          <Route path="clients" element={<ClientsPage />} />
+
+          {/* Subrutas de Cliente (ClientLayout maneja su propio sidebar interno o tabs si tenés) */}
+          <Route path="clients/:clientId" element={<ClientLayout />}>
+            <Route index element={<ClientOverviewPage />} />
             <Route
-              path="settings/edit-profile"
-              element={<LawyerEditProfile />}
+              path="category/:categoryId"
+              element={<ClientCatalogPage />}
             />
-            <Route index element={<Navigate to="clients" replace />} />
-          </>
-        )}
+          </Route>
 
-        {isAdmin && (
-          <>
-            {/* Index admin => clients */}
-            <Route index element={<Navigate to="admin/clients" replace />} />
+          <Route path="clientItems" element={<ItemsPage />} />
 
+          {/* Subrutas de Item */}
+          <Route path="item/:clientItemId" element={<ItemLayout />}>
             <Route
-              path="admin/clients"
+              index
               element={
-                <PrivateRoute requiredRole="admin">
-                  <AdminClientsPage />
-                </PrivateRoute>
+                <Navigate to="documents" replace state={location.state} />
               }
             />
-            <Route
-              path="admin/lawyers"
-              element={
-                <PrivateRoute requiredRole="admin">
-                  <AdminLawyersPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="admin/clientItems"
-              element={
-                <PrivateRoute requiredRole="admin">
-                  <AdminItemsPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="admin/stats"
-              element={
-                <PrivateRoute requiredRole="admin">
-                  <AdminStatsPage />
-                </PrivateRoute>
-              }
-            />
-          </>
-        )}
+            <Route path="documents" element={<ItemDocumentsPage />} />
+            <Route path="audiences" element={<ItemAudiencesPage />} />
+            <Route path="meetings" element={<ItemMeetingsPage />} />
+            <Route path="process" element={<ItemProcessPage />} />
+          </Route>
 
-        {/* Manejo de rutas no válidas */}
-        {!isAdmin && <Route path="admin" element={<UnauthorizedAccess />} />}
-        {!isLawyer && <Route path="clients" element={<UnauthorizedAccess />} />}
-        <Route path="*" element={<NotFoundPage />} />
-      </Route>
+          <Route path="statistics" element={<LawyerStatistics />} />
+
+          <Route path="settings" element={<LawyerSettings />} />
+          <Route path="settings/edit-profile" element={<LawyerEditProfile />} />
+        </Route>
+      )}
+
+      {/* === FALLBACKS (Si intentan entrar cruzado) === */}
+      {/* Si un lawyer intenta entrar a /dashboard/admin -> Unauthorized */}
+      {!isAdmin && (
+        <Route path="/dashboard/admin/*" element={<UnauthorizedAccess />} />
+      )}
+
+      {/* Si un admin intenta entrar a rutas de lawyer -> redirige a su home */}
+      {isAdmin && !isLawyer && (
+        <Route
+          path="/dashboard/*"
+          element={<Navigate to="/dashboard/admin" replace />}
+        />
+      )}
+
+      {/* 404 Universal */}
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 };
 
 export default AppRoutes;
-
-//------------------------------------------------------
-
-/* import { Route, Routes } from "react-router-dom";
-import LoginPage from "@pages/auth/LoginPage.tsx";
-import DashboardRouter from "./DashboardRouter.tsx";
-import { useEffect } from "react";
-import { isTokenExpired } from "@/utils/token.ts";
-import PrivateRoute from "@/routes/PrivateRoute.tsx";
-import { jwtDecode } from "jwt-decode";
-import InactivityModal from "@components/InactivityModal.tsx";
-import LoadingScreen from "@/components/LoadingScreen.tsx";
-import ResetPassword from "@pages/auth/ResetPassword.tsx";
-
-function AppRoutes() {
-  const { token, reset, setShowInactivityModal, isLoadingSession } =
-    useAuthStore();
-
-  useEffect(() => {
-    let timeoutId: number;
-
-    if (token) {
-      if (token === "veverv777777erge") {
-        console.warn(
-          "Token mock detectado: se omite validación de expiración."
-        );
-        return;
-      }
-
-      try {
-        const decoded = jwtDecode<{ exp: number }>(token);
-        const expirationTime = decoded.exp * 1000;
-        const now = Date.now();
-        const timeLeft = expirationTime - now;
-
-        if (timeLeft <= 0 || isTokenExpired(token)) {
-          reset();
-        } else {
-          timeoutId = window.setTimeout(() => {
-            console.warn("Token expirado. Logout automático.");
-            reset();
-          }, timeLeft);
-        }
-      } catch (error) {
-        console.error("Token inválido");
-        reset();
-      }
-    }
-
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [token, reset]);
-
-  // Mostrar spinner o nada mientras carga
-  if (isLoadingSession) return <LoadingScreen />;
-
-  return (
-    <div>
-      <Routes>
-        <Route path="/" element={<LoginPage />} />
-        <Route
-          path="/*"
-          element={
-            <PrivateRoute>
-              <DashboardRouter />
-            </PrivateRoute>
-          }
-        />
-        <Route path="/resetPassword" element={<ResetPassword />} />
-      </Routes>
-
-      <InactivityModal />
-    </div>
-  );
-}
-
-export default AppRoutes; */
