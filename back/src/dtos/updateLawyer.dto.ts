@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsEnum, IsInt, Min } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsInt,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { lawyerType, seniorityLevel } from '../entities/lawyer.entity';
 
 export class UpdateLawyerDto {
@@ -34,4 +41,9 @@ export class UpdateLawyerDto {
   @Min(0, { message: 'WorkedHours no puede ser negativo.' })
   @IsOptional()
   workedHours?: number;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres.' })
+  password?: string; // 👈 Campo nuevo (opcional)
 }

@@ -15,6 +15,7 @@ import { clientesSeedData } from '../utils/clientes';
 import { DataSource, In, Repository } from 'typeorm';
 import { ParentTouchService } from 'src/services/parent-touch.service';
 import { UpdateLawyerDto } from 'src/dtos/updateLawyer.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AbogadoRepository {
@@ -203,18 +204,30 @@ export class AbogadoRepository {
       try {
         const lawyerRepo = manager.getRepository(Lawyer);
 
-        // Buscar abogado
+        // 1. Buscamos abogado Y usuario
         const lawyer = await lawyerRepo.findOne({
           where: { id: lawyerId },
-          relations: ['clients', 'clientItems'], // tocar si necesitas relaciones
+          relations: ['clients', 'clientItems', 'user'], // Traemos el user
         });
         if (!lawyer) throw new NotFoundException('Lawyer not found');
 
-        // Actualizar solo los campos recibidos
-        Object.assign(lawyer, updateData);
+        // 2. Sacamos la password del objeto de datos para que no rompa al Lawyer
+        const { password, ...lawyerData } = updateData;
 
-        // Guardar cambios
-        const saved = await lawyerRepo.save(lawyer);
+        // 3. Actualizamos al Abogado
+        Object.assign(lawyer, lawyerData);
+        const savedLawyer = await lawyerRepo.save(lawyer);
+
+        // 4. 🔐 Actualizamos al Usuario (Usando el MISMO manager)
+        if (password && lawyer.user) {
+          // Acá duplicamos la lógica de hash por seguridad transaccional.
+          // Es un trade-off aceptable.
+          const salt = await bcrypt.genSalt();
+          lawyer.user.password = await bcrypt.hash(password, salt);
+
+          // Guardamos usando MANAGER (clave para la transacción)
+          await manager.save(lawyer.user);
+        }
 
         // Tocar clientes asociados si hay alguno
         if (lawyer.clients?.length) {
@@ -230,7 +243,7 @@ export class AbogadoRepository {
           }
         }
 
-        return saved;
+        return savedLawyer;
       } catch (error) {
         console.error('Error updating lawyer:', error);
         throw new InternalServerErrorException('Error updating lawyer');
