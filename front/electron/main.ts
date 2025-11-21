@@ -124,17 +124,25 @@ function extractOAuthFromDeepLink(
 ): { status?: string; returnTo?: string } | null {
   try {
     if (!urlOrArg) return null;
-    if (!urlOrArg.startsWith("ibarrayasoc://")) return null;
-    const u = new URL(urlOrArg);
-    // detecta si la path/host contiene oauth-callback
-    const pathname = (u.pathname || u.host || "").toLowerCase();
-    if (!pathname.includes("oauth-callback")) return null;
 
-    if (!pathname.includes("oauth-callback")) return null;
+    // Normalizamos
+    const lowerUrl = urlOrArg.toLowerCase();
+    if (!lowerUrl.startsWith("ibarrayasoc://")) return null;
+
+    const u = new URL(urlOrArg);
+
+    // 🔍 FIX: Concatenamos host y pathname para buscar la keyword seguro
+    // Esto arregla "oauth-callback/?" y "oauth-callback?"
+    const urlPathInfo = (u.host + u.pathname).toLowerCase();
+
+    if (!urlPathInfo.includes("oauth-callback")) return null;
+
     const status = u.searchParams.get("status") || undefined;
     const returnTo = u.searchParams.get("returnTo") || undefined;
+
     return { status, returnTo };
-  } catch {
+  } catch (e) {
+    sendMainLog("error", "Error parseando deep link:", e); // Usamos tu logger
     return null;
   }
 }
@@ -423,12 +431,16 @@ if (!gotLock) {
     const argWithUrl = argv.find(
       (a) => typeof a === "string" && a.startsWith("ibarrayasoc://")
     );
-    sendMainLog("debug", { argWithUrl });
+
+    if (argWithUrl) {
+      sendMainLog("debug", "URL detectada en argv:", argWithUrl);
+    }
 
     // 3. Procesar Token (Reset Password)
     const token = extractTokenFromDeepLink(argWithUrl || null);
     if (token) {
       if (mainWindow) {
+        sendMainLog("info", "Enviando token de reset password");
         mainWindow.webContents.send("reset-password:open", token);
       } else {
         pendingResetToken = token;
@@ -437,13 +449,28 @@ if (!gotLock) {
 
     // 4. Procesar OAuth (Google Login)
     if (argWithUrl) {
+      // Usamos la función corregida
       const oauth = extractOAuthFromDeepLink(argWithUrl);
+
       if (oauth) {
         if (mainWindow && mainWindow.webContents) {
+          // 👇 ACÁ ES DONDE QUEREMOS VER EL LOG EN TU CONSOLA
+          sendMainLog("info", "🚀 OAuth detectado, enviando a React:", oauth);
           mainWindow.webContents.send("oauth-deeplink", oauth);
         } else {
+          sendMainLog(
+            "warn",
+            "OAuth detectado pero ventana no lista. Guardando pendiente."
+          );
           pendingOAuth = oauth;
         }
+      } else {
+        // Si entra acá, es porque falló el parser (o no era oauth)
+        sendMainLog(
+          "warn",
+          "⚠️ URL detectada pero extractOAuth devolvió null",
+          argWithUrl
+        );
       }
     }
   });
