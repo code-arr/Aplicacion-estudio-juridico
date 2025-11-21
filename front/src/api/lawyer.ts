@@ -18,8 +18,17 @@ export const getAllLawyers = async () => {
   return data;
 };
 
+export type UpdateLawyerPayload = {
+  firstName?: string;
+  lastName?: string;
+  rut?: string;
+  phone?: string;
+  type?: string;
+  password?: string; // 👈 Campo nuevo opcional
+};
+
 export const updateLawyer = async (
-  data: Partial<Lawyer>,
+  data: UpdateLawyerPayload,
   lawyerId?: string
 ) => {
   return (await axios.put(`lawyer`, { data }, { params: lawyerId })).data;
