@@ -195,33 +195,75 @@ export class AuthController {
       const deepLink = `${scheme}://oauth-callback?status=success&returnTo=${returnToEncoded}`;
 
       // HTML mínimo que intenta abrir el deep link y muestra fallback
-      const html = `<!doctype html>
+      const html = `
+        <!doctype html>
         <html>
-        <head><meta charset="utf-8"><title>Volviendo a la app…</title>
-        <meta name="viewport" content="width=device-width,initial-scale=1"/>
-        <style>body{font-family:system-ui,Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:20px} .card{max-width:640px;text-align:center}</style>
+        <head>
+          <meta charset="utf-8">
+          <title>Conexión exitosa</title>
+          <meta name="viewport" content="width=device-width,initial-scale=1"/>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              background-color: #f8fafc;
+              color: #334155;
+            }
+            .card {
+              background: white;
+              padding: 2rem;
+              border-radius: 1rem;
+              box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+              max-width: 400px;
+              text-align: center;
+            }
+            h2 { margin-top: 0; color: #0f172a; }
+            p { margin-bottom: 1.5rem; line-height: 1.5; }
+            .btn {
+              display: inline-block;
+              background-color: #4f46e5; /* Tu color Indigo */
+              color: white;
+              padding: 0.75rem 1.5rem;
+              border-radius: 0.5rem;
+              text-decoration: none;
+              font-weight: 500;
+              transition: background-color 0.2s;
+            }
+            .btn:hover { background-color: #4338ca; }
+            .subtext { margin-top: 1rem; font-size: 0.875rem; color: #64748b; }
+          </style>
         </head>
         <body>
           <div class="card">
-            <h2>Volviendo a la aplicación…</h2>
-            <p>La aplicación instalada debería abrirse automáticamente. Si no, hacé click en el botón o copiá el enlace.</p>
-            <p><a id="open" href="${deepLink}" style="display:inline-block;padding:10px 14px;border-radius:6px;border:1px solid #ccc;text-decoration:none">Abrir la app</a></p>
-            <pre id="link" style="background:#f6f6f6;padding:8px;border-radius:6px;word-break:break-all">${deepLink}</pre>
+            <h2>¡Conectado!</h2>
+            <p>Tu cuenta de Google se vinculó correctamente con el sistema. <br>La aplicación debería abrirse ahora.</p>
+            
+            <a id="open" href="${deepLink}" class="btn">Abrir la aplicación</a>
+            
+            <p class="subtext">Si no se abre automáticamente, hacé click en el botón.</p>
           </div>
-        <script>
-        (function(){
-          var deep = ${JSON.stringify(deepLink)};
-          // intento abrirlo (varias tácticas para mayor compatibilidad)
-          try { window.location = deep; } catch(e) {}
-          // iframe fallback
-          setTimeout(function(){
-            var ifr = document.createElement('iframe');
-            ifr.style.display='none'; ifr.src = deep; document.body.appendChild(ifr);
-            setTimeout(function(){ try{ document.body.removeChild(ifr);}catch(e){} }, 1200);
-          }, 200);
-        })();
-        </script>
-        </body></html>`;
+          <script>
+            (function(){
+              var deep = ${JSON.stringify(deepLink)};
+              // 1. Intento abrir
+              try { window.location.href = deep; } catch(e) {}
+              
+              // 2. Iframe fallback (para navegadores viejos o mañosos)
+              setTimeout(function(){
+                var ifr = document.createElement('iframe');
+                ifr.style.display='none'; 
+                ifr.src = deep; 
+                document.body.appendChild(ifr);
+                setTimeout(function(){ try{ document.body.removeChild(ifr);}catch(e){} }, 1000);
+              }, 500);
+            })();
+          </script>
+        </body>
+        </html>`;
 
       // envía la página al navegador (no redirect)
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
