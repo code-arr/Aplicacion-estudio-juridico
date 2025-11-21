@@ -51,6 +51,7 @@ ipcMain.handle("open-external", async (_e, rawUrl: string) => {
       "zoom.us",
       "teams.microsoft.com",
       "calendar.google.com",
+      "accounts.google.com", // <--- AGREGÁ ESTO
     ]);
 
     const allowed = ALLOWED_HOSTS.has(host);

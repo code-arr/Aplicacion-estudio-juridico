@@ -55,7 +55,7 @@ export default function UpdateListener() {
         <div className="flex justify-end gap-3">
           {/* Botón "Más tarde" (Importante por si están en una reunión) */}
           <button
-            className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+            className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
             onClick={() => setInfo(null)}
           >
             Más tarde
@@ -63,7 +63,7 @@ export default function UpdateListener() {
 
           {/* Botón "Instalar" (Grande y llamativo) */}
           <button
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-all flex items-center gap-2"
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 cursor-pointer"
             onClick={() => window.electronAPI?.installUpdate()}
           >
             <Download size={20} />

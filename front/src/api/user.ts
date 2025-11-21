@@ -141,7 +141,7 @@ export const googleConnect = async (
     });
 
     if (data?.redirectUrl) {
-      window.location.href = data.redirectUrl; // te manda a Google
+      await window.api.openExternal(data.redirectUrl); // te manda a Google
     } else {
       console.error("No vino redirectUrl en la respuesta");
     }
