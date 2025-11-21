@@ -1,43 +1,54 @@
 // src/hooks/useOAuthDeepLink.ts
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/store/useAuthStore";
+// 1️⃣ Importamos TU hook
+import { useToast } from "@/hooks/useToast";
 
-export function useOAuthDeepLink() {
+export const useOAuthDeepLink = () => {
   const navigate = useNavigate();
+  const refreshSession = useAuthStore((s) => s.refreshSession);
+
+  // 2️⃣ Inicializamos el hook acá
+  const { toast } = useToast();
 
   useEffect(() => {
-    const handler = (
-      _: any,
-      data: { status?: string; returnTo?: string } | undefined
+    const handleOAuth = (
+      _event: any,
+      data: { status?: string; returnTo?: string }
     ) => {
-      if (!data) return;
-      const { status, returnTo } = data;
-      // si venís con returnTo tipo "/%23/dashboard/settings" o "/#/dashboard/settings"
-      try {
-        const decoded = decodeURIComponent(returnTo || "/#/dashboard/settings");
-        const isInternal = decoded.startsWith("/") || decoded.startsWith("/#");
-        if (!isInternal) {
-          console.warn("Deep link returnTo no es ruta interna, usar fallback");
-          navigate("/dashboard");
-          return;
+      console.log("🪝 Deep link recibido en React:", data);
+
+      if (data.status === "success") {
+        // 3️⃣ Usamos tu sintaxis: objeto con variant y title
+        toast({
+          variant: "success",
+          title: "¡Conectado!",
+          description: "Cuenta de Google vinculada correctamente.",
+        });
+
+        // Actualizar store
+        refreshSession();
+
+        // Navegar
+        if (data.returnTo) {
+          navigate(data.returnTo.replace("/#", ""));
         }
-        const path = decoded.startsWith("/#") ? decoded.slice(2) : decoded;
-        navigate(path || "/dashboard");
-      } catch (e) {
-        console.warn("oauth-deeplink parse error", e);
-        navigate("/dashboard");
+      } else {
+        // Error
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Hubo un problema al conectar Google.",
+        });
       }
     };
 
-    // usar la API expuesta en preload: electronAPI.on
-    window.electronAPI?.on("oauth-deeplink", handler);
+    window.electronAPI?.on("oauth-deeplink", handleOAuth);
 
-    // No hay off expuesto por tu preload.on, así que no hacemos cleanup complejo.
-    // Si querés evitar duplicados en hot reload podrías guardar un flag global.
-    // Aquí lo dejamos simple:
     return () => {
-      // opcional: si preload ofreciera off, la llamarías aquí
-      // window.electronAPI?.off?.("oauth-deeplink", handler);
+      // Cleanup si tuvieras removeListener
     };
-  }, [navigate]);
-}
+    // 4️⃣ Agregamos 'toast' a las dependencias del useEffect
+  }, [refreshSession, navigate, toast]);
+};

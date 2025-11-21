@@ -8,6 +8,7 @@ export interface AuthState {
   isLoadingSession: boolean;
   isAdmin: boolean;
   isLawyer: boolean;
+  refreshSession: () => Promise<void>;
   login: (user: User, token: string) => void;
   logout: () => void;
   showInactivityModal: boolean;

@@ -391,6 +391,20 @@ function createWindow() {
   return mainWindow;
 }
 
+// Función auxiliar para traer al frente a la fuerza (Truco para Windows)
+function forceFocus(win: BrowserWindow) {
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+
+  // 🪄 El truco mágico: ponerla on-top un instante
+  win.setAlwaysOnTop(true);
+  setTimeout(() => {
+    win.setAlwaysOnTop(false);
+    win.moveTop(); // Refuerzo para macOS
+  }, 100);
+}
+
 // 🔵 ADD: single instance + manejo de argv (Windows/Linux)
 const gotLock = app.requestSingleInstanceLock();
 
@@ -399,29 +413,34 @@ if (!gotLock) {
 } else {
   app.on("second-instance", (_event, argv) => {
     sendMainLog("info", "second-instance argv", argv);
+
+    // 1. Traer ventana al frente PRIMERO si ya existe
+    if (mainWindow) {
+      forceFocus(mainWindow);
+    }
+
+    // 2. Buscar si hay URL
     const argWithUrl = argv.find(
       (a) => typeof a === "string" && a.startsWith("ibarrayasoc://")
     );
     sendMainLog("debug", { argWithUrl });
-    const token = extractTokenFromDeepLink(argWithUrl || null);
 
+    // 3. Procesar Token (Reset Password)
+    const token = extractTokenFromDeepLink(argWithUrl || null);
     if (token) {
       if (mainWindow) {
         mainWindow.webContents.send("reset-password:open", token);
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.focus();
       } else {
         pendingResetToken = token;
       }
     }
 
+    // 4. Procesar OAuth (Google Login)
     if (argWithUrl) {
       const oauth = extractOAuthFromDeepLink(argWithUrl);
       if (oauth) {
         if (mainWindow && mainWindow.webContents) {
           mainWindow.webContents.send("oauth-deeplink", oauth);
-          if (mainWindow.isMinimized()) mainWindow.restore();
-          mainWindow.focus();
         } else {
           pendingOAuth = oauth;
         }
@@ -550,22 +569,29 @@ app.whenReady().then(() => {
 app.on("open-url", (event, url) => {
   event.preventDefault();
   sendMainLog("info", "open-url event", url);
+
+  // 1. Traer ventana al frente PRIMERO
+  if (mainWindow) {
+    forceFocus(mainWindow);
+  }
+
+  // 2. Procesar Token
   const token = extractTokenFromDeepLink(url);
   sendMainLog("debug", { token });
+
   if (token) {
     if (mainWindow) {
       mainWindow.webContents.send("reset-password:open", token);
-      mainWindow.focus();
     } else {
       pendingResetToken = token;
     }
   }
 
+  // 3. Procesar OAuth
   const oauth = extractOAuthFromDeepLink(url);
   if (oauth) {
     if (mainWindow) {
       mainWindow.webContents.send("oauth-deeplink", oauth);
-      mainWindow.focus();
     } else {
       pendingOAuth = oauth;
     }

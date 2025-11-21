@@ -75,8 +75,10 @@ const Settings = () => {
   }, [token]);
 
   useEffect(() => {
-    if (user?.googleEmail) setIsGoogleConnected(true);
-  }, [user?.googleEmail]);
+    if (user?.googleEmail) {
+      setIsGoogleConnected(true);
+    }
+  }, [user]); // <- Al cambiar user, esto se dispara
 
   const handleGoogleConnect = async () => {
     setIsLoading(true);

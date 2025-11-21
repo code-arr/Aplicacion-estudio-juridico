@@ -52,6 +52,21 @@ export const useAuthStore = create<AuthState>()((set) => ({
   isLawyer: false,
   showInactivityModal: false,
 
+  refreshSession: async () => {
+    try {
+      // 1. Volvemos a pedir el usuario al back (traerá el googleEmail nuevo)
+      const updatedUser = await getMe();
+
+      // 2. Actualizamos solo el usuario en el store, sin tocar el token ni flags
+      set({ user: updatedUser });
+
+      console.log("🔄 Sesión refrescada: Datos de usuario actualizados.");
+    } catch (error) {
+      console.error("Error al refrescar la sesión:", error);
+      // No deslogueamos por error aquí para no ser invasivos, solo logueamos error
+    }
+  },
+
   // 🔐 login: deriva flags SIEMPRE desde user.role
   login: async (user: User, token: string) => {
     if (user.role !== "admin") {
