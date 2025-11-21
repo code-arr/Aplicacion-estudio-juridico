@@ -296,7 +296,7 @@ function createAudienceViewerWindow() {
 /** ==================== Crea la ventana principal de la aplicación. ==================== */
 function getIconPath() {
   if (app.isPackaged) {
-    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.checkForUpdates();
     // en build, electron busca en resources
     return path.join(process.resourcesPath, "assets", "logo-iya.ico");
   }
@@ -518,7 +518,7 @@ app.whenReady().then(() => {
   };
 
   if (app.isPackaged) {
-    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.checkForUpdates();
 
     autoUpdater.on("checking-for-update", () => {
       console.log("[autoUpdater] checking for update...");
