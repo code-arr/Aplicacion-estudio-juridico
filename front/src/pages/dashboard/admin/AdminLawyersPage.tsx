@@ -232,14 +232,6 @@ export default function AdminLawyersPage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-      </div>
-
-      <div className="flex gap-3 items-center">
-        <Input
-          placeholder="Buscar…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
         <Button onClick={() => setCreateOpen(true)}>Crear abogado</Button>
       </div>
 
