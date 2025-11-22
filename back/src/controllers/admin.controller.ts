@@ -1,4 +1,11 @@
-import { Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 
 import { Roles } from 'src/decorator/roles.decorator';
 import { UserRole } from 'src/entities/user.entity';
@@ -21,7 +28,7 @@ export class AdminController {
   async getAdmin() {
     return this.adminService.getAdmin();
   }
-  @Delete('DeleteClient/:clientId')
+  @Delete('deleteClient/:clientId')
   async deleteClient(@Param('clientId') clientId: string) {
     return this.adminService.deleteClient(clientId);
   }
