@@ -24,3 +24,8 @@ export async function getAllClientItems(): Promise<ClientItem[]> {
   const { data } = await axios.get<ClientItem[]>("/clientItem/getAll");
   return data;
 }
+
+export async function deleteClient(id: string) {
+  const { data } = await axios.delete(`admin/deleteClient/${id}`);
+  return data; // 👈 Ahora devolvés el objeto { message: ... }
+}

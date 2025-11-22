@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { Client } from "@/types/Client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getAllClients, deleteClient } from "@/api/client"; // ⇐ asumo deleteClient existe
+import { getAllClients /* deleteClient */ } from "@/api/client"; // ⇐ asumo deleteClient existe
+import { deleteClient } from "@/api/admin";
 import { getAllClientItems } from "@/api/clientItem"; // ⇐ para contar items
 import ClientEditModal from "@/components/admin/ClientEditModal";
 
