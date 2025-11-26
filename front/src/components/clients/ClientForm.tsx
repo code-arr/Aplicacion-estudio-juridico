@@ -150,44 +150,44 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
     return /\S+@\S+\.\S+/.test(v);
   }
 
+  // Permitimos que la tarifa esté vacía. Solo valida si el usuario escribió algo.
   const validateRate = (rateStr: string) => {
-    if (!rateStr) return "La tarifa es requerida";
+    if (!rateStr) return null; // Es opcional ahora
     const n = Number(rateStr);
     if (!Number.isFinite(n) || n <= 0)
-      return "La tarifa debe ser un número mayor a 0";
+      return "Si ingresás una tarifa, debe ser mayor a 0";
     return null;
   };
 
-  const validateCurrency = (c: string) => {
-    return c === "CLP" || c === "USD" || c === "UF" ? null : "Moneda inválida";
-  };
-
+  // Validamos SOLO identidad (Nombre/Razón Social) y RUT
   function validate(): string | null {
     if (clientType === "Fisica") {
       const c = newPersonClient;
       if (!c.firstName || !c.lastName)
         return "Nombre y apellido son requeridos";
-      if (!c.rut || !validateRut(c.rut)) return "RUT inválido";
-      if (!isValidEmail(c.email)) return "Email inválido";
-      if (!c.phone) return "Teléfono requerido";
-      if (!c.address) return "Domicilio requerido";
-      const curErr = validateCurrency(c.currency);
-      if (curErr) return curErr;
+      if (!c.rut || !validateRut(c.rut)) return "RUT inválido o requerido";
+
+      // Chequeo opcional de tarifa (solo si escribieron algo)
       const rateErr = validateRate(c.hourlyRate);
       if (rateErr) return rateErr;
+
       return null;
     }
+
+    // Caso Jurídica
     const c = newCompanyClient;
     if (!c.companyName) return "Nombre de la compañía es requerido";
-    if (!c.legalRepresentative) return "Representante legal es requerido";
-    if (!c.rut || !validateRut(c.rut)) return "RUT inválido";
-    if (!isValidEmail(c.email)) return "Email inválido";
-    if (!c.phone) return "Teléfono requerido";
-    if (!c.address) return "Dirección requerida";
-    const curErr = validateCurrency(c.currency);
-    if (curErr) return curErr;
+    // Representante legal ahora es opcional según tu pedido
+    if (!c.rut || !validateRut(c.rut)) return "RUT inválido o requerido";
+
+    if (c.email && !isValidEmail(c.email)) {
+      return "El formato del email no es válido";
+    }
+
+    // Chequeo opcional de tarifa
     const rateErr = validateRate(c.hourlyRate);
     if (rateErr) return rateErr;
+
     return null;
   }
 
@@ -628,7 +628,6 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
-                      required
                       id="email"
                       value={newPersonClient.email}
                       onChange={(e) =>
@@ -643,7 +642,6 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
                   <div className="grid gap-2">
                     <Label htmlFor="phone">Telefono</Label>
                     <Input
-                      required
                       id="phone"
                       value={newPersonClient.phone}
                       onChange={(e) =>
@@ -658,7 +656,6 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
                   <div className="grid gap-2">
                     <Label htmlFor="address">Domicilio</Label>
                     <Input
-                      required
                       id="address"
                       value={newPersonClient.address}
                       onChange={(e) =>
@@ -743,7 +740,6 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
                       Representante Legal
                     </Label>
                     <Input
-                      required
                       id="legalRepresentative"
                       value={newCompanyClient.legalRepresentative}
                       onChange={(e) =>
@@ -774,7 +770,6 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
-                      required
                       id="email"
                       value={newCompanyClient.email}
                       onChange={(e) =>
@@ -789,7 +784,6 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
                   <div className="grid gap-2">
                     <Label htmlFor="phone">Telefono</Label>
                     <Input
-                      required
                       id="phone"
                       value={newCompanyClient.phone}
                       onChange={(e) =>
@@ -804,7 +798,6 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
                   <div className="grid gap-2">
                     <Label htmlFor="address">Direccion de la Compañia</Label>
                     <Input
-                      required
                       id="address"
                       value={newCompanyClient.address}
                       onChange={(e) =>
