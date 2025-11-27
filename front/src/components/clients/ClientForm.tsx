@@ -233,18 +233,22 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
         setErrorMsg("Ese RUT ya existe. Vinculalo o cambiá el RUT.");
         return;
       }
-      const dto =
-        clientType === "Juridica"
-          ? {
-              ...newCompanyClient,
-              currency: newCompanyClient.currency,
-              hourlyRate: newCompanyClient.hourlyRate.trim(),
-            }
-          : {
-              ...newPersonClient,
-              currency: newPersonClient.currency,
-              hourlyRate: newPersonClient.hourlyRate.trim(),
-            };
+
+      // 1. Seleccionamos el state correcto según el tipo
+      const currentData =
+        clientType === "Juridica" ? newCompanyClient : newPersonClient;
+
+      // 2. Limpiamos el valor de la tarifa
+      const rawRate = currentData.hourlyRate.trim();
+      // Si está vacío, mandamos null.
+      // Si tiene algo, lo dejamos como string (TypeORM lo prefiere así para 'numeric')
+      const cleanRate = rawRate === "" ? null : rawRate;
+
+      const dto = {
+        ...currentData,
+        currency: currentData.currency,
+        hourlyRate: cleanRate, // Ahora sí: string | null
+      };
 
       await createClient(dto as Client);
       reset();
