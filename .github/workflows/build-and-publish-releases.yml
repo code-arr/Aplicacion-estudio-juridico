@@ -96,6 +96,7 @@ jobs:
           files: |
             front/release/*.exe
             front/release/*.dmg
+            front/release/*.zip
             front/release/latest*.yml
             front/release/*.blockmap
         env:
