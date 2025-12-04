@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+// front/src/components/clients/ClientEditDialog.tsx
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,15 +18,13 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Client } from "@/types/Client";
 
-// Mapea tu texto a enum del back (ajustá si tu back usa otro casing)
-const toBackType = (t: Client["type"] | undefined) =>
-  t === "Fisica" ? "FISICA" : t === "Juridica" ? "JURIDICA" : undefined;
+// ⚠️ Eliminé toBackType porque tu base de datos usa "Fisica" y "Juridica" directo.
 
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   client: Client;
-  onSubmit: (payload: Partial<Client>) => Promise<void>; // la llamada real se hace afuera
+  onSubmit: (payload: Partial<Client>) => Promise<void>;
   loading?: boolean;
 };
 
@@ -38,7 +37,7 @@ export default function ClientEditDialog({
 }: Props) {
   const [form, setForm] = useState<Partial<Client>>({});
 
-  // Inicializa con el cliente actual cuando abre
+  // Inicializa con el cliente actual
   useEffect(() => {
     if (!open) return;
     setForm({
@@ -51,15 +50,16 @@ export default function ClientEditDialog({
       rut: client.rut ?? "",
       companyName: client.companyName ?? "",
       legalRepresentative: client.legalRepresentative ?? "",
+      // 🆕 Agregamos los campos de dinero
+      currency: client.currency ?? "CLP",
+      hourlyRate: client.hourlyRate ?? "", // Si viene null del back, mostramos ""
     });
   }, [open, client]);
-
-  const isJuridica = useMemo(() => form.type === "Juridica", [form.type]);
 
   const change = (k: keyof Client, v: any) =>
     setForm((s) => ({ ...s, [k]: v }));
 
-  // Enviar sólo lo que cambió (diff liviana)
+  // Enviar sólo lo que cambió
   const makeDiff = (): Partial<Client> => {
     const out: Partial<Client> = {};
     const keys: (keyof Client)[] = [
@@ -72,33 +72,46 @@ export default function ClientEditDialog({
       "rut",
       "companyName",
       "legalRepresentative",
+      "currency", // 🆕
+      "hourlyRate", // 🆕
     ];
+
     keys.forEach((k) => {
-      const prev = client[k] ?? "";
-      const next = (form as any)[k] ?? "";
-      if (String(prev) !== String(next)) (out as any)[k] = next;
+      let prev = client[k];
+      let next = (form as any)[k];
+
+      // Normalización para comparación (null vs "")
+      if (prev === null || prev === undefined) prev = "";
+      if (next === null || next === undefined) next = "";
+
+      // Si hay cambio, lo agregamos
+      if (String(prev) !== String(next)) {
+        // Lógica especial para hourlyRate: Si quedó vacío, mandar null
+        if (k === "hourlyRate" && next === "") {
+          (out as any)[k] = null;
+        } else {
+          (out as any)[k] = (form as any)[k];
+        }
+      }
     });
-    // mapear type para el back
-    if (out.type) (out as any).type = toBackType(out.type as any);
+
     return out;
   };
 
   const handleSave = async () => {
     const diff = makeDiff();
 
-    // Validaciones mínimas: email si viene, rut length si viene, company si es jurídica
+    // Validaciones básicas
     if (diff.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(diff.email))) {
+      // Usá toast en vez de alert si podés, pero por ahora alert cumple
       alert("Email inválido");
       return;
     }
-    if (
-      diff.rut &&
-      (String(diff.rut).length < 10 || String(diff.rut).length > 12)
-    ) {
-      alert("El RUT/DNI debe tener entre 10 y 12 caracteres.");
-      return;
-    }
-    if (form.type === "Juridica" && !form.companyName) {
+    // Si cambió a Jurídica (o ya lo era y cambió el nombre) validamos
+    const currentType = diff.type ?? client.type;
+    const currentName = diff.companyName ?? client.companyName;
+
+    if (currentType === "Juridica" && !currentName) {
       alert("Para persona jurídica, el nombre de la empresa es obligatorio.");
       return;
     }
@@ -108,17 +121,18 @@ export default function ClientEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar cliente</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-3 pt-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+        <div className="grid gap-4 py-4">
+          {/* Fila 1: Tipo y RUT */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
               <Label>Tipo</Label>
               <Select
-                value={form.type === "Fisica" ? "Fisica" : "Juridica"}
+                value={form.type}
                 onValueChange={(val) => change("type", val as any)}
               >
                 <SelectTrigger>
@@ -130,7 +144,7 @@ export default function ClientEditDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label>RUT / DNI</Label>
               <Input
                 value={form.rut ?? ""}
@@ -139,17 +153,17 @@ export default function ClientEditDialog({
             </div>
           </div>
 
-          {/* Física */}
-          {form.type === "Fisica" && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+          {/* Fila 2: Nombre/Empresa */}
+          {form.type === "Fisica" ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
                 <Label>Nombre</Label>
                 <Input
                   value={form.firstName ?? ""}
                   onChange={(e) => change("firstName", e.target.value)}
                 />
               </div>
-              <div>
+              <div className="grid gap-2">
                 <Label>Apellido</Label>
                 <Input
                   value={form.lastName ?? ""}
@@ -157,20 +171,17 @@ export default function ClientEditDialog({
                 />
               </div>
             </div>
-          )}
-
-          {/* Jurídica */}
-          {isJuridica && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
                 <Label>Empresa</Label>
                 <Input
                   value={form.companyName ?? ""}
                   onChange={(e) => change("companyName", e.target.value)}
                 />
               </div>
-              <div>
-                <Label>Representante legal</Label>
+              <div className="grid gap-2">
+                <Label>Representante Legal</Label>
                 <Input
                   value={form.legalRepresentative ?? ""}
                   onChange={(e) =>
@@ -181,8 +192,9 @@ export default function ClientEditDialog({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          {/* Fila 3: Contacto */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
               <Label>Email</Label>
               <Input
                 type="email"
@@ -190,7 +202,7 @@ export default function ClientEditDialog({
                 onChange={(e) => change("email", e.target.value)}
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label>Teléfono</Label>
               <Input
                 value={form.phone ?? ""}
@@ -199,16 +211,46 @@ export default function ClientEditDialog({
             </div>
           </div>
 
-          <div>
+          {/* Fila 4: Dirección */}
+          <div className="grid gap-2">
             <Label>Dirección</Label>
             <Input
               value={form.address ?? ""}
               onChange={(e) => change("address", e.target.value)}
             />
           </div>
+
+          {/* 🆕 Fila 5: Facturación (Lo que faltaba) */}
+          <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+            <div className="grid gap-2">
+              <Label>Moneda</Label>
+              <Select
+                value={form.currency}
+                onValueChange={(val) => change("currency", val as any)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CLP">CLP (Peso)</SelectItem>
+                  <SelectItem value="USD">USD (Dólar)</SelectItem>
+                  <SelectItem value="UF">UF</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Tarifa por Hora</Label>
+              <Input
+                type="number" // O text con inputMode="decimal"
+                value={form.hourlyRate ?? ""}
+                placeholder={form.currency === "CLP" ? "Ej: 50000" : "Ej: 80.5"}
+                onChange={(e) => change("hourlyRate", e.target.value)}
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex justify-end gap-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
