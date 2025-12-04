@@ -111,7 +111,17 @@ function extractTokenFromDeepLink(
 ): string | null {
   try {
     if (!urlOrArg) return null;
-    if (!urlOrArg.startsWith("ibarrayasoc://")) return null;
+    const lower = urlOrArg.toLowerCase();
+
+    // 1. Validar protocolo
+    if (!lower.startsWith("ibarrayasoc://")) return null;
+
+    // 2. Validar que sea la acción de resetear password
+    // Esto evita que se confunda con 'oauth-callback' u otra cosa
+    if (!lower.includes("reset-password") && !lower.includes("reset?")) {
+      return null;
+    }
+
     const u = new URL(urlOrArg);
     return u.searchParams.get("token");
   } catch {

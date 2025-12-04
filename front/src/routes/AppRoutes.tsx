@@ -3,6 +3,7 @@ import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import PrivateRoute from "@/routes/PrivateRoute";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useOAuthDeepLink } from "@/hooks/useOAuthDeepLink";
+import { useResetDeepLink } from "@/hooks/useResetDeepLink";
 
 // Layouts
 import AdminLayout from "@/layouts/AdminLayout";
@@ -41,6 +42,7 @@ import AdminStatsPage from "@/pages/dashboard/admin/AdminStatsPage";
 import AdminItemsPage from "@/pages/dashboard/admin/AdminItemsPage";
 
 const AppRoutes = () => {
+  useResetDeepLink();
   useOAuthDeepLink();
   const { isAdmin, isLawyer, isLoadingSession } = useAuthStore();
   const location = useLocation();

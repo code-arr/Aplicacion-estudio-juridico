@@ -117,7 +117,7 @@ export const changePassword = async (
 };
 
 export async function requestPasswordReset(email: string) {
-  await axios.post(`/auth/forgot-password`, { email });
+  await axios.post(`/auth/forgotPassword`, { email });
 }
 
 export const resetPassword = async (
@@ -125,7 +125,7 @@ export const resetPassword = async (
   password: string
 ): Promise<void> => {
   try {
-    await axios.patch("/auth/resetPassword", { token, newPassword: password });
+    await axios.patch("/auth/resetPassword", { token, password });
   } catch (error) {
     console.error("Error al cambiar la contraseña", error);
   }
