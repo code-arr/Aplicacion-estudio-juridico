@@ -1,3 +1,5 @@
+/* eslint-disable prettier/prettier */
+// src/mailer/system-mailer.service.ts
 import { Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
@@ -10,36 +12,28 @@ export class SystemMailerService {
   ) {}
 
   async sendPasswordReset(to: string, token: string) {
-    const scheme = this.config.get('APP_SCHEME') || 'ibarrayasoc';
-    const deepLink = `${scheme}://reset?token=${encodeURIComponent(token)}`;
+    // URL de tu Backend (API)
+    const apiUrl = this.config.get('API_URL') || 'http://localhost:3000';
+
+    // Apuntamos a un endpoint nuevo que vamos a crear en el AuthController
+    const landingLink = `${apiUrl}/auth/reset-landing?token=${encodeURIComponent(token)}`;
 
     await this.mailer.sendMail({
       to,
-      subject: 'Restablecer contraseña',
-      text: `
-Hola,
-
-Para restablecer tu contraseña, hacé click en el siguiente enlace:
-${deepLink}
-
-Si no solicitaste este cambio, podés ignorar este correo.
-      `,
+      subject: 'Restablecer contraseña - Ibarra & Asoc.',
       html: `
-        <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;">
-          <p>Hola,</p>
-          <p>Para restablecer tu contraseña, hacé click en el botón:</p>
-          <p style="margin:24px 0;">
-            <a href="${deepLink}" style="background:#0b63ce;color:#fff;text-decoration:none;
-               padding:12px 18px;border-radius:6px;display:inline-block;border-radius:6px;">
-              Restablecer contraseña
-            </a>
-          </p>
-          <p>Si el botón no funciona, copiá este enlace:</p>
-          <p><a href="${deepLink}">${deepLink}</a></p>
-          <hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />
-          <p style="color:#555;">Si no solicitaste este cambio, ignorá este correo.</p>
+        <div style="font-family: sans-serif; padding: 20px; color: #333;">
+          <h2>Recuperación de Contraseña</h2>
+          <p>Para abrir la aplicación y cambiar tu contraseña, hacé click abajo:</p>
+          
+          <a href="${landingLink}" style="
+            background-color: #2563EB; color: white; padding: 10px 20px; 
+            text-decoration: none; border-radius: 5px; display: inline-block;">
+            Abrir App y Restaurar
+          </a>
         </div>
       `,
     });
   }
 }
+

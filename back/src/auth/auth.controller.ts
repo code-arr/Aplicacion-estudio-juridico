@@ -290,4 +290,55 @@ export class AuthController {
   async resetPassword(@Body() body: { token: string; password: string }) {
     return this.authRepository.resetPassword(body.token, body.password);
   }
+
+  @Public()
+  @Get('reset-landing') // 👈 El endpoint al que apunta el mail
+  resetLanding(@Req() req: ExpressRequest, @Res() res: Response) {
+    const token = req.query.token as string;
+
+    if (!token) {
+      return res.status(400).send('<h1>Error: Token no válido</h1>');
+    }
+
+    // 1. Definimos el Deep Link (Protocolo personalizado)
+    // Esto le dice a Windows/Mac: "Abrí la app Ibarra y andá a reset-password"
+    const scheme = process.env.APP_SCHEME || 'ibarrayasoc';
+
+    // Ojo acá: La estructura depende de cómo manejes el deep link en Electron.
+    // Generalmente es: scheme://ruta?param=valor
+    const deepLink = `${scheme}://reset-password?token=${encodeURIComponent(token)}`;
+
+    // 2. El mismo HTML "trampolín" que usaste en Google
+    const html = `
+      <!doctype html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Abriendo aplicación...</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1"/>
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f8fafc; text-align: center; }
+          .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); max-width: 400px; }
+          .btn { background-color: #4f46e5; color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; text-decoration: none; display: inline-block; margin-top: 1rem; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h2>Abriendo Ibarra & Asoc.</h2>
+          <p>Estamos intentando abrir la aplicación para que cambies tu contraseña.</p>
+          <a href="${deepLink}" class="btn">Abrir manualmente</a>
+        </div>
+        <script>
+          // Intento automático
+          setTimeout(function(){
+            window.location.href = "${deepLink}";
+          }, 500);
+        </script>
+      </body>
+      </html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  }
 }
+
