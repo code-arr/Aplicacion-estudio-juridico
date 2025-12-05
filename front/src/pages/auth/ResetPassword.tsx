@@ -11,12 +11,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Scale } from "lucide-react";
+import { Scale, CheckCircle } from "lucide-react";
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const token = searchParams.get("token");
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState(false);
@@ -59,7 +60,36 @@ const ResetPassword = () => {
   };
 
   if (success) {
-    return <p>Contraseña cambiada correctamente. Ya podés iniciar sesión.</p>;
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-b from-slate-50 via-slate-100 to-sky-50 flex items-center justify-center">
+        <div className="w-full max-w-md px-4 sm:px-0 transition-all duration-500 ease-in-out">
+          <Card className="shadow-xl border-0 text-center py-6 animate-in fade-in zoom-in-95 duration-300">
+            <CardHeader className="flex flex-col items-center space-y-4">
+              <div className="bg-green-100 p-4 rounded-full">
+                <CheckCircle className="h-10 w-10 text-green-600" />
+              </div>
+              <div className="space-y-2">
+                <CardTitle className="text-2xl font-bold text-slate-800">
+                  ¡Contraseña actualizada!
+                </CardTitle>
+                <CardDescription className="text-base">
+                  Tu clave se cambió correctamente. Ya podés ingresar al sistema
+                  con tu nueva contraseña.
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Button
+                className="w-full h-11 text-base font-medium bg-gradient-to-br from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 transition-all duration-200"
+                onClick={() => navigate("/")}
+              >
+                Volver a Iniciar Sesión
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (
