@@ -197,10 +197,11 @@ export class AuthRepository {
       throw new BadRequestException('Token inválido o expirado');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await this.userService.updatePassword(t.userId, hashedPassword);
+    //const hashedPassword = await bcrypt.hash(password, 10);
+    await this.userService.updatePassword(t.userId, password);
     await this.resetRepo.markUsed(t.id);
 
     return { ok: true, message: 'Contraseña restablecida correctamente' };
   }
 }
+
