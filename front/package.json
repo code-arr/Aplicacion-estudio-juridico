@@ -5,7 +5,7 @@
     "type": "git",
     "url": "https://github.com/code-arr/Aplicacion-estudio-juridico.git"
   },
-  "version": "1.1.19",
+  "version": "1.1.2",
   "type": "module",
   "main": "dist-electron/electron/main.js",
   "description": "Aplicación de escritorio para gestión de estudio jurídico",

@@ -570,14 +570,6 @@ app.whenReady().then(() => {
           !isMac, // En Mac (false) muestra el instalador nativo para evitar bloqueos
           true
         );
-
-        // 2. SOLO EN MAC: Forzamos el cierre de la app después de 1 segundo
-        // Esto ayuda a que no se quede "zombie" esperando que el timer se apague
-        if (isMac) {
-          setTimeout(() => {
-            app.quit();
-          }, 1000);
-        }
       } catch (e) {
         console.error("[autoUpdater] quitAndInstall error:", e);
       }
