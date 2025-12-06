@@ -1,27 +1,47 @@
 import { useEffect, useState } from "react";
-import { Download, RefreshCw, Loader2 } from "lucide-react"; // 👈 Agregamos Loader2
+import { Download, RefreshCw, Loader2, ExternalLink } from "lucide-react"; // 👈 Agregamos ExternalLink
 
 export default function UpdateListener() {
   const [info, setInfo] = useState<any | null>(null);
-  const [isInstalling, setIsInstalling] = useState(false); // 👈 Nuevo estado para el spinner
+  const [isInstalling, setIsInstalling] = useState(false);
+
+  // 🍎 Detectamos si es Mac
+  const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 
   useEffect(() => {
+    // Escucha cuando se bajó (Windows)
     const unsub = window.electronAPI?.onUpdateDownloaded?.((data: any) => {
       setInfo(data);
     });
+
+    // 🍎 TRUCO MAC: Como a veces no baja el zip por error,
+    // escuchamos también si está "disponible" para avisar igual.
+    const unsubAvail = window.electronAPI?.onUpdateAvailable?.((data: any) => {
+      if (isMac) setInfo(data);
+    });
+
     return () => {
       if (typeof unsub === "function") unsub();
+      if (typeof unsubAvail === "function") unsubAvail();
     };
-  }, []);
+  }, [isMac]);
 
-  const handleInstall = () => {
-    // 1. Activamos el spinner
-    setIsInstalling(true);
-
-    // 2. Mandamos la orden (le damos un mini delay para que React llegue a renderizar el spinner antes de que se congele todo al cerrar)
-    setTimeout(() => {
-      window.electronAPI?.installUpdate();
-    }, 150);
+  const handleAction = () => {
+    if (isMac) {
+      // 🍎 CAMINO MAC: Abrir navegador y descargar a mano
+      // Usamos la API que vi en tu preload: window.api.openExternal
+      // CHEQUEÁ QUE ESTE LINK SEA EL DE TU REPO:
+      window.api?.openExternal(
+        "https://github.com/code-arr/Aplicacion-estudio-juridico/releases/latest"
+      );
+      setInfo(null); // Cerramos el modal
+    } else {
+      // 🪟 CAMINO WINDOWS: Instalación automática con spinner
+      setIsInstalling(true);
+      setTimeout(() => {
+        window.electronAPI?.installUpdate();
+      }, 150);
+    }
   };
 
   if (!info) return null;
@@ -36,25 +56,38 @@ export default function UpdateListener() {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
-              ¡Actualización lista!
+              ¡Actualización disponible!
             </h2>
-            <p className="text-gray-500">Una nueva versión está esperando.</p>
+            <p className="text-gray-500">Versión {info?.version}</p>
           </div>
         </div>
 
-        {/* Texto */}
+        {/* Texto dinámico según SO */}
         <div className="mb-8">
           <p className="text-lg text-gray-600">
-            Se ha descargado la versión{" "}
-            <span className="font-bold text-gray-900">{info?.version}</span>.
-            <br />
-            ¿Querés instalarla y reiniciar ahora?
+            {isMac ? (
+              <>
+                Para actualizar en Mac, por favor descargá la nueva versión
+                desde nuestra web.
+                <br />
+                <span className="text-sm text-gray-400">
+                  (Limitación de seguridad de Apple)
+                </span>
+              </>
+            ) : (
+              <>
+                Se ha descargado la versión{" "}
+                <span className="font-bold text-gray-900">{info?.version}</span>
+                .
+                <br />
+                ¿Querés instalarla y reiniciar ahora?
+              </>
+            )}
           </p>
         </div>
 
         {/* Botones */}
         <div className="flex justify-end gap-3">
-          {/* Botón "Más tarde": Lo deshabilitamos si ya está instalando */}
           <button
             disabled={isInstalling}
             className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
@@ -63,19 +96,22 @@ export default function UpdateListener() {
             Más tarde
           </button>
 
-          {/* Botón de Acción */}
           <button
-            disabled={isInstalling} // 👈 Evita doble clic
+            disabled={isInstalling}
             className={`px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 
               ${isInstalling ? "opacity-80 cursor-wait" : "hover:bg-blue-700"}
             `}
-            onClick={handleInstall}
+            onClick={handleAction}
           >
             {isInstalling ? (
               <>
-                {/* animate-spin hace que gire solo */}
                 <Loader2 size={20} className="animate-spin" />
                 Preparando...
+              </>
+            ) : isMac ? (
+              <>
+                <ExternalLink size={20} />
+                Descargar DMG
               </>
             ) : (
               <>
