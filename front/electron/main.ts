@@ -559,11 +559,25 @@ app.whenReady().then(() => {
 
     // IPC: si el renderer pide instalar la actualización
     ipcMain.on("app:update-install", () => {
+      sendMainLog("info", "Iniciando instalación de actualización...");
       try {
+        // En Windows funciona joya el silencioso.
+        // En Mac sin firma, mejor que haga ruido para que el usuario pueda aceptar permisos.
+        const isMac = process.platform === "darwin";
+
+        // 1. Mandamos la orden al actualizador
         autoUpdater.quitAndInstall(
-          true, // ✅ PONELO EN TRUE (Modo Silencioso)
-          true // Reiniciar después
+          !isMac, // En Mac (false) muestra el instalador nativo para evitar bloqueos
+          true
         );
+
+        // 2. SOLO EN MAC: Forzamos el cierre de la app después de 1 segundo
+        // Esto ayuda a que no se quede "zombie" esperando que el timer se apague
+        if (isMac) {
+          setTimeout(() => {
+            app.quit();
+          }, 1000);
+        }
       } catch (e) {
         console.error("[autoUpdater] quitAndInstall error:", e);
       }
