@@ -17,11 +17,11 @@ const config: TypeOrmModuleOptions = {
   migrations: ['dist/src/migrations/*{.ts,.js}'],
   migrationsTableName: 'migrations',
   logging: ['error'],
-  migrationsRun: true,
-  synchronize: false,
+  migrationsRun: false,
+  synchronize: process.env.TYPEORM_SYNC === 'true',
   //dropSchema: true,
   ssl: {
-    rejectUnauthorized: false, // ✅ Esto habilita SSL aunque no tengas certificado local
+    rejectUnauthorized: false, // ✅ Esto habilita SSL aunque no tengas certificado
   },
 };
 
@@ -29,3 +29,4 @@ export default registerAs('typeorm', () => config);
 
 export const connectDataSource = () =>
   new DataSource(config as DataSourceOptions);
+
