@@ -23,12 +23,17 @@
       document
         .getElementById("connectGoogleBtn")
         .addEventListener("click", async () => {
-          
-
           try {
             // Asegúrate de que el método sea GET
-            const backendUrl = "http://localhost:3000/auth/google/connect";
-            const email = "benjadelcampo15@gmail.com";
+            const isLocal =
+              window.location.hostname === "localhost" ||
+              window.location.hostname === "127.0.0.1";
+            const backendUrl = isLocal
+              ? "http://localhost:3000/auth/google/connect"
+              : "https://api.ibarrayasoc.com/auth/google/connect";
+
+            const email = "benjadelcampo15@gmail.com"; // Esto debería venir dinámico idealmente
+
             const response = await fetch(
               `${backendUrl}?email=${encodeURIComponent(email)}`,
               {
