@@ -165,7 +165,8 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
       const c = newPersonClient;
       if (!c.firstName || !c.lastName)
         return "Nombre y apellido son requeridos";
-      if (!c.rut || !validateRut(c.rut)) return "RUT inválido o requerido";
+      //if (!c.rut || !validateRut(c.rut)) return "RUT inválido o requerido";
+      if (c.rut && !validateRut(c.rut)) return "RUT inválido";
 
       // Chequeo opcional de tarifa (solo si escribieron algo)
       const rateErr = validateRate(c.hourlyRate);
@@ -178,7 +179,8 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
     const c = newCompanyClient;
     if (!c.companyName) return "Nombre de la compañía es requerido";
     // Representante legal ahora es opcional según tu pedido
-    if (!c.rut || !validateRut(c.rut)) return "RUT inválido o requerido";
+    //if (!c.rut || !validateRut(c.rut)) return "RUT inválido o requerido";
+    if (c.rut && !validateRut(c.rut)) return "RUT inválido";
 
     if (c.email && !isValidEmail(c.email)) {
       return "El formato del email no es válido";
@@ -615,7 +617,6 @@ const ClientForm = ({ isDialogOpen, setIsDialogOpen }: ClientFormProps) => {
                   <div className="grid gap-2">
                     <Label htmlFor="rut">Rut de la Persona</Label>
                     <Input
-                      required
                       id="rut"
                       maxLength={12}
                       value={newPersonClient.rut}
