@@ -10,7 +10,7 @@ export function createSyncApi(opts: {
   baseUrl: string;
   getAuthToken?: () => string | null | undefined;
 }): SyncApi {
-  const base = "http://estudio-backend-dev.us-east-1.elasticbeanstalk.com";
+  const base = "https://api.ibarrayasoc.com";
 
   // 1) instancia axios con baseURL
   const http = axios.create({

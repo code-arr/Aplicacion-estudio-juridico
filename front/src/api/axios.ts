@@ -65,9 +65,7 @@ export function normalizeAxiosError(error: unknown): NormalizedApiError {
 }
 
 const api = axios.create({
-  baseURL:
-    import.meta.env.VITE_API_BASE_URL ||
-    "http://estudio-backend-dev.us-east-1.elasticbeanstalk.com",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "https://api.ibarrayasoc.com",
   timeout: 10000,
 });
 
