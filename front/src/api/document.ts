@@ -13,6 +13,13 @@ export const getDocumentsByClientItem = async (
   return data;
 };
 
+export const getDocumentsByClientId = async (
+  clientId: string
+): Promise<Document[]> => {
+  const data = (await axios.get(`document/getByClientId/${clientId}`)).data;
+  return data;
+};
+
 export const getVersionsByDocumentId = async (
   documentId: string
 ): Promise<DocumentVersion[]> => {

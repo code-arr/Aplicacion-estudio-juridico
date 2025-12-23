@@ -1,3 +1,4 @@
+// src/api/client.ts
 import type { Client } from "@/types/Client";
 import axios from "./axios";
 
@@ -33,6 +34,7 @@ type SendMailInput = {
   title: string; // título del documento
   contractFile: File | null; // archivo adjunto (opcional)
   lawyerEmail: string; // remitente (query param)
+  documentIds?: string[]; // 👈 NUEVO: IDs de docs guardados
 };
 
 export async function sendDocument({
@@ -42,13 +44,18 @@ export async function sendDocument({
   title,
   contractFile,
   lawyerEmail,
+  documentIds = [],
 }: SendMailInput) {
   const form = new FormData();
   form.append("email", email);
   form.append("subject", subject);
   form.append("description", description);
   form.append("title", title);
-  if (contractFile) form.append("contractFile", contractFile); // <- NOMBRE EXACTO
+  // 👇 Enviar IDs como JSON string (el back lo parseará)
+  if (documentIds.length > 0) {
+    form.append("documentIds", JSON.stringify(documentIds));
+  }
+  if (contractFile) form.append("contractFile", contractFile);
 
   const { data } = await axios.post(
     `/client/sendDocument?lawyerEmail=${encodeURIComponent(lawyerEmail)}`,
