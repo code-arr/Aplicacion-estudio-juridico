@@ -180,6 +180,20 @@ export class DocumentRepository {
     return documents;
   }
 
+  async getDocumentsByClientId(clientId: string): Promise<Document[]> {
+    const documents = await this.documentRepository
+      .createQueryBuilder('document')
+      .leftJoinAndSelect('document.clientItem', 'clientItem')
+      .leftJoinAndSelect('document.versions', 'versions')
+      .leftJoinAndSelect('versions.lawyer', 'lawyer')
+      .where('document.clientId = :clientId', { clientId })
+      .orderBy('document.createdAt', 'DESC')
+      .addOrderBy('versions.versionNumber', 'DESC')
+      .getMany();
+
+    return documents;
+  }
+
   async getDocumentByUrl(fileUrl: string): Promise<Document> {
     try {
       const document = await this.documentRepository.findOne({
@@ -421,3 +435,4 @@ export class DocumentRepository {
     });
   }
 }
+

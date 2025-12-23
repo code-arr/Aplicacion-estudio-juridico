@@ -21,7 +21,9 @@ export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
   @Post('/create/:clientItemId')
-  @UseInterceptors(FileInterceptor('file' , { limits: { fileSize: 50 * 1024 * 1024 } })) // Limite de 50MB
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }),
+  ) // Limite de 50MB
   async createDocument(
     @UploadedFile() file: Express.Multer.File,
     @Param('clientItemId') clientItemId: string,
@@ -49,6 +51,11 @@ export class DocumentController {
   @Get('getByClientItemId/:clientItemId')
   async getByClientItem(@Param('clientItemId') clientItemId: string) {
     return this.documentService.getDocumentsByClientItemId(clientItemId);
+  }
+
+  @Get('getByClientId/:clientId')
+  async getByClient(@Param('clientId') clientId: string) {
+    return this.documentService.getDocumentsByClientId(clientId);
   }
 
   @Get('/:documentId/versions')
@@ -86,3 +93,4 @@ export class DocumentController {
     );
   }
 }
+

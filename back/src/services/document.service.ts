@@ -37,6 +37,10 @@ export class DocumentService {
     return this.documentRepository.getDocumentsByClientItemId(clientItemId);
   }
 
+  async getDocumentsByClientId(clientId: string): Promise<Document[]> {
+    return this.documentRepository.getDocumentsByClientId(clientId);
+  }
+
   async getDocumentByUrl(fileUrl: string): Promise<Document> {
     return this.documentRepository.getDocumentByUrl(fileUrl);
   }
@@ -63,3 +67,4 @@ export class DocumentService {
     );
   }
 }
+
