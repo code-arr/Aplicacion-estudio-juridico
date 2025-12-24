@@ -1,9 +1,9 @@
 // scripts/seed-initial-admin.ts
 
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../src/app.module';
-import { AuthRepository } from '../src/auth/auth.repository';
-import { AdminRepository } from '../src/repositories/admin.repository';
+import { AppModule } from '../app.module';
+import { AuthRepository } from '../auth/auth.repository';
+import { AdminRepository } from '../repositories/admin.repository';
 import { DataSource } from 'typeorm';
 import * as readline from 'readline';
 
