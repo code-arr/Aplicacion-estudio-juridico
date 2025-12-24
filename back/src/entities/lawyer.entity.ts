@@ -5,6 +5,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   JoinTable,
   ManyToMany,
   OneToMany,
@@ -26,7 +27,6 @@ export enum lawyerType {
   CIVIL = 'civil',
   FAMILIAR = 'familiar',
   COMERCIAL = 'comercial',
-  
 }
 
 export enum seniorityLevel {
@@ -47,7 +47,7 @@ export class Lawyer {
   @Column({ type: 'varchar', length: 100 })
   lastName: string;
 
-  @Column({ type: 'varchar', length: 100 , nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   address: string;
 
   @Column({ type: 'varchar', length: 15 })
@@ -80,7 +80,8 @@ export class Lawyer {
   updatedAt!: Date;
 
   //relacion con usuario
-  @OneToOne(() => User, (usuario) => usuario.lawyer, { onDelete: 'SET NULL' })
+  @OneToOne(() => User, (user) => user.lawyer, { onDelete: 'CASCADE' })
+  @JoinColumn() // ⬅️ Mover acá
   user: User;
 
   // Relación One-to-Many con Cronometro
@@ -118,3 +119,4 @@ export class Lawyer {
   @OneToMany(() => Meeting, (meeting) => meeting.lawyer)
   meetings: Meeting[];
 }
+

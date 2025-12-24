@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AdministradorDto } from 'src/dtos/admin.dto';
 import { Admin } from 'src/entities/admin.entity';
+import { User } from 'src/entities/user.entity';
 import { AudienceService } from 'src/services/audience.service';
 import { ClienteService } from 'src/services/cliente.service';
 import { ClientItemService } from 'src/services/clientItem.service';
@@ -9,7 +10,7 @@ import { DocumentService } from 'src/services/document.service';
 import { MeetingService } from 'src/services/meeting.service';
 import { ProcessService } from 'src/services/process.service';
 import { UserService } from 'src/services/user.service';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class AdminRepository {
@@ -25,24 +26,20 @@ export class AdminRepository {
     private readonly clientItemService: ClientItemService,
   ) {}
 
-  async createAdmin(data: AdministradorDto): Promise<Admin> {
-    const user = await this.userService.findOneByEmail(data.userEmail);
-    if (!user) {
-      throw new Error('User not found');
-    }
-    const admin = this.adminRepository.create({
-      user: user,
-    });
-    return this.adminRepository.save(admin);
-  }
-
-  async seedAdmin(): Promise<Admin> {
-    const newAdmin = await this.createAdmin({
-      userEmail: 'admin@example.com',
+  async createAdminInTransaction(
+    manager: EntityManager,
+    adminData: {
+      user: User; // El user ya creado
+    },
+  ): Promise<Admin> {
+    const newAdmin = manager.create(Admin, {
+      user: adminData.user,
     });
 
-    return newAdmin;
+    return await manager.save(Admin, newAdmin);
   }
+
+  async seedAdmin() {}
 
   async getAdmin(): Promise<Admin | null> {
     const admins = await this.adminRepository.find({
@@ -96,3 +93,4 @@ export class AdminRepository {
     await this.clientService.deleteClient(clientId);
   }
 }
+

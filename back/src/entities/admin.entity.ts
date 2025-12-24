@@ -16,8 +16,6 @@ export class Admin {
   @IsUUID()
   id: string;
 
-  //relacion con usuario
-
   @CreateDateColumn({ type: 'timestamptz', default: () => 'now()' })
   createdAt!: Date;
 
@@ -28,3 +26,4 @@ export class Admin {
   @JoinColumn()
   user: User;
 }
+

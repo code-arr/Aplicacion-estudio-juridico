@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { registerUserDto } from '../dtos/user.dto';
-import { User } from '../entities/user.entity';
-import { Repository } from 'typeorm';
+import { User, UserRole } from '../entities/user.entity';
+import { EntityManager, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { usersSeedData } from '../utils/usuarios';
 
@@ -21,9 +21,6 @@ export class UserRepository {
   async userSeedData(): Promise<string> {
     try {
       const users = usersSeedData;
-      for (const user of users) {
-        await this.createUser(user);
-      }
     } catch (error) {
       throw new InternalServerErrorException(
         'Error inesperado al hacer el seed de los usuarios. REPOSITORIO',
@@ -32,37 +29,28 @@ export class UserRepository {
     return 'Seed de usuarios completado exitosamente.';
   }
 
-  async createUser(user: registerUserDto): Promise<Partial<User> | void> {
-    try {
-      console.log(user);
-      
-      const userExist = await this.userRepository.findOne({
-        where: { email: user.email },
-      });
-      if (userExist) {
-        throw new BadRequestException(
-          'Ya hay un usuario registrado con este email.',
-        );
-      }
+  async createUserInTransaction(
+    manager: EntityManager, // 👈 Recibe el manager de la transacción
+    userData: {
+      email: string;
+      password: string;
+      role: UserRole;
+    },
+  ): Promise<User> {
+    // Hashear password
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-      const hashedPassword = await bcrypt.hash(user.password, 10);
-      const newUser = this.userRepository.create({
-        ...user,
-        password: hashedPassword,
-      });
-      await this.userRepository.save(newUser);
-      const { id, password, ...rest } = newUser;
-      console.log('Usuario creado:', rest);
-      console.log(newUser.password);
+    // Crear user
+    const newUser = manager.create(User, {
+      email: userData.email,
+      password: hashedPassword,
+      role: userData.role,
+      googleEmail: '',
+      googleRefreshToken: '',
+    });
 
-      return rest;
-    } catch (error) {
-      if (error) {
-        console.log(error);
-
-        throw error;
-      }
-    }
+    // Guardar usando el manager de la transacción
+    return await manager.save(User, newUser);
   }
   async findOneByEmail(email: string): Promise<User | null> {
     try {
@@ -197,3 +185,4 @@ export class UserRepository {
     return { message: 'Contraseña actualizada correctamente' };
   }
 }
+

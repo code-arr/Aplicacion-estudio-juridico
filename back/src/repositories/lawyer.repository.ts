@@ -5,17 +5,18 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AbogadoDto } from '../dtos/lawyer.dto';
-import { Lawyer } from '../entities/lawyer.entity';
+import { Lawyer, lawyerType, seniorityLevel } from '../entities/lawyer.entity';
 import { Client } from '../entities/client.entity';
 import { ClienteService } from '../services/cliente.service';
 import { UserService } from '../services/user.service';
 import { abogadosSeedData } from '../utils/abogados';
 import { casosSeedData } from '../utils/casos';
 import { clientesSeedData } from '../utils/clientes';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { ParentTouchService } from 'src/services/parent-touch.service';
 import { UpdateLawyerDto } from 'src/dtos/updateLawyer.dto';
 import * as bcrypt from 'bcrypt';
+import { User } from 'src/entities/user.entity';
 
 @Injectable()
 export class AbogadoRepository {
@@ -28,9 +29,33 @@ export class AbogadoRepository {
     private readonly dataSource: DataSource,
     private readonly parentTouch: ParentTouchService, // Asegúrate de importar y usar el UserRepository correctamente
   ) {}
-  async createLawyer(abogado: AbogadoDto): Promise<Lawyer> {
-    const newAbogado = this.repository.create(abogado);
-    return this.repository.save(newAbogado);
+  async createLawyerInTransaction(
+    manager: EntityManager, // 👈 Recibe el manager de la transacción
+    lawyerData: {
+      firstName: string;
+      lastName: string;
+      phone: string;
+      rut: string;
+      address?: string;
+      type?: lawyerType;
+      seniorityLevel?: seniorityLevel;
+      user: User; // 👈 El user ya creado
+    },
+  ): Promise<Lawyer> {
+    // Crear lawyer
+    const newLawyer = manager.create(Lawyer, {
+      firstName: lawyerData.firstName,
+      lastName: lawyerData.lastName,
+      phone: lawyerData.phone,
+      rut: lawyerData.rut,
+      address: lawyerData.address,
+      type: lawyerData.type,
+      seniorityLevel: lawyerData.seniorityLevel,
+      user: lawyerData.user, // Asociar el user
+    });
+
+    // Guardar usando el manager de la transacción
+    return await manager.save(Lawyer, newLawyer);
   }
   async saveAbogado(abogado: Lawyer): Promise<Lawyer> {
     return this.repository.save(abogado);
@@ -260,3 +285,4 @@ export class AbogadoRepository {
     });
   }
 }
+

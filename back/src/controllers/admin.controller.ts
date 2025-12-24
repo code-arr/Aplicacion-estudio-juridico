@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -22,12 +23,21 @@ export class AdminController {
     return this.adminService.seedAdmin();
   }
 
+  // 👇 NUEVO: Endpoint para crear admin
+  @Post('create')
+  @Roles(UserRole.ADMIN) // Solo un admin puede crear otro admin
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async createAdmin(@Body() body: { email: string; password: string }) {
+    return this.adminService.createAdmin(body.email, body.password);
+  }
+
   @Get('')
   @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getAdmin() {
     return this.adminService.getAdmin();
   }
+
   @Delete('deleteClient/:clientId')
   async deleteClient(@Param('clientId') clientId: string) {
     return this.adminService.deleteClient(clientId);

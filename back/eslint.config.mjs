@@ -1,16 +1,15 @@
 // @ts-check
 import eslint from '@eslint/js';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: ['eslint.config.mjs', 'dist'],
   },
   eslint.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  eslintPluginPrettierRecommended,
+  // Cambiamos 'recommendedTypeChecked' por el 'recommended' simple (como en el front)
+  ...tseslint.configs.recommended,
   {
     languageOptions: {
       globals: {
@@ -18,17 +17,13 @@ export default tseslint.config(
         ...globals.jest,
       },
       sourceType: 'commonjs',
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
     },
-  },
-  {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn'
+      // Apagamos Prettier para que no pinte todo de amarillo/rojo por espacios
+      'prettier/prettier': 'off',
+      // Bajamos la intensidad de las variables no usadas
+      '@typescript-eslint/no-unused-vars': 'warn',
     },
   },
 );
+

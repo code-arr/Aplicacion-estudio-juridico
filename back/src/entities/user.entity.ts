@@ -55,11 +55,10 @@ export class User {
 
   //relacion con admin
   @OneToOne(() => Admin, (admin) => admin.user)
-  @JoinColumn()
   admin: Admin;
 
   //relacion con abogado
   @OneToOne(() => Lawyer, (lawyer) => lawyer.user, { onDelete: 'CASCADE' })
-  @JoinColumn() // <-- ¡Esta es la clave para el problema!
   lawyer: Lawyer;
 }
+

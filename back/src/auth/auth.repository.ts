@@ -1,10 +1,9 @@
 import { registerUserDto } from '../dtos/user.dto';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { isBefore, addMinutes } from 'date-fns';
-
 import { UserService } from '../services/user.service';
 import {
   Injectable,
@@ -19,33 +18,116 @@ import { SystemMailerService } from 'src/mailer/system-mailer.service';
 import { UserLoginsService } from 'src/userLogins/userLogins.service';
 import { Request } from 'express';
 import { AbogadoService } from 'src/services/abogado.service';
+import { AbogadoRepository } from 'src/repositories/lawyer.repository';
+import { Lawyer, lawyerType, seniorityLevel } from 'src/entities/lawyer.entity';
+import { UserRepository } from 'src/repositories/user.repository';
+import { DataSource, EntityManager } from 'typeorm'; // 👈 Importar EntityManager
+import { Admin } from 'src/entities/admin.entity';
+import { AdminRepository } from 'src/repositories/admin.repository';
 
 @Injectable()
 export class AuthRepository {
   constructor(
     private readonly userService: UserService,
+    private readonly userRepository: UserRepository,
+    private readonly lawyerRepository: AbogadoRepository,
+    private readonly adminRepository: AdminRepository, // 👈 AGREGAR ESTO
     private readonly jwtService: JwtService,
-    private readonly systemMailer: SystemMailerService, // ✅ neutral
+    private readonly systemMailer: SystemMailerService,
     private readonly resetRepo: PasswordResetRepository,
     private readonly userLogins: UserLoginsService,
-    private readonly lawyerService: AbogadoService, // 👈 NUEVO
+    private readonly dataSource: DataSource,
   ) {}
 
-  async register(user, lawyerDto): Promise<Partial<User> | void> {
-    try {
-      console.log(user);
+  async register(
+    userData: { email: string; password: string },
+    lawyerData: {
+      firstName: string;
+      lastName: string;
+      phone: string;
+      rut: string;
+      address?: string;
+      type?: lawyerType;
+      seniorityLevel?: seniorityLevel;
+    },
+  ): Promise<{ user: Partial<User>; lawyer: Lawyer }> {
+    // 🔄 Transacción
+    return this.dataSource.transaction(async (manager) => {
+      // 1. Verificar que no exista el email
+      const existingUser = await manager.findOne(User, {
+        where: { email: userData.email },
+      });
 
-      console.log(lawyerDto);
+      if (existingUser) {
+        throw new BadRequestException('Ya existe un usuario con este email');
+      }
 
-      const lawyer = await this.lawyerService.createLawyer(lawyerDto); // 👈 NUEVO
-      console.log(lawyer);
-
-      this.userService.createUser({ ...user, lawyer });
-    } catch (error) {
-      throw new Error(
-        'Error al registrar el usuario en auth: ' + error.message,
+      // 2. Delegar creación de User al repository
+      const savedUser = await this.userRepository.createUserInTransaction(
+        manager, // 👈 Pasar el manager
+        {
+          email: userData.email,
+          password: userData.password,
+          role: UserRole.LAWYER,
+        },
       );
-    }
+
+      // 3. Delegar creación de Lawyer al repository
+      const savedLawyer = await this.lawyerRepository.createLawyerInTransaction(
+        manager, // 👈 Pasar el manager
+        {
+          ...lawyerData,
+          user: savedUser, // Asociar el user
+        },
+      );
+
+      // 4. Retornar sin password
+      const { password, ...userWithoutPassword } = savedUser;
+
+      return {
+        user: userWithoutPassword,
+        lawyer: savedLawyer,
+      };
+    });
+  }
+
+  async createAdmin(
+    email: string,
+    password: string,
+  ): Promise<{ user: Partial<User>; admin: Admin }> {
+    return this.dataSource.transaction(async (manager) => {
+      // Verificar email
+      const existingUser = await manager.findOne(User, {
+        where: { email },
+      });
+
+      if (existingUser) {
+        throw new BadRequestException('Ya existe un usuario con este email');
+      }
+
+      // Crear User
+      const savedUser = await this.userRepository.createUserInTransaction(
+        manager,
+        {
+          email,
+          password,
+          role: UserRole.ADMIN,
+        },
+      );
+
+      // Crear Admin
+      const savedAdmin = await this.adminRepository.createAdminInTransaction(
+        manager,
+        { user: savedUser },
+      );
+
+      const { password: _, ...userWithoutPassword } = savedUser;
+
+      return {
+        user: userWithoutPassword,
+        admin: savedAdmin,
+      };
+    });
   }
 
   async createJwtToken(user: User): Promise<string> {
