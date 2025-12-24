@@ -42,6 +42,9 @@ import { AuthGuard } from './guards/auth.guard';
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
         synchronize: configService.get<string>('TYPEORM_SYNC') === 'true',
+        ssl: {
+          rejectUnauthorized: false,
+        },
       }),
     }),
     JwtModule.register({
