@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { registerUserDto } from '../dtos/user.dto';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 import { UserRepository } from '../repositories/user.repository';
+import { EntityManager } from 'typeorm';
+import { use } from 'passport';
 
 @Injectable()
 export class UserService {
@@ -14,8 +16,15 @@ export class UserService {
     return this.userRepository.findOneByEmail(email);
   }
 
-  async createUser(user: registerUserDto): Promise<Partial<User> | void> {
-    return this.userRepository.createUser(user);
+  async createUser(
+    manager: EntityManager, // 👈 Recibe el manager de la transacción
+    userData: {
+      email: string;
+      password: string;
+      role: UserRole;
+    },
+  ): Promise<User> {
+    return this.userRepository.createUserInTransaction(manager, userData);
   }
   async getAllUsers(): Promise<User[]> {
     return this.userRepository.getAllUsers();
@@ -50,3 +59,4 @@ export class UserService {
     return this.userRepository.deleteUser(id);
   }
 }
+

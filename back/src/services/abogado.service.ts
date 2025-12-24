@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { AbogadoDto } from '../dtos/lawyer.dto';
-import { Lawyer } from '../entities/lawyer.entity';
+import { Lawyer, lawyerType, seniorityLevel } from '../entities/lawyer.entity';
 import { AbogadoRepository } from '../repositories/lawyer.repository';
 import { UpdateLawyerDto } from 'src/dtos/updateLawyer.dto';
+import { EntityManager } from 'typeorm';
+import { User } from 'src/entities/user.entity';
 
 @Injectable()
 export class AbogadoService {
@@ -48,7 +50,23 @@ export class AbogadoService {
     return this.abogadoRepository.findByEmails(emails);
   }
 
-  createLawyer(lawyerDto: AbogadoDto): Promise<Lawyer> {
-    return this.abogadoRepository.createLawyer(lawyerDto);
+  createLawyer(
+    manager: EntityManager, // 👈 Recibe el manager de la transacción
+    lawyerData: {
+      firstName: string;
+      lastName: string;
+      phone: string;
+      rut: string;
+      address?: string;
+      type?: lawyerType;
+      seniorityLevel?: seniorityLevel;
+      user: User; // 👈 El user ya creado
+    },
+  ): Promise<Lawyer> {
+    return this.abogadoRepository.createLawyerInTransaction(
+      manager,
+      lawyerData,
+    );
   }
 }
+

@@ -30,6 +30,7 @@ export class AuthRepository {
   constructor(
     private readonly userService: UserService,
     private readonly userRepository: UserRepository,
+    private readonly lawyerService: AbogadoService,
     private readonly lawyerRepository: AbogadoRepository,
     private readonly adminRepository: AdminRepository, // 👈 AGREGAR ESTO
     private readonly jwtService: JwtService,
@@ -63,7 +64,7 @@ export class AuthRepository {
       }
 
       // 2. Delegar creación de User al repository
-      const savedUser = await this.userRepository.createUserInTransaction(
+      const savedUser = await this.userService.createUser(
         manager, // 👈 Pasar el manager
         {
           email: userData.email,
@@ -73,7 +74,7 @@ export class AuthRepository {
       );
 
       // 3. Delegar creación de Lawyer al repository
-      const savedLawyer = await this.lawyerRepository.createLawyerInTransaction(
+      const savedLawyer = await this.lawyerService.createLawyer(
         manager, // 👈 Pasar el manager
         {
           ...lawyerData,
