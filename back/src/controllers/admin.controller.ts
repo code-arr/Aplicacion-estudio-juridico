@@ -21,8 +21,8 @@ export class AdminController {
   // 👇 NUEVO: Setup inicial (sin autenticación)
   @Public()
   @Post('setup')
-  async setupFirstAdmin(@Body() body: { email: string; password: string }) {
-    return this.adminService.setupFirstAdmin(body.email, body.password);
+  async setupFirstAdmin() {
+    return this.adminService.setupFirstAdmin();
   }
 
   @Post('seeder')

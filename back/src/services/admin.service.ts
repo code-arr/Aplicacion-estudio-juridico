@@ -1,34 +1,43 @@
 // admin.service.ts
-
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Admin } from 'src/entities/admin.entity';
 import { AdminRepository } from 'src/repositories/admin.repository';
-import { AuthRepository } from 'src/auth/auth.repository'; // 👈 Importar
+import { AuthRepository } from 'src/auth/auth.repository';
 
 @Injectable()
 export class AdminService {
   constructor(
     private readonly adminRepository: AdminRepository,
-    private readonly authRepository: AuthRepository, // 👈 Inyectar
+    private readonly authRepository: AuthRepository,
+    private readonly configService: ConfigService,
   ) {}
 
-  // 👇 NUEVO
-  async setupFirstAdmin(email: string, password: string) {
-    // Verificar que NO haya ningún admin
+  async setupFirstAdmin() {
+    // 1️⃣ Verificar que no exista admin
     const existingAdmin = await this.adminRepository.getAdmin();
 
     if (existingAdmin) {
       throw new BadRequestException(
-        'El sistema ya está inicializado. No se pueden crear más admins por este método.',
+        'El sistema ya fue inicializado. Ya existe un administrador.',
       );
     }
 
-    // Crear el primer admin
+    // 2️⃣ Leer variables de entorno
+    const email = this.configService.get<string>('ADMIN_EMAIL');
+    const password = this.configService.get<string>('ADMIN_PASSWORD');
+
+    if (!email || !password) {
+      throw new BadRequestException(
+        'ADMIN_EMAIL o ADMIN_PASSWORD no están configuradas en el entorno.',
+      );
+    }
+
+    // 3️⃣ Crear admin usando el flujo normal
     const result = await this.authRepository.createAdmin(email, password);
 
     return {
-      message:
-        '✅ Sistema inicializado correctamente. Ya podés iniciar sesión.',
+      message: '✅ Administrador inicial creado correctamente.',
       admin: {
         id: result.admin.id,
         email: result.user.email,
