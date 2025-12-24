@@ -19,7 +19,7 @@ import { UserLoginsService } from 'src/userLogins/userLogins.service';
 import { Request } from 'express';
 import { AbogadoService } from 'src/services/abogado.service';
 import { AbogadoRepository } from 'src/repositories/lawyer.repository';
-import { Lawyer, lawyerType, seniorityLevel } from 'src/entities/lawyer.entity';
+import { Lawyer, lawyerType } from 'src/entities/lawyer.entity';
 import { UserRepository } from 'src/repositories/user.repository';
 import { DataSource, EntityManager } from 'typeorm'; // 👈 Importar EntityManager
 import { Admin } from 'src/entities/admin.entity';
@@ -49,7 +49,6 @@ export class AuthRepository {
       rut: string;
       address?: string;
       type?: lawyerType;
-      seniorityLevel?: seniorityLevel;
     },
   ): Promise<{ user: Partial<User>; lawyer: Lawyer }> {
     // 🔄 Transacción

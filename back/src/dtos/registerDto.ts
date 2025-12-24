@@ -1,4 +1,4 @@
-import { lawyerType, seniorityLevel } from 'src/entities/lawyer.entity';
+import { lawyerType } from 'src/entities/lawyer.entity';
 
 export class RegisterDto {
   user: {
@@ -13,7 +13,6 @@ export class RegisterDto {
     phone: string;
     rut: string;
     type: lawyerType;
-    seniorityLevel: seniorityLevel;
   };
 }
 

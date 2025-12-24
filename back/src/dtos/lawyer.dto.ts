@@ -1,6 +1,15 @@
 // src/abogado/dto/create-abogado.dto.ts
-import { IsString, IsNotEmpty, IsEnum, IsInt, MinLength, MaxLength, IsOptional, Min } from 'class-validator';
-import { lawyerType, seniorityLevel } from 'src/entities/lawyer.entity';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsInt,
+  MinLength,
+  MaxLength,
+  IsOptional,
+  Min,
+} from 'class-validator';
+import { lawyerType } from 'src/entities/lawyer.entity';
 
 export class AbogadoDto {
   @IsString()
@@ -37,15 +46,12 @@ export class AbogadoDto {
   @IsOptional() // Si no es obligatorio especificar al crear
   type: lawyerType.CRIMINAL | lawyerType.CIVIL | lawyerType.FAMILIAR;
 
-  @IsEnum(seniorityLevel, { message: 'El nivel de seniority no es válido.' })
-  @IsOptional() // Asumo que el seniority es obligatorio al crear
-  seniorityLevel: seniorityLevel.JUNIOR | seniorityLevel.MID | seniorityLevel.SENIOR;
-
   @IsInt()
   @Min(0)
   @IsOptional()
   workedHours?: number; // Es opcional ya que tiene un valor por defecto en la entidad
 
   @IsOptional()
-  userEmail : string; // Asumiendo que este es el email del usuario asociado al abogado
+  userEmail: string; // Asumiendo que este es el email del usuario asociado al abogado
 }
+

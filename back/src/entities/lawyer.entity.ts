@@ -25,12 +25,6 @@ export enum lawyerType {
   COMERCIAL = 'comercial',
 }
 
-export enum seniorityLevel {
-  JUNIOR = 'junior',
-  MID = 'mid',
-  SENIOR = 'senior',
-}
-
 @Entity({ name: 'abogados' })
 export class Lawyer {
   @PrimaryGeneratedColumn('uuid')
@@ -58,13 +52,6 @@ export class Lawyer {
     nullable: true,
   })
   type: lawyerType;
-
-  @Column({
-    type: 'enum',
-    enum: seniorityLevel,
-    nullable: true,
-  })
-  seniorityLevel: seniorityLevel;
 
   @Column({ type: 'int', default: 0 })
   workedHours: number;

@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AbogadoDto } from '../dtos/lawyer.dto';
-import { Lawyer, lawyerType, seniorityLevel } from '../entities/lawyer.entity';
+import { Lawyer, lawyerType } from '../entities/lawyer.entity';
 import { Client } from '../entities/client.entity';
 import { ClienteService } from '../services/cliente.service';
 import { UserService } from '../services/user.service';
@@ -38,7 +38,6 @@ export class AbogadoRepository {
       rut: string;
       address?: string;
       type?: lawyerType;
-      seniorityLevel?: seniorityLevel;
       user: User; // 👈 El user ya creado
     },
   ): Promise<Lawyer> {
@@ -50,7 +49,6 @@ export class AbogadoRepository {
       rut: lawyerData.rut,
       address: lawyerData.address,
       type: lawyerData.type,
-      seniorityLevel: lawyerData.seniorityLevel,
       user: lawyerData.user, // Asociar el user
     });
 

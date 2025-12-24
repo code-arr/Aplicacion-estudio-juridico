@@ -6,7 +6,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { lawyerType, seniorityLevel } from '../entities/lawyer.entity';
+import { lawyerType } from '../entities/lawyer.entity';
 
 export class UpdateLawyerDto {
   @IsString({ message: 'El nombre debe ser una cadena de texto.' })
@@ -33,10 +33,6 @@ export class UpdateLawyerDto {
   @IsOptional()
   type?: lawyerType;
 
-  @IsEnum(seniorityLevel, { message: 'Nivel de seniority inválido.' })
-  @IsOptional()
-  seniorityLevel?: seniorityLevel;
-
   @IsInt({ message: 'WorkedHours debe ser un número entero.' })
   @Min(0, { message: 'WorkedHours no puede ser negativo.' })
   @IsOptional()
@@ -47,3 +43,4 @@ export class UpdateLawyerDto {
   @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres.' })
   password?: string; // 👈 Campo nuevo (opcional)
 }
+

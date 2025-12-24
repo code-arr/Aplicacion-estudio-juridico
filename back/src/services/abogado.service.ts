@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AbogadoDto } from '../dtos/lawyer.dto';
-import { Lawyer, lawyerType, seniorityLevel } from '../entities/lawyer.entity';
+import { Lawyer, lawyerType } from '../entities/lawyer.entity';
 import { AbogadoRepository } from '../repositories/lawyer.repository';
 import { UpdateLawyerDto } from 'src/dtos/updateLawyer.dto';
 import { EntityManager } from 'typeorm';
@@ -59,7 +59,6 @@ export class AbogadoService {
       rut: string;
       address?: string;
       type?: lawyerType;
-      seniorityLevel?: seniorityLevel;
       user: User; // 👈 El user ya creado
     },
   ): Promise<Lawyer> {
