@@ -30,14 +30,19 @@ import { AuthGuard } from './guards/auth.guard';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, load: [typeormConfig] }),
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        // Usa el operador de aserción no nula '!' si estás seguro de que la configuración existe
-        const options = configService.get<TypeOrmModuleOptions>('typeorm')!;
-        return options;
-      },
+      useFactory: (configService: ConfigService): TypeOrmModuleOptions => ({
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST'),
+        port: Number(configService.get<string>('DB_PORT')),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_NAME'),
+        autoLoadEntities: true,
+        synchronize: configService.get<string>('TYPEORM_SYNC') === 'true',
+      }),
     }),
     JwtModule.register({
       global: true,
@@ -68,3 +73,4 @@ import { AuthGuard } from './guards/auth.guard';
   providers: [AppService], //, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule {}
+
