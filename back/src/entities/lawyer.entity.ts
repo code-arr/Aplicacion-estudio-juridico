@@ -1,7 +1,5 @@
 import { IsUUID } from 'class-validator';
 import {
-  BeforeInsert,
-  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -15,10 +13,8 @@ import {
 } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { User } from './user.entity';
-import { StopWatch } from './stopwatch.entity';
 import { Client } from './client.entity';
 import { ClientItem } from './clientItem.entity';
-import * as moment from 'moment-timezone';
 import { Event } from './events.entity';
 import { Meeting } from './meeting.entity';
 
@@ -83,11 +79,6 @@ export class Lawyer {
   @OneToOne(() => User, (user) => user.lawyer, { onDelete: 'CASCADE' })
   @JoinColumn() // ⬅️ Mover acá
   user: User;
-
-  // Relación One-to-Many con Cronometro
-  // Un abogado puede tener muchos cronómetros. La clave foránea estará en la tabla 'cronometros'.
-  @OneToMany(() => StopWatch, (stopWatch) => stopWatch.lawyer)
-  stopWatch: StopWatch[];
 
   @OneToMany(() => ClientItem, (clientItem) => clientItem.lawyer)
   clientItems: ClientItem[];

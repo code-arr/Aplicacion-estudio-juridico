@@ -11,8 +11,6 @@ import {
 import { IsUUID } from 'class-validator'; // Importar IsUUID para validación
 import { v4 as uuid } from 'uuid'; // Importar uuid para la generación del ID
 import { Lawyer } from './lawyer.entity';
-import { StopWatch } from './stopwatch.entity';
-import { Category } from './category.entity';
 import { ClientItem } from './clientItem.entity';
 import { Meeting } from './meeting.entity';
 
@@ -91,11 +89,9 @@ export class Client {
   @OneToMany(() => Meeting, (meeting) => meeting.client)
   meetings: Meeting[];
 
-  @OneToMany(() => StopWatch, (stopwatch) => stopwatch.client)
-  stopwatchs: StopWatch[];
-
   @OneToMany(() => ClientItem, (clientItem) => clientItem.client, {
     onDelete: 'CASCADE',
   })
   clientItems: ClientItem[];
 }
+
