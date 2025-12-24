@@ -72,13 +72,20 @@ export class AuthRepository {
         },
       );
 
+      // 🧼 Sanitizar type (evitar string vacío en ENUM)
+      const sanitizedLawyerData = {
+        ...lawyerData,
+        type:
+          typeof lawyerData.type === 'string' && lawyerData.type.trim() === ''
+            ? undefined
+            : lawyerData.type,
+        user: savedUser,
+      };
+
       // 3. Delegar creación de Lawyer al repository
       const savedLawyer = await this.lawyerService.createLawyer(
-        manager, // 👈 Pasar el manager
-        {
-          ...lawyerData,
-          user: savedUser, // Asociar el user
-        },
+        manager,
+        sanitizedLawyerData,
       );
 
       // 4. Retornar sin password
