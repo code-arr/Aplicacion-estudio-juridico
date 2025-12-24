@@ -7,7 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-
+import { Public } from 'src/auth/public.decorator';
 import { Roles } from 'src/decorator/roles.decorator';
 import { UserRole } from 'src/entities/user.entity';
 import { AdminGuard } from 'src/guards/admin.guard';
@@ -17,6 +17,13 @@ import { AdminService } from 'src/services/admin.service';
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  // 👇 NUEVO: Setup inicial (sin autenticación)
+  @Public()
+  @Post('setup')
+  async setupFirstAdmin(@Body() body: { email: string; password: string }) {
+    return this.adminService.setupFirstAdmin(body.email, body.password);
+  }
 
   @Post('seeder')
   async seedAdmin() {
@@ -43,3 +50,4 @@ export class AdminController {
     return this.adminService.deleteClient(clientId);
   }
 }
+

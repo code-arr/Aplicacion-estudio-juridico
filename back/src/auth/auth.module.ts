@@ -12,18 +12,21 @@ import { PasswordResetTokenModule } from 'src/modules/passwordResetToken.module'
 import { UserLoginsModule } from 'src/userLogins/userLogins.module';
 import { Lawyer } from 'src/entities/lawyer.entity';
 import { AbogadoModule } from 'src/modules/abogado.module';
+import { AdminModule } from 'src/modules/admin.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User , Lawyer]),
+    TypeOrmModule.forFeature([User, Lawyer]),
     GoogleModule,
     PasswordResetTokenModule,
     SystemMailerModule, // ✅ mails neutrales (reset password)
-    UserLoginsModule, 
-    AbogadoModule// 👈 NUEVO
+    UserLoginsModule,
+    AbogadoModule,
+    AdminModule,
   ],
   controllers: [AuthController],
   providers: [AuthRepository, UserService, UserRepository],
   exports: [AuthRepository, UserService, UserRepository],
 })
 export class AuthModule {}
+
