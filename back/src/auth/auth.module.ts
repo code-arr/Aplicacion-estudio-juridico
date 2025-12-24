@@ -1,6 +1,6 @@
 // src/auth/auth.module.ts
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthRepository } from 'src/auth/auth.repository';
 import { AuthController } from 'src/auth/auth.controller';
@@ -18,17 +18,13 @@ import { UsersModule } from 'src/modules/users.module'; // 👈 Agregar este imp
     PasswordResetTokenModule,
     SystemMailerModule,
     UserLoginsModule,
-    AbogadoModule, // ✅ Exporta AbogadoRepository
-    AdminModule, // ✅ Exporta AdminRepository
-    UsersModule, // 👈 AGREGAR - Exporta UserService y UserRepository
+    AbogadoModule,
+    forwardRef(() => AdminModule),
+    UsersModule,
   ],
   controllers: [AuthController],
-  providers: [
-    AuthRepository,
-    // 👇 ELIMINAR estos (ya vienen de UsersModule)
-    // UserService,
-    // UserRepository,
-  ],
+  providers: [AuthRepository],
   exports: [AuthRepository],
 })
 export class AuthModule {}
+
