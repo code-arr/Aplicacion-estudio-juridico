@@ -59,10 +59,14 @@ export default function EmailDialog({
   async function loadSavedDocuments() {
     setLoadingDocs(true);
     setError(null);
+    console.log("🔍 [EmailDialog] Cargando docs para clientId:", clientId);
     try {
       const docs = await getDocumentsByClientId(clientId); // 👈 CAMBIADO
+      console.log("✅ [EmailDialog] Documentos recibidos:", docs);
+      console.log("📊 [EmailDialog] Cantidad de docs:", docs?.length || 0);
       setSavedDocs(docs);
-    } catch {
+    } catch (err) {
+      console.error("❌ [EmailDialog] Error cargando docs:", err);
       setError("No se pudieron cargar los documentos guardados.");
     } finally {
       setLoadingDocs(false);
