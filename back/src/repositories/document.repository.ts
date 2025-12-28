@@ -181,6 +181,8 @@ export class DocumentRepository {
   }
 
   async getDocumentsByClientId(clientId: string): Promise<Document[]> {
+    console.log('🔍 [Repository] Buscando docs para clientId:', clientId);
+
     const documents = await this.documentRepository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.clientItem', 'clientItem')
@@ -190,6 +192,16 @@ export class DocumentRepository {
       .orderBy('document.createdAt', 'DESC')
       .addOrderBy('versions.versionNumber', 'DESC')
       .getMany();
+
+    console.log('✅ [Repository] Documentos encontrados:', documents.length);
+    console.log(
+      '📄 [Repository] Detalle:',
+      documents.map((d) => ({
+        id: d.id,
+        name: d.name,
+        clientId: d.clientId,
+      })),
+    );
 
     return documents;
   }
