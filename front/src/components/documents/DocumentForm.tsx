@@ -198,7 +198,7 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
         >
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Nombre del docuemnto</Label>
+              <Label htmlFor="name">Nombre del documento</Label>
               <Input
                 required
                 id="name"
