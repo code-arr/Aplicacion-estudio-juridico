@@ -325,6 +325,7 @@ const ClientOverviewPage = () => {
         isOpen={isEmailOpen}
         onOpenChange={setIsEmailOpen}
         toEmail={clientDetail.email ?? ""}
+        clientId={clientDetail.id!}
       />
       <div className="space-y-6">
         {/* CONTENEDOR GENERAL */}
