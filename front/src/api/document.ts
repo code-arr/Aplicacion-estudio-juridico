@@ -16,8 +16,18 @@ export const getDocumentsByClientItem = async (
 export const getDocumentsByClientId = async (
   clientId: string
 ): Promise<Document[]> => {
-  const data = (await axios.get(`document/getByClientId/${clientId}`)).data;
-  return data;
+  console.log(
+    "🔍 [API] Llamando a getDocumentsByClientId con clientId:",
+    clientId
+  );
+  try {
+    const { data } = await axios.get(`document/getByClientId/${clientId}`);
+    console.log("✅ [API] Respuesta del backend:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ [API] Error en getDocumentsByClientId:", error);
+    throw error;
+  }
 };
 
 export const getVersionsByDocumentId = async (
