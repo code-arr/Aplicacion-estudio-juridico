@@ -12,10 +12,15 @@ import { ClienteService } from '../services/cliente.service';
 import { UserService } from '../services/user.service';
 import { MyMailerService } from '../mailer/mailer.service';
 import { MyMailerModule } from '../mailer/mailer.module';
+import { DocumentModule } from './document.module';
 import { ParentTouchService } from 'src/services/parent-touch.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Client, Lawyer, User]), MyMailerModule],
+  imports: [
+    TypeOrmModule.forFeature([Client, Lawyer, User]),
+    MyMailerModule,
+    DocumentModule,
+  ],
   controllers: [ClienteController],
   providers: [
     ClienteService,
@@ -30,3 +35,4 @@ import { ParentTouchService } from 'src/services/parent-touch.service';
   exports: [ClienteService, ClienteRepository],
 })
 export class ClienteModule {}
+
