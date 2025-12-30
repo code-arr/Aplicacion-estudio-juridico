@@ -20,7 +20,7 @@ type EmailDialogProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   toEmail: string;
-  clientId: string;
+  clientId: string; // 👈 CAMBIADO: ahora recibe clientId en vez de clientItemId
 };
 
 const MAX_MB = 50;
@@ -33,7 +33,6 @@ export default function EmailDialog({
 }: EmailDialogProps) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
-  const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +44,13 @@ export default function EmailDialog({
 
   const user = useAuthStore((s) => s.user);
   const lawyerEmail = user?.email ?? "";
+
+  // 🐛 LOG DE DEBUG - Ver qué props llegan
+  console.log("🐛 [EmailDialog] Props recibidas:", {
+    isOpen,
+    clientId,
+    toEmail,
+  });
 
   // 👇 Cargar documentos del cliente completo
   useEffect(() => {
@@ -59,8 +65,11 @@ export default function EmailDialog({
   async function loadSavedDocuments() {
     setLoadingDocs(true);
     setError(null);
+    console.log("🔍 [EmailDialog] Cargando docs para clientId:", clientId);
     try {
-      const docs = await getDocumentsByClientId(clientId); // 👈 CAMBIADO
+      const docs = await getDocumentsByClientId(clientId);
+      console.log("✅ [EmailDialog] Documentos recibidos:", docs);
+      console.log("📊 [EmailDialog] Cantidad de docs:", docs?.length || 0);
       setSavedDocs(docs);
     } catch (err) {
       console.error("❌ [EmailDialog] Error cargando docs:", err);
@@ -94,13 +103,8 @@ export default function EmailDialog({
   async function handleSend() {
     setError(null);
 
-    if (!subject.trim() || !message.trim() || !title.trim()) {
-      setError("Completá asunto, mensaje y título.");
-      return;
-    }
-
-    if (selectedDocIds.length === 0 && !file) {
-      setError("Seleccioná al menos un documento o subí uno nuevo.");
+    if (!subject.trim() || !message.trim()) {
+      setError("Completá asunto y mensaje.");
       return;
     }
 
@@ -115,7 +119,6 @@ export default function EmailDialog({
         email: toEmail,
         subject,
         description: message,
-        title,
         documentIds: selectedDocIds,
         contractFile: file,
         lawyerEmail,
@@ -124,7 +127,6 @@ export default function EmailDialog({
 
       setSubject("");
       setMessage("");
-      setTitle("");
       setFile(null);
       setSelectedDocIds([]);
       setActiveTab("saved");
@@ -135,12 +137,7 @@ export default function EmailDialog({
     }
   }
 
-  const disabled =
-    sending ||
-    !subject.trim() ||
-    !message.trim() ||
-    !title.trim() ||
-    (selectedDocIds.length === 0 && !file);
+  const disabled = sending || !subject.trim() || !message.trim();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -148,7 +145,7 @@ export default function EmailDialog({
         <DialogHeader>
           <DialogTitle>Enviar mail al cliente</DialogTitle>
           <DialogDescription>
-            Seleccioná documentos guardados o subí uno nuevo.
+            Opcionalmente podés adjuntar documentos.
           </DialogDescription>
         </DialogHeader>
 
@@ -173,16 +170,7 @@ export default function EmailDialog({
               placeholder="Escribí el mensaje..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              rows={4}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Título del documento</Label>
-            <Input
-              placeholder="Ej: Contrato de servicios"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              rows={6}
             />
           </div>
 

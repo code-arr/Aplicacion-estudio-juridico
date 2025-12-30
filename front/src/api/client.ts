@@ -31,7 +31,6 @@ type SendMailInput = {
   email: string; // destinatario
   subject: string; // asunto
   description: string; // cuerpo/mensaje
-  title: string; // título del documento
   contractFile: File | null; // archivo adjunto (opcional)
   lawyerEmail: string; // remitente (query param)
   documentIds?: string[]; // 👈 NUEVO: IDs de docs guardados
@@ -41,7 +40,6 @@ export async function sendDocument({
   email,
   subject,
   description,
-  title,
   contractFile,
   lawyerEmail,
   documentIds = [],
@@ -50,7 +48,6 @@ export async function sendDocument({
   form.append("email", email);
   form.append("subject", subject);
   form.append("description", description);
-  form.append("title", title);
   // 👇 Enviar IDs como JSON string (el back lo parseará)
   if (documentIds.length > 0) {
     form.append("documentIds", JSON.stringify(documentIds));
