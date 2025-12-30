@@ -20,7 +20,7 @@ type EmailDialogProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   toEmail: string;
-  clientId: string; // 👈 CAMBIADO: ahora recibe clientId en vez de clientItemId
+  clientId: string;
 };
 
 const MAX_MB = 50;
@@ -59,11 +59,8 @@ export default function EmailDialog({
   async function loadSavedDocuments() {
     setLoadingDocs(true);
     setError(null);
-    console.log("🔍 [EmailDialog] Cargando docs para clientId:", clientId);
     try {
       const docs = await getDocumentsByClientId(clientId); // 👈 CAMBIADO
-      console.log("✅ [EmailDialog] Documentos recibidos:", docs);
-      console.log("📊 [EmailDialog] Cantidad de docs:", docs?.length || 0);
       setSavedDocs(docs);
     } catch (err) {
       console.error("❌ [EmailDialog] Error cargando docs:", err);

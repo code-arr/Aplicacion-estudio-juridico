@@ -35,7 +35,7 @@ export type TimeEntry = {
 };
 
 // Constantes
-export const IDLE_LIMIT_MS = 90_000 as const;
+export const IDLE_LIMIT_MS = 30 * 60 * 1000; // 30 min
 export const IDLE_LIMIT_SEC = Math.floor(IDLE_LIMIT_MS / 1000);
 
 export const MIN_SEGMENT_SEC = 10;

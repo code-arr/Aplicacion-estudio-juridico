@@ -16,7 +16,7 @@ let engine: TimerEngine | null = null;
 
 // ---------------------------------------------------------
 // 🆕 Mantener la constante acá (evita import cycles con el front)
-const IDLE_LIMIT_MS = 90_000 as const;
+export const IDLE_LIMIT_MS = 30 * 60 * 1000;
 const IDLE_SEC = Math.floor(IDLE_LIMIT_MS / 1000);
 
 // ---------------------------------------------------------

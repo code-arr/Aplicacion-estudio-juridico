@@ -6,7 +6,7 @@ import type {
   TimerStatus,
 } from "../../src/types/Timer.js";
 
-const IDLE_LIMIT_MS = 90_000 as const;
+export const IDLE_LIMIT_MS = 30 * 60 * 1000;
 
 export type Trackable = {
   type: TrackableType;
