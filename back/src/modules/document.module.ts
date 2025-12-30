@@ -24,6 +24,7 @@ import { ParentTouchService } from '../services/parent-touch.service';
     AwsS3Service,
     ParentTouchService,
   ],
-  exports: [DocumentService, DocumentRepository],
+  exports: [DocumentService, DocumentRepository, TypeOrmModule],
 })
 export class DocumentModule {}
+
