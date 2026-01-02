@@ -15,6 +15,7 @@ import { sendDocument } from "@/api/client";
 import { getDocumentsByClientId } from "@/api/document"; // 👈 CAMBIADO
 import { useAuthStore } from "@/store/useAuthStore";
 import type { Document } from "@/types/Document";
+import { useToast } from "@/hooks/useToast";
 
 type EmailDialogProps = {
   isOpen: boolean;
@@ -31,6 +32,8 @@ export default function EmailDialog({
   toEmail,
   clientId, // 👈 CAMBIADO
 }: EmailDialogProps) {
+  const { toast } = useToast();
+
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -74,6 +77,11 @@ export default function EmailDialog({
     } catch (err) {
       console.error("❌ [EmailDialog] Error cargando docs:", err);
       setError("No se pudieron cargar los documentos guardados.");
+      toast({
+        variant: "destructive",
+        title: "Error al cargar documentos",
+        description: "No se pudieron cargar los documentos guardados.",
+      });
     } finally {
       setLoadingDocs(false);
     }
@@ -123,6 +131,15 @@ export default function EmailDialog({
         contractFile: file,
         lawyerEmail,
       });
+
+      toast({
+        variant: "success",
+        title: "Email enviado correctamente",
+        description: `Se envió el mail a ${toEmail} con ${
+          selectedDocIds.length + (file ? 1 : 0)
+        } documento${selectedDocIds.length + (file ? 1 : 0) !== 1 ? "s" : ""}.`,
+      });
+
       onOpenChange(false);
 
       setSubject("");
@@ -130,8 +147,17 @@ export default function EmailDialog({
       setFile(null);
       setSelectedDocIds([]);
       setActiveTab("saved");
-    } catch {
-      setError("No se pudo enviar el mail. Probá de nuevo.");
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.message ||
+        "No se pudo enviar el mail. Probá de nuevo.";
+      setError(errorMsg);
+
+      toast({
+        variant: "destructive",
+        title: "Error al enviar el email",
+        description: errorMsg,
+      });
     } finally {
       setSending(false);
     }
