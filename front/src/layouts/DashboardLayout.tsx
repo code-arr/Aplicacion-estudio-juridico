@@ -78,10 +78,10 @@ const DashboardLayout = () => {
   useInactivityLogout(); // Hook que detecta la inactividad del usuario para cerrar sesion
 
   // Timers (renderer)
-  useActivityHeartbeat({ enabled: timersEnabled });
+  /* useActivityHeartbeat({ enabled: timersEnabled }); */
   useAppPresenceTimer(timersEnabled);
   useEnsureTimerPrimed(timersEnabled);
-  useIdleWatch(timersEnabled);
+  /* useIdleWatch(timersEnabled); */
 
   // ──────────────────────────────────────────────────────────────
   // Data stores

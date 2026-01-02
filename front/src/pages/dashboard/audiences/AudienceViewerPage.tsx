@@ -36,8 +36,8 @@ export default function AudienceViewerPage() {
   const timersEnabled = !!lawyerId && user?.role !== "admin";
 
   useTimeSyncInit(); // ✅ suscribirse al mirror
-  useActivityHeartbeat({ enabled: timersEnabled });
-  useAppPresenceTimer(timersEnabled);
+  /* useActivityHeartbeat({ enabled: timersEnabled });
+  useAppPresenceTimer(timersEnabled); */
 
   const [fitMode, setFitMode] = useState<FitMode>("fitPage");
   const [zoom, setZoom] = useState(1);

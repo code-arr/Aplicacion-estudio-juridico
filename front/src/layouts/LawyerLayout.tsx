@@ -67,10 +67,10 @@ const LawyerLayout = () => {
   useTimerEngineGate(timersEnabled, lawyerId);
   useTokenExpirationWatcher();
   useInactivityLogout();
-  useActivityHeartbeat({ enabled: timersEnabled });
+  /* useActivityHeartbeat({ enabled: timersEnabled }); */
   useAppPresenceTimer(timersEnabled);
   useEnsureTimerPrimed(timersEnabled);
-  useIdleWatch(timersEnabled);
+  /* useIdleWatch(timersEnabled); */
 
   // === 3. Carga de Datos (Catálogo + Clientes del Abogado) ===
   const hydrateCatalog = useCatalogStore((s) => s.hydrate);

@@ -52,8 +52,8 @@ const DocumentViewerPage = () => {
   const timersEnabled = !!lawyerId && user?.role !== "admin";
 
   useTimeSyncInit(); // ✅ suscribirse al mirror
-  useActivityHeartbeat({ enabled: timersEnabled });
-  useAppPresenceTimer(timersEnabled);
+  /* useActivityHeartbeat({ enabled: timersEnabled });
+  useAppPresenceTimer(timersEnabled); */
 
   const [fitMode, setFitMode] = useState<FitMode>("fitPage"); // tamaño original
   const [zoom, setZoom] = useState(1); // 1 = 100%

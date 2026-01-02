@@ -315,6 +315,34 @@ export function registerTimerIpc() {
   wireSegments();
   startIdleLoop();
 
+  // ================== APP VISIBILITY → TIMER CONTROL ==================
+  ipcMain.on("presence:event", (_e, ev: string) => {
+    const engineInstance = ensure();
+    const state = engineInstance.getState();
+
+    // 🔻 Todas las ventanas minimizadas → cortar tiempo
+    if (ev === "app:minimized-all") {
+      if (state.global.status === "running") {
+        console.log("[TIMER] App minimized → stopping timer");
+        alignedStop("switch");
+      }
+      return;
+    }
+
+    // 🔺 Alguna ventana volvió a estar visible → reanudar tiempo
+    if (ev === "app:restored-any") {
+      if (
+        state.global.enabled &&
+        state.global.status !== "running" &&
+        state.ctx.active
+      ) {
+        console.log("[TIMER] App restored → resuming timer");
+        engineInstance.workStart();
+      }
+      return;
+    }
+  });
+
   // 🆕 Eventos del SO (se instalan una sola vez)
   powerMonitor.on("suspend", () => alignedStop("suspend"));
   powerMonitor.on("lock-screen", () => alignedStop("suspend")); // tratamos lock como suspend
