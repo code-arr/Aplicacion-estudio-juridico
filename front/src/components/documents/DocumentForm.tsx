@@ -34,7 +34,7 @@ const initialItemState: NewDocument = {
 };
 
 const ACCEPT = ".pdf,.doc,.docx,.png,.jpg,.jpeg"; // ajustá según tu proyecto
-const MAX_SIZE_MB = 15;
+const MAX_SIZE_MB = 50;
 
 function formatBytes(bytes: number) {
   if (bytes === 0) return "0 B";
