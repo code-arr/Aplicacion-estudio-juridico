@@ -320,11 +320,20 @@ export function registerTimerIpc() {
     const engineInstance = ensure();
     const state = engineInstance.getState();
 
-    // 🔻 Todas las ventanas minimizadas → cortar tiempo
+    // 🔻 Todas las ventanas no visibles
     if (ev === "app:minimized-all") {
       if (state.global.status === "running") {
-        console.log("[TIMER] App minimized → stopping timer");
-        alignedStop("switch");
+        // 🍎 macOS: cerrar ventana (❌) debe registrarse como CLOSE
+        if (process.platform === "darwin") {
+          console.log(
+            "[TIMER] App window closed (macOS) → stopping timer (close)"
+          );
+          alignedStop("close");
+        } else {
+          // 🪟 Windows / Linux: comportamiento actual
+          console.log("[TIMER] App minimized → stopping timer (switch)");
+          alignedStop("switch");
+        }
       }
       return;
     }
