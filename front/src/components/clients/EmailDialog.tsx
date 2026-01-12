@@ -25,6 +25,7 @@ type EmailDialogProps = {
 };
 
 const MAX_MB = 50;
+const MAX_EMAIL_MB = 24;
 
 export default function EmailDialog({
   isOpen,
@@ -64,6 +65,27 @@ export default function EmailDialog({
       setSelectedDocIds([]);
     }
   }, [isOpen, clientId]);
+
+  function computePreviewCounts() {
+    let attachments = 0;
+    let links = 0;
+
+    for (const doc of savedDocs) {
+      if (!selectedDocIds.includes(doc.id)) continue;
+      const size =
+        doc.versions?.find((v) => v.versionNumber === doc.currentVersion)
+          ?.size ?? 0;
+      if (size <= MAX_EMAIL_MB * 1024 * 1024) attachments++;
+      else links++;
+    }
+
+    if (file) {
+      if (file.size <= MAX_EMAIL_MB * 1024 * 1024) attachments++;
+      else links++;
+    }
+
+    return { attachments, links };
+  }
 
   async function loadSavedDocuments() {
     setLoadingDocs(true);
@@ -288,6 +310,22 @@ export default function EmailDialog({
               </div>
             )}
           </div>
+
+          {(() => {
+            const { attachments, links } = computePreviewCounts();
+            if (attachments === 0 && links === 0) return null;
+
+            return (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                📎 Se enviarán <strong>{attachments}</strong> adjunto
+                {attachments !== 1 && "s"} · 🔗 <strong>{links}</strong> enlace
+                {links !== 1 && "s"}
+                <div className="text-xs text-blue-600 mt-1">
+                  Los documentos grandes se envían automáticamente como enlace.
+                </div>
+              </div>
+            );
+          })()}
 
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">
