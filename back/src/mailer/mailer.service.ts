@@ -1,3 +1,4 @@
+// back/src/mailer/mailer.service.ts
 import {
   forwardRef,
   Inject,
@@ -79,16 +80,12 @@ export class MyMailerService {
     to: string,
     subject: string,
     descriptionHtml: string,
-    documentIds: string[], // 👈 NUEVO: IDs de docs guardados
-    newFile?: Express.Multer.File, // 👈 NUEVO: Archivo nuevo (opcional)
+    documentIds: string[],
+    newFile?: Express.Multer.File,
   ) {
-    try {
-      console.log('📧 [MailerService] Preparando email:', {
-        to,
-        documentIds,
-        hasNewFile: !!newFile,
-      });
+    const MAX_EMAIL_BYTES = 24 * 1024 * 1024;
 
+    try {
       const user = await this.userService.findOneByEmail(lawyerEmail);
       if (!user?.googleRefreshToken || !user?.googleEmail) {
         throw new InternalServerErrorException(
@@ -97,86 +94,106 @@ export class MyMailerService {
       }
 
       const attachments: Attachment[] = [];
+      const downloadLinks: { name: string; url: string }[] = [];
 
-      // 1️⃣ Buscar documentos guardados en la BD
+      /* =========================
+       DOCUMENTOS GUARDADOS
+    ========================= */
       if (documentIds.length > 0) {
-        console.log('📎 [MailerService] Buscando docs guardados:', documentIds);
-
         const docs = await this.documentRepository.find({
           where: { id: In(documentIds) },
-          select: ['id', 'name', 'fileUrl'],
+          relations: ['versions'],
         });
 
-        console.log('📎 [MailerService] Docs encontrados:', docs.length);
-
-        // Descargar cada archivo de S3
         for (const doc of docs) {
-          if (doc.fileUrl) {
-            try {
-              const buffer = await this.downloadFromS3(doc.fileUrl);
-              const extension = this.getFileExtension(doc.fileUrl);
+          const currentVersion = doc.versions.find(
+            (v) => v.versionNumber === doc.currentVersion,
+          );
 
-              attachments.push({
-                filename: `${doc.name}.${extension}`,
-                buffer,
-              });
+          if (!currentVersion || !currentVersion.fileUrl) continue;
 
-              console.log(`✅ [MailerService] Descargado: ${doc.name}`);
-            } catch (err) {
-              console.error(`❌ [MailerService] Error con ${doc.name}:`, err);
-              // Continuar con los demás documentos
-            }
+          if ((currentVersion.size ?? 0) <= MAX_EMAIL_BYTES) {
+            const buffer = await this.downloadFromS3(currentVersion.fileUrl);
+            attachments.push({
+              filename: doc.name,
+              buffer,
+            });
+          } else {
+            downloadLinks.push({
+              name: doc.name,
+              url: currentVersion.fileUrl,
+            });
           }
         }
       }
 
-      // 2️⃣ Agregar archivo nuevo si existe
+      /* =========================
+       ARCHIVO NUEVO
+    ========================= */
       if (newFile) {
-        console.log(
-          '📎 [MailerService] Agregando archivo nuevo:',
-          newFile.originalname,
-        );
-        attachments.push({
-          filename: newFile.originalname,
-          buffer: newFile.buffer,
-        });
+        if (newFile.size <= MAX_EMAIL_BYTES) {
+          attachments.push({
+            filename: newFile.originalname,
+            buffer: newFile.buffer,
+          });
+        } else {
+          // El archivo nuevo YA fue guardado en S3 cuando se creó el documento
+          // Si no tenés todavía el fileUrl acá, este bloque se puede ajustar luego
+          downloadLinks.push({
+            name: newFile.originalname,
+            url: 'Archivo disponible en el sistema',
+          });
+        }
       }
 
-      console.log('📧 [MailerService] Total attachments:', attachments.length);
+      /* =========================
+       CONSTRUIR HTML FINAL
+    ========================= */
+      let finalHtml = descriptionHtml;
+
+      if (downloadLinks.length > 0) {
+        finalHtml += `
+        <hr />
+        <p><strong>📎 Documentos disponibles para descarga</strong></p>
+        <ul>
+          ${downloadLinks
+            .map(
+              (l) =>
+                `<li><a href="${l.url}" target="_blank" rel="noopener noreferrer">${l.name}</a></li>`,
+            )
+            .join('')}
+        </ul>
+        <p style="font-size:12px;color:#666;">
+          Algunos documentos superan el tamaño permitido para envío por correo electrónico.
+        </p>
+      `;
+      }
 
       const gmail = getGmailClient(user.googleRefreshToken);
 
-      // 3️⃣ Si NO hay attachments, enviar email simple
+      /* =========================
+       ENVÍO
+    ========================= */
       if (attachments.length === 0) {
         const raw = this.buildSimpleEmailMessage({
           from: user.googleEmail,
           to,
-          subject: subject,
-          html: descriptionHtml,
+          subject,
+          html: finalHtml,
         });
 
         await gmail.users.messages.send({
           userId: 'me',
           requestBody: { raw },
         });
-      }
-      // 4️⃣ Si es solo un archivo, usar la función original
-      else if (attachments.length === 1) {
-        const att = attachments[0];
-
-        if (!att.buffer) {
-          throw new InternalServerErrorException(
-            'Error al procesar el archivo adjunto',
-          );
-        }
-
+      } else if (attachments.length === 1) {
         const raw = buildMimeMessage({
           from: user.googleEmail,
           to,
-          subject: subject,
-          html: descriptionHtml,
-          filename: att.filename,
-          pdfBuffer: att.buffer,
+          subject,
+          html: finalHtml,
+          filename: attachments[0].filename,
+          pdfBuffer: attachments[0].buffer!,
         });
 
         await gmail.users.messages.send({
@@ -184,12 +201,11 @@ export class MyMailerService {
           requestBody: { raw },
         });
       } else {
-        // 5️⃣ Si son múltiples archivos
         const raw = this.buildMimeMessageWithMultipleAttachments({
           from: user.googleEmail,
           to,
-          subject: subject,
-          html: descriptionHtml,
+          subject,
+          html: finalHtml,
           attachments,
         });
 
@@ -199,17 +215,14 @@ export class MyMailerService {
         });
       }
 
-      console.log(`✅ [MailerService] Email enviado exitosamente a ${to}`);
       return {
-        message: `El documento para ${to} fue enviado con éxito.`,
-        attachmentsCount: attachments.length,
+        message: 'Email enviado correctamente',
+        attachments: attachments.length,
+        links: downloadLinks.length,
       };
-    } catch (err: any) {
-      console.error(
-        '❌ [MailerService] Error al enviar el documento:',
-        err?.message || err,
-      );
-      throw new InternalServerErrorException('No se pudo enviar el documento.');
+    } catch (err) {
+      console.error('❌ Error enviando email:', err);
+      throw new InternalServerErrorException('No se pudo enviar el email');
     }
   }
 
