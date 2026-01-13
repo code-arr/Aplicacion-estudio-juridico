@@ -53,7 +53,7 @@ jobs:
       - name: Wait for EB environment to be Ready
         shell: bash
         run: |
-          ENV="Estudio-backend"
+          ENV="Estudio-backend-production-env"
           echo "Waiting for $ENV to be Ready..."
           for i in {1..90}; do
             STATUS=$(aws elasticbeanstalk describe-environments \
@@ -70,8 +70,8 @@ jobs:
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          application_name: estudio-backend-dev
-          environment_name: Estudio-backend
+          application_name: estudio-backend-production
+          environment_name: Estudio-backend-production-env
           region: us-east-1
           deployment_package: app.zip
           # label único (no uses funciones tipo substr en expresiones)
