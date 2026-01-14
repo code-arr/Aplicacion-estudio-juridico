@@ -1,3 +1,4 @@
+// services/user.service.ts
 import { Injectable } from '@nestjs/common';
 import { registerUserDto } from '../dtos/user.dto';
 import { User, UserRole } from '../entities/user.entity';

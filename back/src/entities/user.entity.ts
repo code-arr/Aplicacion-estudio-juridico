@@ -1,3 +1,4 @@
+// entities/user.entity.ts
 import {
   BeforeInsert,
   BeforeUpdate,
@@ -36,6 +37,12 @@ export class User {
 
   @Column({ type: 'varchar', length: 300, default: '' })
   googleRefreshToken: string;
+
+  @Column({ type: 'text', nullable: true })
+  googleSignatureHtml?: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  googleSignatureFetchedAt?: Date;
 
   @Column({
     type: 'enum',

@@ -75,6 +75,51 @@ export class MyMailerService {
     return match ? match[1] : 'pdf';
   }
 
+  private async getGoogleSignatureForUser(user: any): Promise<string | null> {
+    const TTL_HOURS = 6;
+
+    // 1️⃣ Cache válido
+    if (user.googleSignatureHtml && user.googleSignatureFetchedAt) {
+      const hoursSince =
+        (Date.now() - new Date(user.googleSignatureFetchedAt).getTime()) /
+        (1000 * 60 * 60);
+
+      if (hoursSince < TTL_HOURS) {
+        return user.googleSignatureHtml;
+      }
+    }
+
+    // 2️⃣ Ir a Gmail
+    try {
+      const gmail = getGmailClient(user.googleRefreshToken);
+
+      const sendAsRes = await gmail.users.settings.sendAs.list({
+        userId: 'me',
+      });
+
+      const primary = sendAsRes.data.sendAs?.find(
+        (s) => s.sendAsEmail === user.googleEmail,
+      );
+
+      if (!primary?.signature) {
+        return null;
+      }
+
+      // 3️⃣ Guardar cache
+      await this.userService.updateUser(user.id, {
+        googleSignatureHtml: primary.signature,
+        googleSignatureFetchedAt: new Date(),
+      });
+
+      return primary.signature;
+    } catch (err) {
+      console.error('⚠️ Error obteniendo firma de Gmail:', err);
+
+      // 4️⃣ Fallback: usar última firma si existe
+      return user.googleSignatureHtml || null;
+    }
+  }
+
   async sendDocumentEmail(
     lawyerEmail: string,
     to: string,
@@ -150,6 +195,16 @@ export class MyMailerService {
        CONSTRUIR HTML FINAL
     ========================= */
       let finalHtml = descriptionHtml;
+
+      // 👇 Agregar firma de Gmail
+      const signature = await this.getGoogleSignatureForUser(user);
+
+      if (signature) {
+        finalHtml += `
+        <br/><br/>
+        ${signature}
+        `;
+      }
 
       if (downloadLinks.length > 0) {
         finalHtml += `
