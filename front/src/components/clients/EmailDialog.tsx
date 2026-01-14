@@ -305,6 +305,14 @@ export default function EmailDialog({
                     <span className="text-gray-500">
                       {(file.size / (1024 * 1024)).toFixed(2)} MB
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => setFile(null)}
+                      className="ml-2 text-red-600 hover:text-red-800 text-xs"
+                      title="Quitar archivo"
+                    >
+                      ✕
+                    </button>
                   </div>
                 )}
               </div>

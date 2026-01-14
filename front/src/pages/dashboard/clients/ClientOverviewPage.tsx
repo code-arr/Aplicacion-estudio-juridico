@@ -318,6 +318,8 @@ const ClientOverviewPage = () => {
 
   if (!clientDetail) return <ErrorScreen message="No se encontró el cliente" />;
 
+  const isGoogleConnected = !!lawyer?.user?.googleEmail;
+
   return (
     <div>
       <ItemForm isDialogOpen={isDialogOpen} setIsDialogOpen={setIsDialogOpen} />
@@ -405,60 +407,77 @@ const ClientOverviewPage = () => {
             </div>
 
             {/* Google */}
-            <div className="md:w-1/2 grid grid-cols-1 gap-7 content-center">
-              <div className="rounded-md border border-gray-200 p-4">
-                <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
-                  Gmail
-                </h3>
-                <Button
-                  variant="outline"
-                  className="w-full h-11 justify-start gap-2 font-medium border-[hsl(210,100%,40%)]
+            <div className="md:w-1/2 relative">
+              {!isGoogleConnected && (
+                <div
+                  className="absolute inset-0 z-10 rounded-md
+                bg-white/70 backdrop-blur-[2px]
+                  flex flex-col items-center justify-center
+                  text-center px-6 cursor-not-allowed"
+                >
+                  <p className="mt-1 text-sm text-[hsl(225,10%,45%)] max-w-xs">
+                    Conectá Google para usar Gmail y Meet desde la aplicación.
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-1 gap-7 content-center">
+                <div className="rounded-md border border-gray-200 p-4">
+                  <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
+                    Gmail
+                  </h3>
+                  <Button
+                    variant="outline"
+                    className="w-full h-11 justify-start gap-2 font-medium border-[hsl(210,100%,40%)]
                   hover:bg-[hsl(210,100%,95%)]"
-                  aria-label="Enviar correo con Gmail"
-                  onClick={() => setIsEmailOpen(true)}
-                >
-                  <img src={googleLogo} className="w-5 h-5" alt="Logo Google" />
-                  Enviar mail
-                </Button>
-              </div>
-              <div className="rounded-md border border-gray-200 p-4">
-                <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
-                  Próxima Reunión
-                </h3>
-
-                <Button
-                  onClick={handleOpenMeetingsModal}
-                  variant="outline"
-                  disabled={upcomingMeetings.length === 0}
-                  title={
-                    upcomingMeetings.length === 0
-                      ? "Sin reunión válida"
-                      : "Ver próximas reuniones"
-                  }
-                  className="w-full h-11 items-center justify-between px-4
-                border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)]
-                  disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label={
-                    upcomingMeetings.length === 0
-                      ? "Sin reunión programada"
-                      : "Ver próximas reuniones del cliente"
-                  }
-                >
-                  <span className="inline-flex items-center gap-2">
+                    aria-label="Enviar correo con Gmail"
+                    onClick={() => setIsEmailOpen(true)}
+                  >
                     <img
                       src={googleLogo}
-                      className="w-4 h-4"
+                      className="w-5 h-5"
                       alt="Logo Google"
                     />
-                    <span className="font-medium">Meet</span>
-                  </span>
-                  <span className="text-sm text-[hsl(225,10%,40%)]">
-                    {fechaLegible}
-                  </span>
-                </Button>
+                    Enviar mail
+                  </Button>
+                </div>
+                <div className="rounded-md border border-gray-200 p-4">
+                  <h3 className="font-semibold text-[hsl(225,15%,15%)] mb-3">
+                    Próxima Reunión
+                  </h3>
 
-                {/* Opcional: copiar enlace */}
-                {/* <Button
+                  <Button
+                    onClick={handleOpenMeetingsModal}
+                    variant="outline"
+                    disabled={upcomingMeetings.length === 0}
+                    title={
+                      upcomingMeetings.length === 0
+                        ? "Sin reunión válida"
+                        : "Ver próximas reuniones"
+                    }
+                    className="w-full h-11 items-center justify-between px-4
+                border-[hsl(210,100%,40%)] hover:bg-[hsl(210,100%,95%)]
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label={
+                      upcomingMeetings.length === 0
+                        ? "Sin reunión programada"
+                        : "Ver próximas reuniones del cliente"
+                    }
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <img
+                        src={googleLogo}
+                        className="w-4 h-4"
+                        alt="Logo Google"
+                      />
+                      <span className="font-medium">Meet</span>
+                    </span>
+                    <span className="text-sm text-[hsl(225,10%,40%)]">
+                      {fechaLegible}
+                    </span>
+                  </Button>
+
+                  {/* Opcional: copiar enlace */}
+                  {/* <Button
                     variant="ghost"
                     className="mt-2"
                     onClick={copy}
@@ -466,6 +485,7 @@ const ClientOverviewPage = () => {
                   >
                     Copiar enlace
                   </Button> */}
+                </div>
               </div>
             </div>
           </div>
