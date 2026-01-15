@@ -32,6 +32,7 @@ import { formatHHMMFromSeconds } from "@/lib/time";
 import { useToast } from "@/hooks/useToast";
 import { removeClient } from "@/api/lawyer";
 import { useLawyerStore } from "@/store/useLawyerStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { updateClient } from "@/api/client";
 import ClientEditDialog from "@/components/clients/ClientEditDialog";
 import { formatClientRate } from "@/lib/money";
@@ -50,6 +51,7 @@ const ClientOverviewPage = () => {
 
   const categories = useCatalogStore(selectCategories);
   const lawyer = useLawyerStore((s) => s.lawyer);
+  const user = useAuthStore((s) => s.user);
 
   const clientDetail = useClientStore(selectClientDetail);
   const hydrateClientsByLawyer = useClientStore((s) => s.hydrateByLawyer);
@@ -318,7 +320,7 @@ const ClientOverviewPage = () => {
 
   if (!clientDetail) return <ErrorScreen message="No se encontró el cliente" />;
 
-  const isGoogleConnected = !!lawyer?.user?.googleEmail;
+  const isGoogleConnected = !!user?.googleEmail;
 
   return (
     <div>

@@ -1,3 +1,4 @@
+// electron/store/globalTimerStore.ts
 import store from "./electronStorage.js";
 
 export type GlobalTimerSnapshot = {

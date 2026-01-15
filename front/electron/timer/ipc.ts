@@ -386,6 +386,9 @@ export function registerTimerIpc() {
       // (Aunque seedDailyBase no emite, el engine suele emitir en el proximo tick,
       // pero podés forzarlo si tenés un método pushState público o tocando algo).
 
+      // 👇 NUEVO: emitir estado inicial YA
+      engineInstance.forceEmitState();
+
       return { ok: true };
     }
   );

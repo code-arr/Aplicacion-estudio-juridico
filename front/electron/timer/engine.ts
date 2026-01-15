@@ -129,6 +129,10 @@ export class TimerEngine extends EventEmitter {
     this.segmentEmitter = cb;
   }
 
+  forceEmitState() {
+    this.emit("state", this.getState());
+  }
+
   // =============== API pública ===============
   enable(lawyerId: string, appVersion?: string) {
     this.state.lawyerId = lawyerId;
