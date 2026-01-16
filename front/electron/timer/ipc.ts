@@ -415,7 +415,6 @@ export function registerTimerIpc() {
 
     applyJourneyState(); // 👈 NUEVO
 
-    ensure().disable(opts);
     return { ok: true };
   });
 
