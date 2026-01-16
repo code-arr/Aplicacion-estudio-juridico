@@ -3,6 +3,7 @@ import { BrowserWindow, ipcMain } from "electron";
 import { randomUUID } from "crypto";
 import { powerMonitor } from "electron";
 import { TimerEngine, Trackable } from "./engine.js";
+import { TimerOrchestrator } from "./orchestrator.js";
 import { timeQueueStore } from "../store/timeQueueStore.js";
 import { globalTimerStore } from "../store/globalTimerStore.js";
 import type { TimeEntry, PauseReason } from "../../src/types/Timer.js";
@@ -30,6 +31,21 @@ const ensure = (): TimerEngine => {
   }
   return engine!;
 };
+
+const orchestrator = new TimerOrchestrator();
+
+function applyJourneyState() {
+  const st = orchestrator.getState();
+  const e = ensure();
+
+  if (st.journey === "running") {
+    e.workStart();
+  }
+
+  if (st.journey === "paused") {
+    e.workPause();
+  }
+}
 
 /* export function timerShutdown() {
   if (!engine) return;
@@ -363,6 +379,7 @@ export function registerTimerIpc() {
   handleOnce(
     "timer:enable",
     (_e, p: { lawyerId: string; appVersion?: string }) => {
+      orchestrator.handle({ type: "LOGIN", lawyerId: p.lawyerId });
       const engineInstance = ensure();
       const oldId = engineInstance.getMeta().lawyerId;
 
@@ -386,8 +403,7 @@ export function registerTimerIpc() {
       // (Aunque seedDailyBase no emite, el engine suele emitir en el proximo tick,
       // pero podés forzarlo si tenés un método pushState público o tocando algo).
 
-      // 👇 NUEVO: emitir estado inicial YA
-      engineInstance.forceEmitState();
+      applyJourneyState(); // 👈 NUEVO
 
       return { ok: true };
     }
@@ -395,6 +411,10 @@ export function registerTimerIpc() {
 
   // 🆕 acepta opts si alguna vez querés reset duro (preserveDay=false)
   handleOnce("timer:disable", (_e, opts?: { preserveDay?: boolean }) => {
+    orchestrator.handle({ type: "LOGOUT" });
+
+    applyJourneyState(); // 👈 NUEVO
+
     ensure().disable(opts);
     return { ok: true };
   });
