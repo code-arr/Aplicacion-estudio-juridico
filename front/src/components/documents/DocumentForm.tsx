@@ -96,13 +96,13 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
       return;
     }
 
-    // Autocompletar nombre si está vacío
-    /* const baseName = file.name.replace(/\.[^.]+$/, ""); */
+    // Autocompletar nombre si está vacío o solo espacios
+    const baseName = file.name.replace(/\.[^.]+$/, "");
 
     setNewDocument((s) => ({
       ...s,
       file,
-      name: s.name,
+      name: s.name.trim() ? s.name : baseName,
       error: null,
     }));
   }
@@ -182,7 +182,7 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
         }
       }}
     >
-      <DialogContent>
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Agregar Nuevo Documento</DialogTitle>
           <DialogDescription>
@@ -202,6 +202,7 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
               <Input
                 required
                 id="name"
+                className="max-w-lg"
                 value={newDocument.name}
                 onChange={(e) =>
                   setNewDocument({
@@ -215,8 +216,8 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
           </div>
           {/* si hay archivo, mostramos “estado cargado”; si no, el dropzone */}
           {newDocument.file ? (
-            <div className="mt-2 border rounded-lg p-4 flex items-center justify-between gap-3">
-              <div className="min-w-0">
+            <div className="mt-2 border rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 max-w-lg">
+              <div className="min-w-0 max-w-full">
                 <p className="text-sm font-medium text-gray-900 truncate">
                   {newDocument.file.name}
                 </p>
@@ -230,6 +231,7 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
                 {/* Cambiar → abre el input oculto */}
                 <Button
                   type="button"
+                  size="sm"
                   variant="outline"
                   onClick={pickFile}
                   /* onClick={() => document.getElementById(fileInputId)?.click()} */
@@ -240,6 +242,7 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
                 {/* Quitar → limpia el archivo (dejamos el nombre como lo haya editado el usuario) */}
                 <Button
                   type="button"
+                  size="sm"
                   variant="destructive"
                   onClick={() => {
                     setNewDocument((s) => ({ ...s, file: null }));
@@ -304,7 +307,7 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
               handleFileSelected(f);
             }}
           />
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-6">
             <Button type="submit" disabled={isDisabled || submitting}>
               {submitting ? "Subiendo..." : "Agregar Documento"}
             </Button>
