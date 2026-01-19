@@ -32,6 +32,21 @@ export class DocumentController {
     @Query('lawyerId') lawyerId: string,
   ): Promise<Document> {
     if (!file) throw new BadRequestException('File required');
+
+    // 🔐 Backend filter: solo PDFs reales
+    if (file.mimetype !== 'application/pdf') {
+      throw new BadRequestException(
+        'Tipo de archivo no permitido. Solo se admiten documentos PDF.',
+      );
+    }
+
+    // Validar firma PDF (%PDF-)
+    const fileHeader = file.buffer.slice(0, 5).toString('utf-8');
+    if (!fileHeader.startsWith('%PDF-')) {
+      throw new BadRequestException(
+        'Archivo inválido. El documento no es un PDF válido.',
+      );
+    }
     return this.documentService.createDocument(
       clientItemId,
       file.buffer,
