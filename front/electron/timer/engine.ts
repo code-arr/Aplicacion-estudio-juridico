@@ -84,6 +84,8 @@ export class TimerEngine extends EventEmitter {
 
   private segmentEmitter?: (seg: EmittedSegment) => void;
 
+  private ready = false; // 👈 NUEVO
+
   // =============== Snapshot diario ===============
   seedDailyBase(
     snap: {
@@ -475,11 +477,17 @@ export class TimerEngine extends EventEmitter {
     return () => this.off("state", cb);
   }
 
+  setReady(ready: boolean) {
+    this.ready = ready;
+    this.pushState(); // 🔔 avisamos al renderer
+  }
+
   toMirror(): Partial<{
     enabled: boolean;
     status: Extract<TimerStatus, "running" | "stopped">;
     runningSince?: number | null; // epoch ms
     accumSecToday: number; // entero, cambia +1s estrictamente
+    ready: boolean;
     active: { type: TrackableType; id: string } | null;
     contextStatus: TimerStatus;
     lastActivityAt: number;
@@ -491,6 +499,7 @@ export class TimerEngine extends EventEmitter {
       status: g.status,
       runningSince: this.globalRunStartMs ?? null,
       accumSecToday: this.state.metrics.workTodaySec,
+      ready: this.ready,
       active: c.active,
       contextStatus: c.status,
       lastActivityAt: g.lastActivityUTC

@@ -1,4 +1,4 @@
-// src/hooks/useEnsureTimerPrimed.ts
+/* // src/hooks/useEnsureTimerPrimed.ts
 import { useEffect, useRef } from "react";
 import { useLawyerStore } from "@/store/useLawyerStore";
 import { useTimerUIStore } from "@/store/useTimerUIStore";
@@ -63,4 +63,4 @@ export function useEnsureTimerPrimed(enabled: boolean) {
       doneRef.current = false;
     };
   }, [enabled, lawyerId]);
-}
+} */

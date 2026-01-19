@@ -2,6 +2,16 @@
 
 import type { Trackable } from "./engine.js";
 
+export type TimerDecision =
+  | { type: "ENGINE_ENABLE"; lawyerId: string }
+  | { type: "ENGINE_WORK_START" }
+  | { type: "ENGINE_WORK_PAUSE" }
+  | {
+      type: "ENGINE_ALIGNED_STOP";
+      reason: "idle" | "logout" | "close" | "switch";
+    }
+  | { type: "NO_OP" };
+
 /**
  * Eventos semánticos que recibe el orquestador.
  * NO son acciones directas sobre los timers.
@@ -12,11 +22,14 @@ export type TimerEvent =
   | { type: "IDLE" }
   | { type: "ACTIVITY" }
   | { type: "DAY_CHANGE" }
-  | { type: "CONTEXT_SWITCH"; context: Trackable | null };
+  | { type: "CONTEXT_SWITCH"; context: Trackable | null }
+  | { type: "APP_CLOSE" }
+  | { type: "APP_MINIMIZED" }
+  | { type: "APP_RESTORED" };
 
 /**
  * Estado lógico de la jornada.
- * NO es estado del engine.
+ * NO es estado del engine ni segundos.
  */
 type JourneyState = "idle" | "running" | "paused";
 
@@ -27,6 +40,7 @@ type OrchestratorState = {
   dayKey: string;
 };
 
+// YYYY-MM-DD local
 function todayKey(): string {
   const d = new Date();
   const y = d.getFullYear();
@@ -38,15 +52,14 @@ function todayKey(): string {
 /**
  * Orquestador central de timers.
  *
- * 👉 Decide QUÉ hacer
+ * 👉 Decide ESTADOS
+ * 👉 NO ejecuta acciones
  * 👉 NO mide tiempo
- * 👉 NO guarda segundos
- * 👉 NO habla con la UI
+ * 👉 NO habla con el engine
  *
  * En Fase 1:
- * - Solo guarda estado
- * - Loguea eventos
- * - NO toca ningún engine
+ * - Máquina de estados pura
+ * - Logs explícitos
  */
 export class TimerOrchestrator {
   private state: OrchestratorState;
@@ -64,61 +77,98 @@ export class TimerOrchestrator {
    * Punto ÚNICO de entrada.
    * Todas las decisiones pasan por acá.
    */
-  handle(event: TimerEvent) {
-    // 🔍 Log temporal para debugging (se va a sacar después)
-    console.log("[TIMER-ORCHESTRATOR]", event, {
-      journey: this.state.journey,
-      lawyerId: this.state.lawyerId,
-      context: this.state.context,
-      dayKey: this.state.dayKey,
-    });
+  handle(event: TimerEvent): TimerDecision[] {
+    console.log("[TIMER-ORCHESTRATOR]", event, { ...this.state });
 
     switch (event.type) {
       case "LOGIN": {
-        // cambio de día → arrancamos jornada nueva
         const today = todayKey();
+
         if (this.state.dayKey !== today) {
           this.state.dayKey = today;
           this.state.journey = "running";
           this.state.lawyerId = event.lawyerId;
-          return;
+
+          return [
+            { type: "ENGINE_ENABLE", lawyerId: event.lawyerId },
+            { type: "ENGINE_WORK_START" },
+          ];
         }
 
-        // mismo día
         this.state.lawyerId = event.lawyerId;
 
-        if (this.state.journey === "idle") {
-          this.state.journey = "running"; // START
-        } else if (this.state.journey === "paused") {
-          this.state.journey = "running"; // RESUME
+        if (this.state.journey !== "running") {
+          this.state.journey = "running";
+          return [
+            { type: "ENGINE_ENABLE", lawyerId: event.lawyerId },
+            { type: "ENGINE_WORK_START" },
+          ];
         }
 
-        return;
+        return [{ type: "NO_OP" }];
       }
 
       case "LOGOUT": {
         if (this.state.journey === "running") {
-          this.state.journey = "paused"; // PAUSE
+          this.state.journey = "paused";
+          return [{ type: "ENGINE_ALIGNED_STOP", reason: "logout" }];
         }
-        return;
+        return [{ type: "NO_OP" }];
       }
 
       case "IDLE": {
-        return;
+        if (this.state.journey === "running") {
+          this.state.journey = "paused";
+          return [{ type: "ENGINE_ALIGNED_STOP", reason: "idle" }];
+        }
+        return [{ type: "NO_OP" }];
       }
 
       case "ACTIVITY": {
-        return;
+        if (this.state.journey === "paused") {
+          this.state.journey = "running";
+          return [{ type: "ENGINE_WORK_START" }];
+        }
+        return [{ type: "NO_OP" }];
       }
 
       case "DAY_CHANGE": {
         this.state.dayKey = todayKey();
-        return;
+        this.state.journey = "idle";
+        this.state.context = null;
+        return [{ type: "ENGINE_ALIGNED_STOP", reason: "close" }];
       }
 
       case "CONTEXT_SWITCH": {
         this.state.context = event.context;
-        return;
+        return [{ type: "NO_OP" }];
+      }
+
+      case "APP_CLOSE": {
+        // Si la jornada estaba activa, la cerramos de forma alineada
+        if (this.state.journey === "running") {
+          this.state.journey = "paused";
+          return [{ type: "ENGINE_ALIGNED_STOP", reason: "close" }];
+        }
+
+        // Si ya estaba pausada o idle, no hacemos nada
+        return [{ type: "NO_OP" }];
+      }
+
+      case "APP_MINIMIZED": {
+        if (this.state.journey === "running") {
+          this.state.journey = "paused";
+          return [{ type: "ENGINE_ALIGNED_STOP", reason: "switch" }];
+        }
+        return [{ type: "NO_OP" }];
+      }
+
+      case "APP_RESTORED": {
+        if (this.state.journey === "paused") {
+          this.state.journey = "running";
+          return [{ type: "ENGINE_WORK_START" }];
+        }
+        return [{ type: "NO_OP" }];
       }
     }
   }
@@ -126,7 +176,7 @@ export class TimerOrchestrator {
   /**
    * Útil para tests y debugging
    */
-  getState() {
+  getState(): OrchestratorState {
     return { ...this.state };
   }
 }

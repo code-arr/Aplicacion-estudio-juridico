@@ -20,12 +20,22 @@ export default function WorkTimeBadge({
 }: Props) {
   // Estado proveniente del engine (main) vía store UI
   const enabled = useTimerUIStore((s) => s.enabled);
+  const ready = useTimerUIStore((s) => s.ready);
   const status = useTimerUIStore((s) => s.status); // "running" | "stopped"
   const totalSec = useTimerUIStore((s) => s.accumSecToday);
+  const runningSince = useTimerUIStore((s) => s.runningSince);
   const isBound = useTimerUIStore((s) => s.__bound);
 
-  // Si todavía no se bindeó la suscripción o no está habilitado, no mostramos nada
-  if (!isBound || !enabled) return null;
+  /**
+   * 🛑 GATE CORRECTO
+   *
+   * No mostramos NADA hasta que:
+   * - el store esté bindeado
+   * - el timer esté habilitado
+   * - el engine haya restaurado snapshot (ready=true)
+   */
+  if (!isBound || !enabled || !ready) return null;
+
   if (!showWhenStopped && status !== "running") return null;
 
   const clock = formatHMS(totalSec);

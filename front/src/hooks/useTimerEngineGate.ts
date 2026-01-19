@@ -14,11 +14,10 @@ export function useTimerEngineGate(
       window.timer
         .enable({ lawyerId, appVersion })
         .then(() => {
-          /* window.timer.workStart(); */ // enciende global ni bien hay sesión
+          // window.timer.workStart();  enciende global ni bien hay sesión
           window.timer.markActivity(); // ancla la primera inactividad al "ahora"
         })
         .catch(() => {});
-      console.log("Timer habilitado");
     } else {
       window.timer.disable().catch(() => {});
     }

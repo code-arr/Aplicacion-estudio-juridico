@@ -8,8 +8,11 @@ import { useTimerUIStore } from "@/store/useTimerUIStore";
 import { useClientStore } from "./useClientStore";
 import { useClientItemStore } from "./useClientItemStore";
 
+let restoreSessionOnce = false;
+
 export async function restoreSession() {
-  console.log("Entra a restoreSession");
+  if (restoreSessionOnce) return;
+  restoreSessionOnce = true;
   useAuthStore.setState({ isLoadingSession: true });
   try {
     const authData = await window.electronAPI?.invoke("auth:get");

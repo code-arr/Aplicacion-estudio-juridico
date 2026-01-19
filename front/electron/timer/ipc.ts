@@ -3,7 +3,7 @@ import { BrowserWindow, ipcMain } from "electron";
 import { randomUUID } from "crypto";
 import { powerMonitor } from "electron";
 import { TimerEngine, Trackable } from "./engine.js";
-import { TimerOrchestrator } from "./orchestrator.js";
+import { TimerDecision, TimerOrchestrator } from "./orchestrator.js";
 import { timeQueueStore } from "../store/timeQueueStore.js";
 import { globalTimerStore } from "../store/globalTimerStore.js";
 import type { TimeEntry, PauseReason } from "../../src/types/Timer.js";
@@ -34,45 +34,52 @@ const ensure = (): TimerEngine => {
 
 const orchestrator = new TimerOrchestrator();
 
-function applyJourneyState() {
-  const st = orchestrator.getState();
-  const e = ensure();
+function applyDecisions(decisions: TimerDecision[]) {
+  for (const d of decisions) {
+    switch (d.type) {
+      case "ENGINE_ENABLE": {
+        const e = ensure();
 
-  if (st.journey === "running") {
-    e.workStart();
-  }
+        if (e.getMeta().lawyerId === d.lawyerId && e.toMirror().ready) {
+          break; // ya está habilitado
+        }
 
-  if (st.journey === "paused") {
-    e.workPause();
+        // 1) habilitar engine con lawyerId
+        e.enable(d.lawyerId);
+
+        // 2) leer snapshot persistido de ESTE abogado
+        const savedSnap = globalTimerStore.read(d.lawyerId);
+        console.log("[TIMER SNAP READ]", {
+          lawyerId: d.lawyerId,
+          savedSnap,
+        });
+
+        // 3) restaurar base diaria (o resetear si es otro día)
+        e.seedDailyBase(savedSnap);
+
+        // 4) marcar engine como listo (gate para el renderer)
+        e.setReady(true);
+
+        break;
+      }
+
+      case "ENGINE_WORK_START":
+        ensure().workStart();
+        break;
+
+      case "ENGINE_WORK_PAUSE":
+        ensure().workPause();
+        break;
+
+      case "ENGINE_ALIGNED_STOP":
+        alignedStop(d.reason);
+        break;
+
+      case "NO_OP":
+        break;
+    }
   }
 }
-
-/* export function timerShutdown() {
-  if (!engine) return;
-  try {
-    // Alinear al último segundo ya mostrado
-    const mirror = engine.toMirror();
-    let displayEndMs = Date.now();
-    if (mirror.runningSince != null) {
-      const runSecShown = Math.max(
-        0,
-        Math.floor((Date.now() - mirror.runningSince) / 1000)
-      );
-      displayEndMs = mirror.runningSince + runSecShown * 1000;
-    }
-    const eff = Math.min(displayEndMs, Date.now());
-
-    // 1) cerrar contexto (emite segmento)
-    engine.pause("close", eff);
-    // 2) detener global en el mismo instante
-    engine.workPause(eff);
-
-    // 3) persistir snapshot
-    globalTimerStore.write(engine.getDailySnapshot());
-  } catch (e) {
-    console.error("[timerShutdown]", e);
-  }
-} */
 
 // ---------------------------------------------------------
 // Persistencia + broadcast del mirror a todos los windows
@@ -84,7 +91,12 @@ const wireState = () => {
 
     if (currentLawyerId) {
       try {
-        globalTimerStore.write(currentLawyerId, ensure().getDailySnapshot());
+        const snap = ensure().getDailySnapshot();
+
+        // ⛔ no pisar un día ya iniciado con 0
+        if (snap.accumSecToday > 0) {
+          globalTimerStore.write(currentLawyerId, snap);
+        }
       } catch (e) {
         console.error("[globalTimerStore.write] failed:", e);
       }
@@ -144,37 +156,12 @@ function alignedStop(reason: PauseReason | "suspend" | "close" | "idle") {
     console.error("[globalTimerStore.write] failed:", e);
   }
 }
-/* function alignedStop(reason: PauseReason | "suspend" | "close") {
-  const m = ensure().toMirror();
-
-  // 1) fin alineado al último segundo ya mostrado
-  let displayEndMs = Date.now();
-  if (m.runningSince != null) {
-    const runSecShown = Math.max(
-      0,
-      Math.floor((Date.now() - m.runningSince) / 1000)
-    );
-    displayEndMs = m.runningSince + runSecShown * 1000;
-  }
-  const eff = Math.min(displayEndMs, Date.now());
-
-  // 2) cerrá contexto y global (idempotente si ya estaban parados)
-  const st = ensure().getState();
-  if (st.ctx.status === "running") ensure().pause(reason, eff); // razón “close” o la que pases
-  if (st.global.status === "running") ensure().workPause(eff);
-
-  // 3) snapshot
-  try {
-    globalTimerStore.write(ensure().getDailySnapshot());
-  } catch {
-    console.error("[globalTimerStore.write] failed:");
-  }
-} */
 
 // ---------------------------------------------------------
 // Export para usar en main.ts (before-quit)
 export function timerShutdown() {
-  alignedStop("close");
+  const decisions = orchestrator.handle({ type: "APP_CLOSE" });
+  applyDecisions(decisions);
 }
 
 // ---------------------------------------------------------
@@ -190,59 +177,13 @@ function ensureIdleLoop() {
       const idle = powerMonitor.getSystemIdleTime?.() ?? 0;
       if (idle >= IDLE_SEC) {
         // 🆕 usa alignedStop("idle") → evita regalar segundos
-        alignedStop("idle");
+        const decisions = orchestrator.handle({ type: "IDLE" });
+        applyDecisions(decisions);
       }
     }, 3000);
   };
 }
 const startIdleLoop = ensureIdleLoop();
-
-/* ensure().onEmitSegment((seg) => {
-  const meta = ensure().getMeta();
-  const entry: TimeEntry = {
-    id: randomUUID(),
-    trackableType: seg.trackable.type,
-    trackableId: seg.trackable.id,
-    lawyerId: meta.lawyerId,
-    startedAtUTC: new Date(seg.startMs).toISOString(),
-    endedAtUTC: new Date(seg.endMs).toISOString(),
-    durationSec: seg.seconds,
-    pauseReason: seg.reason === "midnight-internal" ? "switch" : seg.reason,
-    appVersion: meta.appVersion,
-  };
-
-  // 👇 pretty log en la consola del proceso main (tu terminal)
-  const hms = (s: number) => {
-    const hh = Math.floor(s / 3600);
-    const mm = Math.floor((s % 3600) / 60);
-    const ss = s % 60;
-    return `${String(hh).padStart(2, "0")}:${String(mm).padStart(
-      2,
-      "0"
-    )}:${String(ss).padStart(2, "0")}`;
-  };
-
-  console.log(
-    "[TIME-ENTRY]",
-    `${entry.pauseReason?.toUpperCase()} | ${entry.trackableType}:${
-      entry.trackableId
-    } | ${hms(entry.durationSec)} |`,
-    `${entry.startedAtUTC} → ${entry.endedAtUTC}`
-  );
-
-  try {
-    timeQueueStore.append(entry);
-  } catch (e) {
-    console.error("[timeQueueStore.append] failed:", e);
-  }
-
-  // 👇 (opcional) reenviar a todos los renderers para verlo en DevTools
-  BrowserWindow.getAllWindows().forEach((win) => {
-    try {
-      win.webContents.send("dev:time-entry", entry);
-    } catch {}
-  });
-}); */
 
 // ---------------------------------------------------------
 // Pretty log para segmentos
@@ -332,7 +273,7 @@ export function registerTimerIpc() {
   startIdleLoop();
 
   // ================== APP VISIBILITY → TIMER CONTROL ==================
-  ipcMain.on("presence:event", (_e, ev: string) => {
+  /*   ipcMain.on("presence:event", (_e, ev: string) => {
     const engineInstance = ensure();
     const state = engineInstance.getState();
 
@@ -344,11 +285,12 @@ export function registerTimerIpc() {
           console.log(
             "[TIMER] App window closed (macOS) → stopping timer (close)"
           );
-          alignedStop("close");
+          timerShutdown();
         } else {
           // 🪟 Windows / Linux: comportamiento actual
           console.log("[TIMER] App minimized → stopping timer (switch)");
-          alignedStop("switch");
+          const decisions = orchestrator.handle({ type: "APP_MINIMIZED" });
+          applyDecisions(decisions);
         }
       }
       return;
@@ -356,22 +298,48 @@ export function registerTimerIpc() {
 
     // 🔺 Alguna ventana volvió a estar visible → reanudar tiempo
     if (ev === "app:restored-any") {
-      if (
-        state.global.enabled &&
-        state.global.status !== "running" &&
-        state.ctx.active
-      ) {
-        console.log("[TIMER] App restored → resuming timer");
-        engineInstance.workStart();
+      console.log("[TIMER] App restored → delegating to orchestrator");
+      const decisions = orchestrator.handle({ type: "APP_RESTORED" });
+      applyDecisions(decisions);
+      return;
+    }
+  }); */
+
+  ipcMain.on("presence:event", (_e, ev: string) => {
+    const orchState = orchestrator.getState();
+
+    if (ev === "app:minimized-all") {
+      if (orchState.journey !== "running") return;
+
+      if (process.platform === "darwin") {
+        const decisions = orchestrator.handle({ type: "APP_CLOSE" });
+        applyDecisions(decisions);
+      } else {
+        const decisions = orchestrator.handle({ type: "APP_MINIMIZED" });
+        applyDecisions(decisions);
       }
+      return;
+    }
+
+    if (ev === "app:restored-any") {
+      if (orchState.journey !== "paused") return;
+
+      const decisions = orchestrator.handle({ type: "ACTIVITY" });
+      applyDecisions(decisions);
       return;
     }
   });
 
   // 🆕 Eventos del SO (se instalan una sola vez)
-  powerMonitor.on("suspend", () => alignedStop("suspend"));
-  powerMonitor.on("lock-screen", () => alignedStop("suspend")); // tratamos lock como suspend
-  powerMonitor.on("shutdown", () => alignedStop("close")); // Windows: avisa antes que before-quit
+  powerMonitor.on("suspend", () => {
+    const decisions = orchestrator.handle({ type: "APP_CLOSE" });
+    applyDecisions(decisions);
+  });
+  powerMonitor.on("lock-screen", () => {
+    const decisions = orchestrator.handle({ type: "APP_CLOSE" });
+    applyDecisions(decisions);
+  }); // tratamos lock como suspend
+  powerMonitor.on("shutdown", () => timerShutdown()); // Windows: avisa antes que before-quit
 
   // --- Rutas IPC (todas con handleOnce) ---
   handleOnce("timer:getMirror", () => ensure().toMirror());
@@ -379,42 +347,18 @@ export function registerTimerIpc() {
   handleOnce(
     "timer:enable",
     (_e, p: { lawyerId: string; appVersion?: string }) => {
-      orchestrator.handle({ type: "LOGIN", lawyerId: p.lawyerId });
-      const engineInstance = ensure();
-      const oldId = engineInstance.getMeta().lawyerId;
-
-      // Si ya había alguien logueado y es distinto al nuevo...
-      if (oldId && oldId !== p.lawyerId) {
-        // Guardamos el estado del anterior por las dudas (safety save)
-        globalTimerStore.write(oldId, engineInstance.getDailySnapshot());
-      }
-
-      // 1. Habilitamos al nuevo (esto setea el lawyerId interno en el engine)
-      engineInstance.enable(p.lawyerId, p.appVersion);
-
-      // 2. Leemos el snapshot guardado de ESTE abogado
-      const savedSnap = globalTimerStore.read(p.lawyerId);
-
-      // 3. Reseteamos/Restauramos el engine con esos datos
-      // (seedDailyBase ya se encarga de poner en 0 si es otro día o restaurar si es hoy)
-      engineInstance.seedDailyBase(savedSnap);
-
-      // Forzamos un emit del estado nuevo para que el front se entere rápido
-      // (Aunque seedDailyBase no emite, el engine suele emitir en el proximo tick,
-      // pero podés forzarlo si tenés un método pushState público o tocando algo).
-
-      applyJourneyState(); // 👈 NUEVO
-
+      const decisions = orchestrator.handle({
+        type: "LOGIN",
+        lawyerId: p.lawyerId,
+      });
+      applyDecisions(decisions);
       return { ok: true };
     }
   );
 
-  // 🆕 acepta opts si alguna vez querés reset duro (preserveDay=false)
-  handleOnce("timer:disable", (_e, opts?: { preserveDay?: boolean }) => {
-    orchestrator.handle({ type: "LOGOUT" });
-
-    applyJourneyState(); // 👈 NUEVO
-
+  handleOnce("timer:disable", () => {
+    const decisions = orchestrator.handle({ type: "LOGOUT" });
+    applyDecisions(decisions);
     return { ok: true };
   });
 
@@ -448,10 +392,4 @@ export function registerTimerIpc() {
 
   // 🆕 sigue siendo un “fire-and-forget” (no hay race si llega tarde)
   ipcMain.on("timer:activity", () => ensure().markActivity());
-
-  // 🆕 API utilitaria para pedir una detención alineada explícita
-  handleOnce("timer:alignedStop", (_e, reason: PauseReason) => {
-    alignedStop(reason);
-    return { ok: true };
-  });
 }

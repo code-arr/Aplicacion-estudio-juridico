@@ -4,6 +4,7 @@ import type { Trackable, TimerStatus } from "@/types/Timer";
 
 type MirrorState = {
   enabled: boolean;
+  ready: boolean;
   status: Extract<TimerStatus, "running" | "stopped">; // global
   runningSince?: number | null; // epoch ms
   accumSecToday: number;
@@ -21,6 +22,7 @@ type MirrorStore = MirrorState & {
 
 export const useTimerUIStore = create<MirrorStore>((set, get) => ({
   enabled: false,
+  ready: false,
   status: "stopped",
   runningSince: null,
   accumSecToday: 0,
@@ -41,8 +43,26 @@ export const useTimerUIStore = create<MirrorStore>((set, get) => ({
     }
 
     const off = await window.timer.subscribe((s: Partial<MirrorState>) => {
-      // s viene parcial; mergeamos con lo anterior
-      set((prev) => ({ ...prev, ...s }));
+      set((prev) => {
+        // 🟢 RESET REAL solo si ambos estados son READY
+        if (
+          prev.ready &&
+          s.ready &&
+          typeof s.accumSecToday === "number" &&
+          prev.accumSecToday > s.accumSecToday
+        ) {
+          console.warn(
+            "%c[TIMER RESET DETECTED]",
+            "color:#ef4444;font-weight:bold",
+            {
+              from: prev.accumSecToday,
+              to: s.accumSecToday,
+            }
+          );
+        }
+
+        return { ...prev, ...s };
+      });
     });
 
     set({ __bound: true, __off: off });

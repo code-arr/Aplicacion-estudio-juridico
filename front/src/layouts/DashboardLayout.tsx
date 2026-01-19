@@ -22,7 +22,7 @@ import { useTokenExpirationWatcher } from "@/hooks/useTokenExpirationWatcher";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { useAppPresenceTimer } from "@/hooks/useAppPresenceTimer";
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
-import { useEnsureTimerPrimed } from "@/hooks/useEnsureTimerPrimed";
+/* import { useEnsureTimerPrimed } from "@/hooks/useEnsureTimerPrimed"; */
 import { useTimerEngineGate } from "@/hooks/useTimerEngineGate";
 import { useTimeSyncInit } from "@/hooks/useTimeSyncInit";
 import { useIdleWatch } from "@/hooks/useIdleWatch";
@@ -80,7 +80,7 @@ const DashboardLayout = () => {
   // Timers (renderer)
   /* useActivityHeartbeat({ enabled: timersEnabled }); */
   useAppPresenceTimer(timersEnabled);
-  useEnsureTimerPrimed(timersEnabled);
+  /*   useEnsureTimerPrimed(timersEnabled); */
   /* useIdleWatch(timersEnabled); */
 
   // ──────────────────────────────────────────────────────────────
