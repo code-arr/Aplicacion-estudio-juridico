@@ -1,3 +1,4 @@
+// front/src/components/pdf/PdfViewerTabs.tsx
 import type { OpenDoc } from "@/types/Document";
 import { usePdfManagerStore } from "@/store/usePdfManagerStore";
 import PdfTabBar from "./PdfTabBar";

@@ -33,7 +33,7 @@ const initialItemState: NewDocument = {
   error: null,
 };
 
-const ACCEPT = ".pdf,.doc,.docx,.png,.jpg,.jpeg"; // ajustá según tu proyecto
+const ACCEPT = ".pdf"; // ajustá según tu proyecto
 const MAX_SIZE_MB = 50;
 
 function formatBytes(bytes: number) {
@@ -46,7 +46,7 @@ function formatBytes(bytes: number) {
 
 function isAllowedType(file: File) {
   // Validación sencilla por extensión (podés mejorar chequeando MIME real si querés)
-  const allowedExt = new Set(["pdf", "doc", "docx", "png", "jpg", "jpeg"]);
+  const allowedExt = new Set(["pdf"]);
   const extMatch = file.name.toLowerCase().match(/\.([a-z0-9]+)$/i);
   if (!extMatch) return false;
   const ext = extMatch[1];
@@ -90,7 +90,7 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
       setNewDocument((s) => ({
         ...s,
         error:
-          "Tipo de archivo no permitido. Usá PDF, DOC, DOCX, PNG, JPG o JPEG.",
+          "Tipo de archivo no permitido. El sistema solo admite documentos en formato PDF.",
         file: null,
       }));
       return;
@@ -122,6 +122,15 @@ const DocumentForm = ({ isDialogOpen, onOpenChange }: DocumentFormProps) => {
       setNewDocument((s) => ({
         ...s,
         error: "Completá el nombre y seleccioná un archivo.",
+      }));
+      return;
+    }
+
+    if (!isAllowedType(file)) {
+      setNewDocument((s) => ({
+        ...s,
+        error:
+          "Tipo de archivo no permitido. El sistema solo admite documentos en formato PDF.",
       }));
       return;
     }

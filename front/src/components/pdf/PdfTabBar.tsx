@@ -1,3 +1,4 @@
+// front/src/components/pdf/PdfTabBar.tsx
 import { useEffect, useRef } from "react";
 import { usePdfManagerStore } from "@/store/usePdfManagerStore";
 
