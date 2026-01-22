@@ -11,7 +11,6 @@ export function getGmailClient(refreshToken: string) {
   const oauth2 = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID!,
     process.env.GOOGLE_CLIENT_SECRET!,
-    process.env.GOOGLE_CALLBACK_URL!, // debe coincidir con tu config de consola de Google
   );
   oauth2.setCredentials({ refresh_token: refreshToken });
 
@@ -92,3 +91,4 @@ export function buildMimeMessage({
   const rawMessage = headers + htmlPart + attachmentPart + closing;
   return toBase64Url(rawMessage);
 }
+
