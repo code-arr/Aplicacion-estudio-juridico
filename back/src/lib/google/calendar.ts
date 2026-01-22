@@ -12,7 +12,7 @@ export class GoogleCalendarService {
     private readonly userService: UserService,
   ) {}
 
-  private async getAccessTokenFromRefreshToken(refreshToken: string) {
+  /* private async getAccessTokenFromRefreshToken(refreshToken: string) {
     const url = 'https://oauth2.googleapis.com/token';
     const params = new URLSearchParams();
     params.append('client_id', process.env.GOOGLE_CLIENT_ID || '');
@@ -29,6 +29,20 @@ export class GoogleCalendarService {
         'No se pudo obtener el accessToken con el refreshToken proporcionado.',
       );
     }
+  } */
+
+  private createOAuthClient(refreshToken: string) {
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_CALLBACK_URL,
+    );
+
+    oauth2Client.setCredentials({
+      refresh_token: refreshToken,
+    });
+
+    return oauth2Client;
   }
 
   // Función para formatear fecha sin la Z (hora local)
@@ -52,7 +66,7 @@ export class GoogleCalendarService {
         );
       }
 
-      // 2️⃣ Obtener access token
+      /*       // 2️⃣ Obtener access token
       const accessToken = await this.getAccessTokenFromRefreshToken(
         user.googleRefreshToken,
       );
@@ -60,11 +74,13 @@ export class GoogleCalendarService {
         throw new InternalServerErrorException(
           'No se pudo obtener el token de acceso.',
         );
-      }
+      } */
 
       // 3️⃣ Configurar cliente de Google
-      const oauth2Client = new google.auth.OAuth2();
+      /*       const oauth2Client = new google.auth.OAuth2();
       oauth2Client.setCredentials({ access_token: accessToken });
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client }); */
+      const oauth2Client = this.createOAuthClient(user.googleRefreshToken);
       const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
       // 4️⃣ Fechas
@@ -135,11 +151,13 @@ export class GoogleCalendarService {
         );
       }
 
-      const accessToken = await this.getAccessTokenFromRefreshToken(
+      /* const accessToken = await this.getAccessTokenFromRefreshToken(
         user.googleRefreshToken,
       );
       const oauth2Client = new google.auth.OAuth2();
-      oauth2Client.setCredentials({ access_token: accessToken });
+      oauth2Client.setCredentials({ access_token: accessToken }); */
+
+      const oauth2Client = this.createOAuthClient(user.googleRefreshToken);
       const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
       const timeZone = patch.timeZone ?? 'America/Santiago';
@@ -199,11 +217,13 @@ export class GoogleCalendarService {
           'El refresh token de Google no está configurado para este usuario.',
         );
       }
-      const accessToken = await this.getAccessTokenFromRefreshToken(
+      /* const accessToken = await this.getAccessTokenFromRefreshToken(
         user.googleRefreshToken,
       );
       const oauth2Client = new google.auth.OAuth2();
-      oauth2Client.setCredentials({ access_token: accessToken });
+      oauth2Client.setCredentials({ access_token: accessToken }); */
+
+      const oauth2Client = this.createOAuthClient(user.googleRefreshToken);
       const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
       await calendar.events.delete({
@@ -222,3 +242,4 @@ export class GoogleCalendarService {
     }
   }
 }
+
