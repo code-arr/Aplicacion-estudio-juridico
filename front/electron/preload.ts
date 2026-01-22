@@ -28,8 +28,8 @@ contextBridge.exposeInMainWorld("presence", {
         | "app:unlock"
         | "app:shutdown"
         | "app:minimized-all" // ⬅️ agregados
-        | "app:restored-any" // ⬅️ agregados
-    ) => void
+        | "app:restored-any", // ⬅️ agregados
+    ) => void,
   ) => {
     const channel = "presence:event";
     const handler = (_: any, ev: any) => cb(ev);
@@ -63,9 +63,6 @@ contextBridge.exposeInMainWorld("timer", {
   workPause: (effectiveEndMs?: number) =>
     ipcRenderer.invoke("timer:workPause", effectiveEndMs),
   markActivity: () => ipcRenderer.send("timer:activity"),
-
-  alignedStop: (reason: string) =>
-    ipcRenderer.invoke("timer:alignedStop", reason),
 
   subscribe: async (cb: (partialMirror: any) => void) => {
     const listener = (_: any, mirror: any) => cb(mirror);

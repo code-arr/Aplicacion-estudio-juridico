@@ -94,29 +94,25 @@ export const useAuthStore = create<AuthState>()((set) => ({
     }));
   },
   logout: async () => {
-    // 1) Cerrar contexto + global con fin alineado y persistir snapshot
-    await window.timer?.alignedStop?.("logout");
+    // 1️⃣ Avisar LOGOUT al sistema de timers (orquestador)
+    await window.timer?.disable?.();
 
-    // 2) Apagar el engine pero CONSERVAR el acumulado del día
-    /* await window.timer?.disable?.({ preserveDay: true }); */
-
-    // 3) Limpiar auth del main
+    // 2️⃣ Limpiar auth del main
     await window.electronAPI?.invoke("auth:clear");
 
-    // 4) Reset visual del mirror en el renderer (opcional pero prolijo)
-    //    Evita que el badge muestre restos hasta que se rehaga el bind en Dashboard
+    // 3️⃣ Reset visual del timer en el renderer (solo UI)
     useTimerUIStore.setState({
       enabled: false,
+      ready: false,
       status: "stopped",
       runningSince: null,
-      accumSecToday: 0, // 👈 esto es SOLO estado UI; el acumulado real está en disco
+      accumSecToday: 0, // ⚠️ SOLO UI, el real está persistido
       active: null,
       contextStatus: "stopped",
       lastActivityAt: Date.now(),
     });
 
-    // 5) Estado de auth en memoria
-    // 1️⃣ Limpiar auth
+    // 4️⃣ Estado de auth en memoria
     set(() => ({
       user: null,
       token: null,
@@ -126,13 +122,9 @@ export const useAuthStore = create<AuthState>()((set) => ({
       isLawyer: false,
     }));
 
-    // 2️⃣ Limpiar lawyer store
+    // 5️⃣ Limpiar stores relacionados
     useLawyerStore.getState().resetLawyer();
-
-    // 3️⃣ Limpiar clientes
     useClientStore.getState().reset();
-
-    // 4️⃣ Limpiar client items
     useClientItemStore.getState().reset();
   },
   reset: async () => {

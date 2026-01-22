@@ -21,8 +21,8 @@ declare global {
             | "app:unlock"
             | "app:shutdown"
             | "app:minimized-all"
-            | "app:restored-any"
-        ) => void
+            | "app:restored-any",
+        ) => void,
       ) => () => void;
     };
     timer: {
@@ -40,21 +40,18 @@ declare global {
           | "switch"
           | "close"
           | "logout"
-          | "suspend"
+          | "suspend",
       ) => Promise<any>;
       switchTo: (t: { type: string; id: string } | null) => Promise<any>;
       subscribe: (cb: (s: any) => void) => Promise<() => void>;
       workStart: () => Promise<any>;
       workPause: (effectiveEndMs?: number) => Promise<any>;
-      alignedStop: (
-        reason: "idle" | "switch" | "close" | "logout" | "suspend"
-      ) => Promise<any>;
     };
     electronAPI: {
       send: (channel: string, data?: any) => void;
       on: (
         channel: string,
-        callback: (event: any, ...args: any[]) => void
+        callback: (event: any, ...args: any[]) => void,
       ) => void;
       invoke: (channel: string, data?: any) => Promise<any>;
       seleccionarArchivo: () => Promise<string | null>;
@@ -81,7 +78,7 @@ declare global {
       addDocs: (payload: { docs: any[]; activeId?: string | null }) => void;
       close: () => void;
       onAddDocs: (
-        cb: (payload: { docs: any[]; activeId?: string | null }) => void
+        cb: (payload: { docs: any[]; activeId?: string | null }) => void,
       ) => () => void;
       closeById: (id: string) => void;
       onCloseById: (cb: (id: string) => void) => () => void;
@@ -97,7 +94,7 @@ declare global {
       }) => void;
       close: () => void;
       onAddDocs: (
-        cb: (payload: { audiences: any[]; activeId?: string | null }) => void
+        cb: (payload: { audiences: any[]; activeId?: string | null }) => void,
       ) => () => void;
       closeById: (id: string) => void;
       onCloseById: (cb: (id: string) => void) => () => void;
@@ -107,7 +104,7 @@ declare global {
     };
     mainLog?: {
       onLog?: (
-        cb: (entry: { level: string; payload: string[] }) => void
+        cb: (entry: { level: string; payload: string[] }) => void,
       ) => () => void;
     };
   }
