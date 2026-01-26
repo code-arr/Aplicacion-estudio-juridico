@@ -1,3 +1,4 @@
+// src/entities/itemType.entity.ts
 import { IsUUID } from 'class-validator';
 import {
   Column,
@@ -31,7 +32,5 @@ export class ItemType {
 
   @ManyToOne(() => Section, (section) => section.items)
   section: Section;
-
-  @OneToMany(() => ClientItem, (clientItem) => clientItem.itemType)
-  clientItems: ClientItem[];
 }
+

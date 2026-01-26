@@ -1,3 +1,4 @@
+// src/repositories/itemType.repository.ts
 import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ItemTypeDto } from '../dtos/itemType.dto';
@@ -123,7 +124,7 @@ export class ItemTypeRepository implements OnModuleInit {
   }
 
   async getAllItemTypesSeeder(): Promise<ItemType[]> {
-  return this.itemRepository.find({ relations: ['section'] });
+    return this.itemRepository.find({ relations: ['section'] });
+  }
 }
 
-}

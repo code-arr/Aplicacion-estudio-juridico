@@ -100,21 +100,18 @@ export class ClientItem {
   @OneToMany(() => Meeting, (meet) => meet.clientItem)
   meetings: Meeting[];
 
-  @ManyToOne(() => ItemType, (itemType) => itemType.clientItems, {
-    nullable: true,
-  })
+  @ManyToOne(() => ItemType, { nullable: true })
   itemType?: ItemType | null;
 
-  @ManyToOne(() => Category, (category) => category.clientItems, {
-    nullable: true,
-  })
+  @ManyToOne(() => Category, { nullable: true })
   category?: Category | null;
 
-  @ManyToOne(() => Section, (section) => section.clientItems, {
-    nullable: true,
-  })
+  @ManyToOne(() => Section, { nullable: true })
   section?: Section | null;
 
-  @OneToMany(() => EntryDay, (entry) => entry.clientItem, {onDelete: 'CASCADE'}) // 'entry.clientItem' debe coincidir con el nombre de la propiedad en EntryDay
+  @OneToMany(() => EntryDay, (entry) => entry.clientItem, {
+    onDelete: 'CASCADE',
+  }) // 'entry.clientItem' debe coincidir con el nombre de la propiedad en EntryDay
   public entries: EntryDay[];
 }
+

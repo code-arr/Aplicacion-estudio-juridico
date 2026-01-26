@@ -1,3 +1,4 @@
+// src/entities/section.entity.ts
 import { IsUUID } from 'class-validator';
 import {
   Column,
@@ -32,7 +33,5 @@ export class Section {
 
   @OneToMany(() => ItemType, (item) => item.section)
   items: ItemType[];
-
-  @OneToMany(() => ClientItem, (clientItem) => clientItem.section)
-  clientItems: ClientItem[];
 }
+
