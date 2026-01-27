@@ -341,9 +341,7 @@ export class ClientItemRepository implements OnModuleInit {
         'meetings',
         'itemType.section.category',
         'category',
-        'category.clientItems',
         'section',
-        'section.clientItems',
         'section.category',
       ],
     });
@@ -601,3 +599,4 @@ export class ClientItemRepository implements OnModuleInit {
     // No se lanza un error si el ID no existe, simplemente 'affected' será 0.
   }
 }
+
